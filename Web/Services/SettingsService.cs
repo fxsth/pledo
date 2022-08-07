@@ -23,9 +23,11 @@ public class SettingsService : ISettingsService
         await _context.SaveChangesAsync();
     }
     
-    public async Task RemovePlexAccount(PlexAccount plexAccount)
+    public async Task RemovePlexAccount(string username)
     {
-        _context.PlexAccounts.Remove(plexAccount);
+        PlexAccount account = new PlexAccount() {Username = username};
+        _context.PlexAccounts.Attach(account);
+        _context.PlexAccounts.Remove(account);
         await _context.SaveChangesAsync();
     }
 }

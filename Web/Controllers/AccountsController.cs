@@ -8,11 +8,6 @@ namespace Web.Controllers;
 [Route("api/[controller]")]
 public class AccountsController : ControllerBase
 {
-    private static readonly string[] Summaries = new[]
-    {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
-
     private readonly ISettingsService _settingsService;
     private readonly ILogger<AccountsController> _logger;
 
@@ -32,5 +27,11 @@ public class AccountsController : ControllerBase
     public async Task Add([FromBody] PlexAccount account)
     {
         await _settingsService.AddPlexAccount(account);
+    }
+    
+    [HttpDelete("{username}")]
+    public async Task Delete(string username)
+    {
+        await _settingsService.RemovePlexAccount(username);
     }
 }

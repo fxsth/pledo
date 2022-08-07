@@ -8,5 +8,5 @@ public interface ISettingsService
 
     Task AddPlexAccount(PlexAccount plexAccount);
 
-    Task RemovePlexAccount(PlexAccount plexAccount);
+    Task RemovePlexAccount(string username);
 }
