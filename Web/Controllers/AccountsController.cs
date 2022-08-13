@@ -18,13 +18,13 @@ public class AccountsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IEnumerable<PlexAccount>> Get()
+    public async Task<IEnumerable<Account>> Get()
     {
         return await _settingsService.GetPlexAccounts();
     }
     
     [HttpPost]
-    public async Task Add([FromBody] PlexAccount account)
+    public async Task Add([FromBody] Account account)
     {
         await _settingsService.AddPlexAccount(account);
     }

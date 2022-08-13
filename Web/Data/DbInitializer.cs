@@ -12,13 +12,13 @@ public static class DbInitializer
             return; // DB has been seeded
         }
 
-        var plexAccounts = new PlexAccount[]
+        var plexAccounts = new Account[]
         {
-            new PlexAccount()
+            new Account()
             {
                 Username = "MaxMustermann",
                 Password = "******",
-                AuthKey = "jgfieowjcsylr<j2453983"
+                UserToken = "jgfieowjcsylr<j2453983"
             }
         };
 

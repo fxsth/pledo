@@ -4,9 +4,12 @@ namespace Web.Services;
 
 public interface ISettingsService
 {
-    Task<IEnumerable<PlexAccount>> GetPlexAccounts();
+    Task<IEnumerable<Account>> GetPlexAccounts();
+    Task<IEnumerable<Server>> GetServers();
+    Task<IEnumerable<Library>> GetLibraries();
+    Task<IEnumerable<BusyTask>> GetTasks();
 
-    Task AddPlexAccount(PlexAccount plexAccount);
+    Task<bool> AddPlexAccount(Account account);
 
     Task RemovePlexAccount(string username);
 }

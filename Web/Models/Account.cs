@@ -2,10 +2,11 @@
 
 namespace Web.Models;
 
-public class PlexAccount
+public class Account
 {
     [Key]
     public string Username { get; set; }
+    public string Title { get; set; }
     public string Password { get; set; }
-    public string AuthKey { get; set; }
+    public string UserToken { get; set; }
 }
