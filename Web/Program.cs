@@ -11,7 +11,9 @@ builder.Services
     .AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<SettingContext>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("SettingsDatabase")));
+    // o.UseSqlServer(builder.Configuration.GetConnectionString("SettingsDatabase"))
+    o.UseInMemoryDatabase(builder.Configuration.GetConnectionString("SettingsDatabase"))
+    );
 
 builder.Services.AddSwaggerGen();
 builder.Services.Configure<RouteOptions>(options =>
@@ -36,6 +38,7 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
 
     var context = services.GetRequiredService<SettingContext>();
+    // context.Database.EnsureDeleted();
     context.Database.EnsureCreated();
     DbInitializer.Initialize(context);
 }

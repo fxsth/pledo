@@ -12,17 +12,17 @@ public static class DbInitializer
             return; // DB has been seeded
         }
 
-        var plexAccounts = new Account[]
-        {
-            new Account()
-            {
-                Username = "MaxMustermann",
-                Password = "******",
-                UserToken = "jgfieowjcsylr<j2453983"
-            }
-        };
+        // var plexAccounts = new Account[]
+        // {
+        //     new Account()
+        //     {
+        //         Username = "MaxMustermann",
+        //         Password = "******",
+        //         UserToken = "jgfieowjcsylr<j2453983"
+        //     }
+        // };
 
-        context.PlexAccounts.AddRange(plexAccounts);
-        context.SaveChanges();
+        // context.PlexAccounts.AddRange(plexAccounts);
+        // context.SaveChanges();
     }
 }

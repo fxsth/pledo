@@ -1,59 +1,65 @@
 import React, { Component } from 'react';
-import AccountForm from './AccountForm';
+import Dropdown from "./Dropdown";
+import {DropdownMenu} from "reactstrap";
 
-export class Settings extends Component {
-  static displayName = Settings.name;
+export class Movies extends Component {
+  static displayName = Movies.name;
 
   constructor(props) {
     super(props);
-    this.state = { accounts: [], loading: true };
+    this.state = { servers: [], libraries:[], movies: [], loading: true };
   }
 
   componentDidMount() {
-    this.populateSettingsData();
+    this.populateServersData();
   }
 
-  static renderAccountTable(accounts) {
+  handleServerChange = (event) => {
+    this.populateLibrariesData(event.target.value);
+  };
+
+  handleLibraryChange = (event) => {
+    // setDrink(event.target.value);
+  };
+
+
+  static renderServerDropdown(servers) {
+    const list = servers.map((server)=>
+        ({ label: server.name, value: server.id })
+    )
+    
     return (
-      <table className='table table-striped' aria-labelledby="tabelLabel">
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Password</th>
-            <th>AuthKey</th>
-          </tr>
-        </thead>
-        <tbody>
-          {accounts.map(account =>
-            <tr key={account.username}>
-              <td>{account.username}</td>
-              <td>{account.password}</td>
-              <td>{account.authKey}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <Dropdown name="servers"
+                title="Select server"
+                list={list}
+                onChange={this.onChange}
+      />
     );
   }
 
   render() {
     let contents = this.state.loading
       ? <p><em>Loading...</em></p>
-      : Settings.renderAccountTable(this.state.accounts);
+      : Movies.renderServerDropdown(this.state.servers);
 
     return (
       <div>
-        <h1 id="tabelLabel" >Plex Accounts</h1>
+        <h1 id="tabelLabel" >Movies</h1>
         <p>This component demonstrates fetching data from the server.</p>
+        {/*<Dropdown/>*/}
         {contents}
-        <AccountForm/>
       </div>
     );
   }
 
-  async populateSettingsData() {
-    const response = await fetch('api/accounts');
+  async populateServersData() {
+    const response = await fetch('api/server');
     const data = await response.json();
-    this.setState({ accounts: data, loading: false });
+    this.setState({ servers: data, loading: false });
+  }
+  async populateLibrariesData(server) {
+    const response = await fetch('api/library?server=${encodeURIComponent(server)}');
+    const data = await response.json();
+    this.setState({ libraries: data, loading: false });
   }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Web.Models;
+using Web.Models.DTO;
 using Web.Services;
 
 namespace Web.Controllers;
@@ -24,9 +25,9 @@ public class AccountsController : ControllerBase
     }
     
     [HttpPost]
-    public async Task Add([FromBody] Account account)
+    public async Task Add([FromBody] Credentials credentials)
     {
-        await _settingsService.AddPlexAccount(account);
+        await _settingsService.AddPlexAccount(credentials);
     }
     
     [HttpDelete("{username}")]

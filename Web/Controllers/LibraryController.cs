@@ -18,8 +18,8 @@ public class LibraryController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IEnumerable<Library>> Get()
+    public async Task<IEnumerable<Library>> Get([FromQuery] string server)
     {
-        return await _settingsService.GetLibraries();
+        return await _settingsService.GetLibraries(server);
     }
 }

@@ -8,5 +8,6 @@ public class Server
     public string Id { get; set; }
     public string Name { get; set; }
     public ICollection<ServerConnection> Connections { get; set; }
-    public Uri LastKnown { get; set; }
+    public string? LastKnownUri { get; set; }
+    public string AccessToken { get; set; }
 }
