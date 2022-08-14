@@ -21,7 +21,10 @@ export class Movies extends Component {
     };
 
     handleLibraryChange = (event) => {
-        // setDrink(event.target.value);
+        this.setState({movieloading:true})
+        if(event.target.value != null) {
+            this.populateMoviesData(event.target.value);
+        }
     };
 
 
@@ -51,7 +54,7 @@ export class Movies extends Component {
             <Dropdown name="libraries"
                       title="select libraries"
                       list={list}
-                      onChange={this.handleServerChange}
+                      onChange={this.handleLibraryChange}
             />
         );
     }
@@ -65,6 +68,10 @@ export class Movies extends Component {
             ? <p><em>Loading...</em></p>
             : this.renderLibraryDropdown(this.state.libraries);
 
+        let moviesContent = this.state.movieloading
+            ? <p><em>Loading...</em></p>
+            : Movies.renderMoviesTable(this.state.movies);
+
         return (
             <div>
                 <h1 id="tabelLabel">Movies</h1>
@@ -72,7 +79,31 @@ export class Movies extends Component {
                 {/*<Dropdown/>*/}
                 {serverDropdown}
                 {libraryDropdown}
+                {moviesContent}
             </div>
+        );
+    }
+
+    static renderMoviesTable(movies) {
+        return (
+            <table className='table table-striped' aria-labelledby="tabelLabel">
+                <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Key</th>
+                    <th>Download Url</th>
+                </tr>
+                </thead>
+                <tbody>
+                {movies.map(movie =>
+                    <tr key={movie.title}>
+                        <td>{movie.title}</td>
+                        <td>{movie.key}</td>
+                        <td>{movie.downloadUri}</td>
+                    </tr>
+                )}
+                </tbody>
+            </table>
         );
     }
 
@@ -89,5 +120,14 @@ export class Movies extends Component {
         const response = await fetch(uri);
         const data = await response.json();
         this.setState({libraries: data, libraryloading: false});
+    }
+
+    async populateMoviesData(libraryId) {
+        const uri = 'api/movie?' + new URLSearchParams({
+            libraryId: libraryId
+        });
+        const response = await fetch(uri);
+        const data = await response.json();
+        this.setState({movies: data, movieloading: false});
     }
 }

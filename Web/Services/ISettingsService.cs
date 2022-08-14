@@ -9,6 +9,7 @@ public interface ISettingsService
     Task<IEnumerable<Server>> GetServers();
     Task<IEnumerable<Library>> GetLibraries(string serverName);
     Task<IEnumerable<BusyTask>> GetTasks();
+    Task<IEnumerable<Movie>> GetMovies(string libraryId);
 
     Task<bool> AddPlexAccount(Credentials credentials);
 

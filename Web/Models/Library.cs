@@ -9,4 +9,5 @@ public class Library
     public string Name { get; set; }
     public string Type { get; set; }
     public string Key { get; set; }
+    public Server Server { get; set; }
 }

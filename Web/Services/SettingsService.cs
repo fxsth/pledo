@@ -2,6 +2,7 @@
 using Plex.ServerApi.Clients.Interfaces;
 using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
+using Plex.ServerApi.PlexModels.Library.Search;
 using Web.Data;
 using Web.Models;
 using Web.Models.DTO;
@@ -51,11 +52,37 @@ public class SettingsService : ISettingsService
 
     public async Task<IEnumerable<Library>> GetLibraries(string serverName)
     {
-        var server = _context.Servers.Include(x=>x.Connections).FirstOrDefault(x => x.Name == serverName);
+        var librariesFromDb = _context.Libraries.Include(x => x.Server)?.Where(x => x.Server.Name == serverName);
+        if (librariesFromDb?.Any() == true)
+            return librariesFromDb;
+        var server = _context.Servers.Include(x => x.Connections).FirstOrDefault(x => x.Name == serverName);
         if (server != null)
-            return await GetLibraries(server);
+        {
+            string uri = await GetUriFromFastestConnection(server.Connections);
+            _context.Servers.Attach(server);
+            server.LastKnownUri = uri;
+            await _context.SaveChangesAsync();
+            var libraries = await RetrieveLibraries(server);
+            IEnumerable<Library> librariesList = libraries.ToList();
+            var newLibraries = librariesList.Except(_context.Libraries);
+            await _context.AddRangeAsync(newLibraries);
+            await _context.SaveChangesAsync();
+            return librariesList;
+        }
         else
             return Enumerable.Empty<Library>();
+    }
+
+    public async Task<IEnumerable<Movie>> GetMovies(string libraryId)
+    {
+        var library = _context.Libraries.Include(x => x.Server).FirstOrDefault(x => x.Id == libraryId);
+        if (library != null)
+        {
+            var movies = await RetrieveMovies(library);
+            return movies;
+        }
+        else
+            return Enumerable.Empty<Movie>();
     }
 
     public async Task<IEnumerable<BusyTask>> GetTasks()
@@ -114,16 +141,34 @@ public class SettingsService : ISettingsService
         });
     }
 
-    private async Task<IEnumerable<Library>> GetLibraries(Server server)
+    private async Task<IEnumerable<Library>> RetrieveLibraries(Server server)
     {
-        string uri = await GetUriFromFastestConnection(server.Connections);
-        LibraryContainer libraryContainer = await _plexServerClient.GetLibrariesAsync(server.AccessToken, uri);
+        LibraryContainer libraryContainer =
+            await _plexServerClient.GetLibrariesAsync(server.AccessToken, server.LastKnownUri);
         return libraryContainer.Libraries.Select(x => new Library()
         {
             Id = x.Uuid,
             Key = x.Key,
-            Name = x.Title, Type = x.Type
+            Name = x.Title, Type = x.Type,
+            Server = server
         });
+    }
+
+    private async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
+    {
+        var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
+            library.Server.LastKnownUri, null, library.Key,
+            null, SearchType.Movie);
+        IEnumerable<Movie> movies = mediaContainer.Media.Where(x => x.Media?.First()?.Part?.First()?.File != null)
+            .Select(x => new Movie()
+            {
+                Title = x.Title,
+                Key = x.Key,
+                RatingKey = x.RatingKey,
+                ServerFilePath = x.Media.First().Part.First().File,
+                DownloadUri = x.Media.First().Part.First().Key
+            });
+        return movies;
     }
 
     private async Task<string> GetUriFromFastestConnection(IEnumerable<ServerConnection> resourceConnections)
