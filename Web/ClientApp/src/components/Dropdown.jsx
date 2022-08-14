@@ -4,13 +4,14 @@ import {Component} from "react";
 class Dropdown extends Component {
     constructor(props) {
         super(props);
-        const {title, list} = this.props;
+        const {title, list, onChange} = this.props;
         this.state = {
             isListOpen: false,
             title,
             selectedItem: null,
             keyword: '',
-            list
+            list,
+            onChange
         };
     }
 
@@ -20,7 +21,10 @@ class Dropdown extends Component {
         );
         return (
             <div>
-                <select>{listItems}</select>
+                <select onChange={this.state.onChange}>
+                    <option>{this.state.title}</option>
+                    {listItems}
+                </select>
             </div>
         );
     }

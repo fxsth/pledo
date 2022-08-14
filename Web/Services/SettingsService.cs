@@ -33,19 +33,15 @@ public class SettingsService : ISettingsService
 
     public async Task<IEnumerable<Server>> GetServers()
     {
+        var serversFromDb = _context.Servers;
+        if (serversFromDb?.Any() == true)
+            return serversFromDb;
         var account = _context.PlexAccounts.FirstOrDefault();
         if (account != null)
         {
-            var servers = (await GetServers(account)).ToList();
-            foreach (var server in servers)
-            {
-                if (_context.Servers.Any(x => x.Id == server.Id))
-                    _context.Update(server);
-                else
-                    _context.Add(server);
-            }
-
-            _context.SaveChanges();
+            var servers = (await RetrieveServers(account)).ToList();
+            await _context.Servers.AddRangeAsync(servers);
+            await _context.SaveChangesAsync();
 
             return servers;
         }
@@ -96,7 +92,7 @@ public class SettingsService : ISettingsService
         return await _plexAccountClient.GetPlexAccountAsync(credentials.username, credentials.password);
     }
 
-    private async Task<IEnumerable<Server>> GetServers(Account account)
+    private async Task<IEnumerable<Server>> RetrieveServers(Account account)
     {
         var resources = await _plexAccountClient.GetResourcesAsync(account.UserToken);
         var serverList = resources.Where(x => x.Provides == "server");
