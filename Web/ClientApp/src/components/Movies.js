@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import Dropdown from "./Dropdown";
+import DownloadButton from "./DownloadButton";
 
 export class Movies extends Component {
     static displayName = Movies.name;
@@ -12,7 +13,7 @@ export class Movies extends Component {
     componentDidMount() {
         this.populateServersData();
     }
-
+    
     handleServerChange = (event) => {
         this.setState({libraryloading:true})
         if(event.target.value != null) {
@@ -75,8 +76,8 @@ export class Movies extends Component {
         return (
             <div>
                 <h1 id="tabelLabel">Movies</h1>
-                <p>This component demonstrates fetching data from the server.</p>
-                {/*<Dropdown/>*/}
+                <p>Select server and library to see a list of all movies.</p>
+                <br/>
                 {serverDropdown}
                 {libraryDropdown}
                 {moviesContent}
@@ -99,7 +100,7 @@ export class Movies extends Component {
                     <tr key={movie.title}>
                         <td>{movie.title}</td>
                         <td>{movie.key}</td>
-                        <td>{movie.downloadUri}</td>
+                        <td><DownloadButton key={movie.key}/></td>
                     </tr>
                 )}
                 </tbody>

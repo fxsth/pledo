@@ -2,7 +2,6 @@
 using Plex.ServerApi.Clients.Interfaces;
 using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
-using Plex.ServerApi.PlexModels.Library.Search;
 using Web.Data;
 using Web.Models;
 using Web.Models.DTO;
@@ -75,10 +74,15 @@ public class SettingsService : ISettingsService
 
     public async Task<IEnumerable<Movie>> GetMovies(string libraryId)
     {
+        var moviesInDb = _context.Movies.Include(x => x.Library).Where(x=>x.Library.Id == libraryId);
+        if (moviesInDb.Any())
+            return moviesInDb;
         var library = _context.Libraries.Include(x => x.Server).FirstOrDefault(x => x.Id == libraryId);
         if (library != null)
         {
-            var movies = await RetrieveMovies(library);
+            var movies = (await RetrieveMovies(library)).ToList();
+            _context.Movies.AddRange(movies.DistinctBy(x=>x.RatingKey));
+            await _context.SaveChangesAsync();
             return movies;
         }
         else
@@ -156,9 +160,28 @@ public class SettingsService : ISettingsService
 
     private async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
     {
+        List<Movie> movies = new List<Movie>();
+        int offset = 0;
+        int limit = 100;
+        while(true)
+        {
+            var retrieveMovies = (await RetrieveMovies(library, offset, offset+limit)).ToList();
+            if(retrieveMovies.Any())
+                movies.AddRange(retrieveMovies);
+            else
+                break;
+            offset += limit;
+        }
+
+        return movies;
+    }
+    private async Task<IEnumerable<Movie>> RetrieveMovies(Library library, int offset, int limit)
+    {
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
             library.Server.LastKnownUri, null, library.Key,
-            null, SearchType.Movie);
+            null, SearchType.Movie, null, offset, limit);
+        if (mediaContainer.Media == null)
+            return Enumerable.Empty<Movie>();
         IEnumerable<Movie> movies = mediaContainer.Media.Where(x => x.Media?.First()?.Part?.First()?.File != null)
             .Select(x => new Movie()
             {
@@ -166,7 +189,9 @@ public class SettingsService : ISettingsService
                 Key = x.Key,
                 RatingKey = x.RatingKey,
                 ServerFilePath = x.Media.First().Part.First().File,
-                DownloadUri = x.Media.First().Part.First().Key
+                DownloadUri = x.Media.First().Part.First().Key,
+                Library = library,
+                TotalBytes = x.Media.First().Part.First().Size
             });
         return movies;
     }

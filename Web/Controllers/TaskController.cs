@@ -8,18 +8,23 @@ namespace Web.Controllers;
 [Route("api/[controller]")]
 public class TaskController : ControllerBase
 {
-    private readonly ISettingsService _settingsService;
+    private readonly IDownloadService _downloadService;
     private readonly ILogger<AccountsController> _logger;
 
-    public TaskController(ISettingsService settingsService, ILogger<AccountsController> logger)
+    public TaskController(IDownloadService downloadService, ILogger<AccountsController> logger)
     {
-        _settingsService = settingsService;
+        _downloadService = downloadService;
         _logger = logger;
     }
 
     [HttpGet]
-    public async Task<IEnumerable<Server>> Get()
+    public async Task<IEnumerable<BusyTask>> Get()
     {
-        return await _settingsService.GetServers();
+        return _downloadService.PendingDownloads.Select(x=>new BusyTask()
+        {
+            Id = x.Id,
+            Name = x.Name,
+            Type = TaskType.Downloading
+        });
     }
 }

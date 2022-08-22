@@ -10,4 +10,6 @@ public class Movie
     public string Title { get; set; }
     public string ServerFilePath { get; set; }
     public string DownloadUri { get; set; }
+    public long TotalBytes { get; set; }
+    public Library Library { get; set; }
 }
