@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Plex.ServerApi.Clients.Interfaces;
+﻿using Plex.ServerApi.Clients.Interfaces;
 using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
 using Web.Data;
@@ -12,36 +11,41 @@ namespace Web.Services;
 
 public class SettingsService : ISettingsService
 {
-    private readonly SettingContext _context;
     private readonly IPlexAccountClient _plexAccountClient;
     private readonly IPlexLibraryClient _plexLibraryClient;
     private readonly IPlexServerClient _plexServerClient;
+    private readonly ILibraryRepository _libraryRepository;
+    private readonly IServerRepository _serverRepository;
+    private readonly IMovieRepository _movieRepository;
+    private readonly IAccountRepository _accountRepository;
 
-    public SettingsService(SettingContext context, IPlexAccountClient plexAccountClient,
-        IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient)
+    public SettingsService(IPlexAccountClient plexAccountClient,
+        IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient,
+        ILibraryRepository libraryRepository,
+        IServerRepository serverRepository, IMovieRepository movieRepository, 
+        IAccountRepository accountRepository)
     {
-        _context = context;
         _plexAccountClient = plexAccountClient;
         _plexLibraryClient = plexLibraryClient;
         _plexServerClient = plexServerClient;
+        _libraryRepository = libraryRepository;
+        _serverRepository = serverRepository;
+        _movieRepository = movieRepository;
+        _accountRepository = accountRepository;
     }
 
     public async Task<IEnumerable<Account>> GetPlexAccounts()
     {
-        return _context.PlexAccounts;
+        return await _accountRepository.GetAll();
     }
 
     public async Task<IEnumerable<Server>> GetServers()
     {
-        var serversFromDb = _context.Servers;
-        if (serversFromDb?.Any() == true)
-            return serversFromDb;
-        var account = _context.PlexAccounts.FirstOrDefault();
+        var account = (await _accountRepository.GetAll()).FirstOrDefault();
         if (account != null)
         {
             var servers = (await RetrieveServers(account)).ToList();
-            await _context.Servers.AddRangeAsync(servers);
-            await _context.SaveChangesAsync();
+            await _serverRepository.Upsert(servers);
 
             return servers;
         }
@@ -49,24 +53,17 @@ public class SettingsService : ISettingsService
             return Enumerable.Empty<Server>();
     }
 
-    public async Task<IEnumerable<Library>> GetLibraries(string serverName)
+    public async Task<IEnumerable<Library>> GetLibraries(string serverId)
     {
-        var librariesFromDb = _context.Libraries.Include(x => x.Server)?.Where(x => x.Server.Name == serverName);
-        if (librariesFromDb?.Any() == true)
-            return librariesFromDb;
-        var server = _context.Servers.Include(x => x.Connections).FirstOrDefault(x => x.Name == serverName);
+        var server = (await _serverRepository.GetAll()).FirstOrDefault(x=>x.Name==serverId);
         if (server != null)
         {
             string uri = await GetUriFromFastestConnection(server.Connections);
-            _context.Servers.Attach(server);
             server.LastKnownUri = uri;
-            await _context.SaveChangesAsync();
-            var libraries = await RetrieveLibraries(server);
-            IEnumerable<Library> librariesList = libraries.ToList();
-            var newLibraries = librariesList.Except(_context.Libraries);
-            await _context.AddRangeAsync(newLibraries);
-            await _context.SaveChangesAsync();
-            return librariesList;
+            await _serverRepository.Update(new []{server});
+            var libraries = (await RetrieveLibraries(server)).ToList();
+            await _libraryRepository.Upsert(libraries);
+            return libraries;
         }
         else
             return Enumerable.Empty<Library>();
@@ -74,15 +71,11 @@ public class SettingsService : ISettingsService
 
     public async Task<IEnumerable<Movie>> GetMovies(string libraryId)
     {
-        var moviesInDb = _context.Movies.Include(x => x.Library).Where(x=>x.Library.Id == libraryId);
-        if (moviesInDb.Any())
-            return moviesInDb;
-        var library = _context.Libraries.Include(x => x.Server).FirstOrDefault(x => x.Id == libraryId);
+        var library = await _libraryRepository.GetById(libraryId);
         if (library != null)
         {
             var movies = (await RetrieveMovies(library)).ToList();
-            _context.Movies.AddRange(movies.DistinctBy(x=>x.RatingKey));
-            await _context.SaveChangesAsync();
+            await _movieRepository.Upsert(movies);
             return movies;
         }
         else
@@ -91,7 +84,8 @@ public class SettingsService : ISettingsService
 
     public async Task<IEnumerable<BusyTask>> GetTasks()
     {
-        return _context.Tasks;
+        // return _context.Tasks;
+        throw new NotImplementedException();
     }
 
     public async Task<bool> AddPlexAccount(Credentials credentials)
@@ -105,19 +99,16 @@ public class SettingsService : ISettingsService
             Username = plexAccount.Username,
             UserToken = plexAccount.AuthToken
         };
-        await _context.PlexAccounts.AddAsync(account);
-        await _context.SaveChangesAsync();
+        await _accountRepository.Insert(new []{account});
         return true;
     }
 
     public async Task RemovePlexAccount(string username)
     {
         Account account = new Account() { Username = username };
-        _context.PlexAccounts.Attach(account);
-        _context.PlexAccounts.Remove(account);
-        await _context.SaveChangesAsync();
+        await _accountRepository.Remove(new []{account});
     }
-
+    
     private async Task<PlexAccount?> LoginAccount(Credentials credentials)
     {
         return await _plexAccountClient.GetPlexAccountAsync(credentials.username, credentials.password);
@@ -163,10 +154,10 @@ public class SettingsService : ISettingsService
         List<Movie> movies = new List<Movie>();
         int offset = 0;
         int limit = 100;
-        while(true)
+        while (true)
         {
-            var retrieveMovies = (await RetrieveMovies(library, offset, offset+limit)).ToList();
-            if(retrieveMovies.Any())
+            var retrieveMovies = (await RetrieveMovies(library, offset, offset + limit)).ToList();
+            if (retrieveMovies.Any())
                 movies.AddRange(retrieveMovies);
             else
                 break;
@@ -175,6 +166,7 @@ public class SettingsService : ISettingsService
 
         return movies;
     }
+
     private async Task<IEnumerable<Movie>> RetrieveMovies(Library library, int offset, int limit)
     {
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
@@ -190,7 +182,8 @@ public class SettingsService : ISettingsService
                 RatingKey = x.RatingKey,
                 ServerFilePath = x.Media.First().Part.First().File,
                 DownloadUri = x.Media.First().Part.First().Key,
-                Library = library,
+                LibraryId = library.Id,
+                ServerId = library.Server.Id,
                 TotalBytes = x.Media.First().Part.First().Size
             });
         return movies;

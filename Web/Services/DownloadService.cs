@@ -7,9 +7,9 @@ namespace Web.Services
     public class DownloadService : IDownloadService
     {
         private readonly HttpClient _httpClient;
-        private readonly SettingContext _dbContext;
+        private readonly DbContext _dbContext;
 
-        public DownloadService(HttpClient httpClient, SettingContext dbContext)
+        public DownloadService(HttpClient httpClient, DbContext dbContext)
         {
             _httpClient = httpClient;
             _dbContext = dbContext;

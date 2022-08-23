@@ -3,15 +3,15 @@ using Web.Models;
 
 namespace Web.Data;
 
-public class SettingContext : DbContext
+public class DbContext : Microsoft.EntityFrameworkCore.DbContext
 {
-    public DbSet<Account> PlexAccounts { get; set; }
+    public DbSet<Account> Accounts { get; set; }
     public DbSet<Server> Servers { get; set; }
     public DbSet<Library> Libraries { get; set; }
     public DbSet<Movie> Movies { get; set; }
     public DbSet<BusyTask> Tasks { get; set; }
 
-    public SettingContext(DbContextOptions<SettingContext> options)
+    public DbContext(DbContextOptions<DbContext> options)
         : base(options)
     {
     }

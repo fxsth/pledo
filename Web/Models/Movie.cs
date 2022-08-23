@@ -11,5 +11,6 @@ public class Movie
     public string ServerFilePath { get; set; }
     public string DownloadUri { get; set; }
     public long TotalBytes { get; set; }
-    public Library Library { get; set; }
+    public string LibraryId { get; set; }
+    public string ServerId { get; set; }
 }

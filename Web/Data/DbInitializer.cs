@@ -4,10 +4,10 @@ namespace Web.Data;
 
 public static class DbInitializer
 {
-    public static void Initialize(SettingContext context)
+    public static void Initialize(DbContext context)
     {
         // Look for any students.
-        if (context.PlexAccounts.Any())
+        if (context.Accounts.Any())
         {
             return; // DB has been seeded
         }

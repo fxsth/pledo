@@ -4,7 +4,8 @@ namespace Web.Models;
 
 public class ServerConnection
 {
-    [Key] public string Uri { get; set; }
+    [Key]
+    public string Uri { get; set; }
     public string Protocol { get; set; }
 
     public string Address { get; set; }
