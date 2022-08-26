@@ -10,18 +10,20 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddPlexServices()
     .AddDataLayer()
-    .AddScoped<ISettingsService, SettingsService>();
+    .AddScoped<ISettingsService, SettingsService>()
+    .AddHttpClient()
+    .AddScoped<IDownloadService, DownloadService>();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<DbContext>(o =>
-    o.UseSqlServer(builder.Configuration.GetConnectionString("Database"))
-    // o.UseInMemoryDatabase(builder.Configuration.GetConnectionString("SettingsDatabase"))
-    );
+    {
+        o.UseSqlServer(builder.Configuration.GetConnectionString("Database"));
+        // o.UseInMemoryDatabase(builder.Configuration.GetConnectionString("Database"));
+        o.EnableSensitiveDataLogging(true);
+    }
+);
 
 builder.Services.AddSwaggerGen();
-builder.Services.Configure<RouteOptions>(options =>
-{
-    options.LowercaseUrls = true;
-});
+builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
 
 var app = builder.Build();
 

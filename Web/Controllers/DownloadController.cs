@@ -17,8 +17,8 @@ public class DownloadController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet]
-    public async Task Download([FromBody] string key)
+    [HttpPost("{key}")]
+    public async Task Download( string key)
     {
         await _downloadService.Download(key);
     }

@@ -1,4 +1,7 @@
 ﻿using System.Collections.ObjectModel;
+using Plex.ServerApi;
+using Plex.ServerApi.Api;
+using Plex.ServerApi.Clients;
 using Web.Data;
 using Web.Models;
 
@@ -8,11 +11,13 @@ namespace Web.Services
     {
         private readonly HttpClient _httpClient;
         private readonly DbContext _dbContext;
+        private readonly ClientOptions _clientOptions;
 
-        public DownloadService(HttpClient httpClient, DbContext dbContext)
+        public DownloadService(HttpClient httpClient, DbContext dbContext, ClientOptions clientOptions)
         {
             _httpClient = httpClient;
             _dbContext = dbContext;
+            _clientOptions = clientOptions;
             PendingDownloads = new Collection<DownloadElement>();
         }
 
@@ -20,7 +25,7 @@ namespace Web.Services
 
         public event EventHandler<DownloadElement>? TaskStarted;
         public event EventHandler? AllTasksFinished;
-        
+
         public bool IsRunning => _isDownloading;
         public string TaskName => "File Download";
 
@@ -31,14 +36,22 @@ namespace Web.Services
             Movie? movie = await _dbContext.Movies.FindAsync(key);
             if (movie == null)
                 throw new ArgumentException();
-
-            AddToPendingDownloads(new DownloadElement()
-            {
-                Name = movie.Title,
-                Uri = movie.DownloadUri,
-                ElementType = ElementType.Movie,
-                FilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-            });
+            var server = await _dbContext.Servers.FindAsync(movie.ServerId);
+            if (server == null)
+                throw new ArgumentException();
+            ApiRequestBuilder apiRequestBuilder =
+                new ApiRequestBuilder(server.LastKnownUri, movie.DownloadUri, HttpMethod.Get)
+                    .AddPlexToken(server.AccessToken)
+                    .AddRequestHeaders(ClientUtilities.GetClientIdentifierHeader(_clientOptions.ClientId));
+            var apiRequest = apiRequestBuilder.Build();
+            AddToPendingDownloads(
+                new DownloadElement()
+                {
+                    Name = movie.Title,
+                    Uri = apiRequest.FullUri,
+                    ElementType = ElementType.Movie,
+                    FilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+                });
         }
 
         private void AddToPendingDownloads(IEnumerable<DownloadElement> toDownload)

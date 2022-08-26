@@ -13,7 +13,7 @@ public class MovieRepository : IMovieRepository
     }
     public async Task<IEnumerable<Models.Movie>> GetAll()
     {
-        return _dbContext.Movies.AsNoTracking();
+        return _dbContext.Movies.AsNoTracking().ToList();
     }
 
     public async Task<Models.Movie> GetById(string id)
@@ -27,9 +27,11 @@ public class MovieRepository : IMovieRepository
         await _dbContext.SaveChangesAsync();
     }
 
-    public async  Task Remove(IEnumerable<Models.Movie> t)
+    public async Task Remove(Models.Movie t)
     {
-        _dbContext.Movies.RemoveRange(t);
+        var toRemove = _dbContext.Movies.AsNoTracking().FirstOrDefault(x => x.RatingKey == t.RatingKey);
+        if (toRemove != null) 
+            _dbContext.Movies.Remove(toRemove);
         await _dbContext.SaveChangesAsync();
     }
 

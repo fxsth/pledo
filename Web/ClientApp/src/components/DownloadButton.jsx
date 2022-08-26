@@ -8,16 +8,15 @@ const App = () => {
     const handleClick = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch('api/download', {
+            const settings = {
                 method: 'POST',
-                body: JSON.stringify({
-                    key: this.props.key
-                }),
                 headers: {
-                    'Content-Type': 'application/json',
                     Accept: 'application/json',
-                },
-            });
+                    'Content-Type': 'application/json',
+                }
+            };
+
+            const response = await fetch(`api/download/${this.props.key}`, settings);
 
             if (!response.ok) {
                 throw new Error(`Error! status: ${response.status}`);
@@ -33,10 +32,9 @@ const App = () => {
         } finally {
             setIsLoading(false);
         }
+        
     };
-
-    console.log(data);
-
+    
     return (
         <button disabled={isLoading} onClick={handleClick}>Download</button>
     );

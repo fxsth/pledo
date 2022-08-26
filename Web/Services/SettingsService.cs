@@ -61,8 +61,9 @@ public class SettingsService : ISettingsService
             string uri = await GetUriFromFastestConnection(server.Connections);
             server.LastKnownUri = uri;
             await _serverRepository.Update(new []{server});
-            var libraries = (await RetrieveLibraries(server)).ToList();
-            await _libraryRepository.Upsert(libraries);
+            // var libraries = (await RetrieveLibraries(server)).ToList();
+            // await _libraryRepository.Upsert(libraries);
+            var libraries = (await _libraryRepository.GetAll()).Where(x => x.Server.Id == serverId);
             return libraries;
         }
         else
@@ -74,8 +75,9 @@ public class SettingsService : ISettingsService
         var library = await _libraryRepository.GetById(libraryId);
         if (library != null)
         {
-            var movies = (await RetrieveMovies(library)).ToList();
-            await _movieRepository.Upsert(movies);
+            // var movies = (await RetrieveMovies(library)).ToList();
+            // await _movieRepository.Upsert(movies);
+            var movies = (await _movieRepository.GetAll()).Where(x => x.LibraryId == libraryId);
             return movies;
         }
         else
@@ -106,7 +108,7 @@ public class SettingsService : ISettingsService
     public async Task RemovePlexAccount(string username)
     {
         Account account = new Account() { Username = username };
-        await _accountRepository.Remove(new []{account});
+        await _accountRepository.Remove(account);
     }
     
     private async Task<PlexAccount?> LoginAccount(Credentials credentials)

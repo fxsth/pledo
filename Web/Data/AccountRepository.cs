@@ -10,6 +10,7 @@ public class AccountRepository : IAccountRepository
     {
         _dbContext = dbContext;
     }
+
     public async Task<IEnumerable<Models.Account>> GetAll()
     {
         return _dbContext.Accounts.AsNoTracking();
@@ -26,9 +27,11 @@ public class AccountRepository : IAccountRepository
         await _dbContext.SaveChangesAsync();
     }
 
-    public async  Task Remove(IEnumerable<Models.Account> t)
+    public async Task Remove(Models.Account t)
     {
-        _dbContext.Accounts.RemoveRange(t);
+        var toRemove = _dbContext.Accounts.AsNoTracking().FirstOrDefault(x => x.Username == t.Username);
+        if (toRemove != null) 
+            _dbContext.Accounts.Remove(toRemove);
         await _dbContext.SaveChangesAsync();
     }
 

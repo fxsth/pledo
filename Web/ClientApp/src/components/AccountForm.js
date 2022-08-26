@@ -25,7 +25,7 @@ export default class AccountForm extends React.Component {
     }
 
     handleSubmit(event) {
-        alert('A name was submitted: ' + this.state.username);
+        // alert('A name was submitted: ' + this.state.username);
         this.addAccount();
         event.preventDefault();
     }
