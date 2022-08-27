@@ -10,14 +10,16 @@ namespace Web.Services
     public class DownloadService : IDownloadService
     {
         private readonly HttpClient _httpClient;
-        private readonly DbContext _dbContext;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ClientOptions _clientOptions;
+        // private readonly ILogger _logger;
 
-        public DownloadService(HttpClient httpClient, DbContext dbContext, ClientOptions clientOptions)
+        public DownloadService(HttpClient httpClient, IServiceScopeFactory scopeFactory,ClientOptions clientOptions)
         {
             _httpClient = httpClient;
-            _dbContext = dbContext;
+            _scopeFactory = scopeFactory;
             _clientOptions = clientOptions;
+            // _logger = logger;
             PendingDownloads = new Collection<DownloadElement>();
         }
 
@@ -33,25 +35,30 @@ namespace Web.Services
 
         public async Task Download(string key)
         {
-            Movie? movie = await _dbContext.Movies.FindAsync(key);
-            if (movie == null)
-                throw new ArgumentException();
-            var server = await _dbContext.Servers.FindAsync(movie.ServerId);
-            if (server == null)
-                throw new ArgumentException();
-            ApiRequestBuilder apiRequestBuilder =
-                new ApiRequestBuilder(server.LastKnownUri, movie.DownloadUri, HttpMethod.Get)
-                    .AddPlexToken(server.AccessToken)
-                    .AddRequestHeaders(ClientUtilities.GetClientIdentifierHeader(_clientOptions.ClientId));
-            var apiRequest = apiRequestBuilder.Build();
-            AddToPendingDownloads(
-                new DownloadElement()
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<DbContext>();
+                Movie? movie = await dbContext.Movies.FindAsync(key);
+                if (movie == null)
+                    throw new ArgumentException();
+                var server = await dbContext.Servers.FindAsync(movie.ServerId);
+                if (server == null)
+                    throw new ArgumentException();
+                UriBuilder uriBuilder = new UriBuilder(server.LastKnownUri)
                 {
-                    Name = movie.Title,
-                    Uri = apiRequest.FullUri,
-                    ElementType = ElementType.Movie,
-                    FilePath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-                });
+                    Path = movie.DownloadUri,
+                    Query = $"?X-Plex-Token={server.AccessToken}"
+                };
+                AddToPendingDownloads(
+                    new DownloadElement()
+                    {
+                        Name = movie.Title,
+                        Uri = uriBuilder.Uri.ToString(),
+                        ElementType = ElementType.Movie,
+                        FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), Path.GetFileName(movie.ServerFilePath)),
+                        TotalBytes = movie.TotalBytes
+                    });
+            }
         }
 
         private void AddToPendingDownloads(IEnumerable<DownloadElement> toDownload)
@@ -118,8 +125,7 @@ namespace Web.Services
                 fileInfo.Directory.Create();
                 using (var fileStream = fileInfo.OpenWrite())
                 {
-                    await CopyToAsync(response, fileStream, downloadElement.Progress,
-                        downloadElement.CancellationTokenSource.Token);
+                    await CopyToAsync(response, fileStream, downloadElement);
                 }
 
                 downloadElement.FinishedSuccessfully = true;
@@ -129,17 +135,19 @@ namespace Web.Services
             }
         }
 
-        private static async Task CopyToAsync(Stream source, Stream destination, IProgress<double> progress,
-            CancellationToken cancellationToken = default(CancellationToken), int bufferSize = 0x1000)
+        private static async Task CopyToAsync(Stream source, Stream destination, DownloadElement downloadElement, int bufferSize = 0x1000)
         {
+            CancellationToken cancellationToken = downloadElement.CancellationTokenSource.Token;
             var buffer = new byte[bufferSize];
             int bytesRead;
+            long downloaded = 0;
             // DownloadProgress downloadProgress = new DownloadProgress() { Total = source.Length, Downloaded = 0 };
             while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
             {
                 await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                //downloadProgress.Downloaded += bytesRead;
+                Console.WriteLine($"Download progress: {downloaded*100/downloadElement.TotalBytes}% - {downloaded}/{downloadElement.TotalBytes}");
+                downloaded += bytesRead;
                 //progress.Report(downloadProgress);
             }
         }

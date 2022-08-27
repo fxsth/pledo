@@ -92,6 +92,7 @@ export class Movies extends Component {
                 <tr>
                     <th>Title</th>
                     <th>Key</th>
+                    <th>Rating Key</th>
                     <th>Download Url</th>
                 </tr>
                 </thead>
@@ -100,7 +101,8 @@ export class Movies extends Component {
                     <tr key={movie.title}>
                         <td>{movie.title}</td>
                         <td>{movie.key}</td>
-                        <td><DownloadButton key={movie.key}/></td>
+                        <td>{movie.ratingKey}</td>
+                        <td><DownloadButton mediaKey={movie.ratingKey}/></td>
                     </tr>
                 )}
                 </tbody>

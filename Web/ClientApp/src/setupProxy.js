@@ -12,6 +12,7 @@ const context =  [
   "/api/library",
   "/api/movie",
   "/api/download",
+  "/api/task",
   "/swagger",
 ];
 

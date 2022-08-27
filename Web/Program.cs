@@ -11,8 +11,8 @@ builder.Services
     .AddPlexServices()
     .AddDataLayer()
     .AddScoped<ISettingsService, SettingsService>()
-    .AddHttpClient()
-    .AddScoped<IDownloadService, DownloadService>();
+    .AddSingleton<HttpClient>()
+    .AddSingleton<IDownloadService, DownloadService>();
 builder.Services.AddControllers();
 builder.Services.AddDbContext<DbContext>(o =>
     {

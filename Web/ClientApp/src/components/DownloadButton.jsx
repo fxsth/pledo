@@ -1,43 +1,54 @@
-﻿import {useState} from 'react';
+﻿import React from 'react';
 
-const App = () => {
-    const [data, setData] = useState();
-    const [isLoading, setIsLoading] = useState(false);
-    const [err, setErr] = useState('');
+export default class DownloadButton extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            mediaKey: this.props.mediaKey,
+            isLoading: false
+        };
+    }
 
-    const handleClick = async () => {
-        setIsLoading(true);
-        try {
-            const settings = {
-                method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                }
-            };
+    // componentDidMount() {
+    //     console.log('DownloadButton mounted with key' + this.state.mediaKey);
+    // }
 
-            const response = await fetch(`api/download/${this.props.key}`, settings);
 
-            if (!response.ok) {
-                throw new Error(`Error! status: ${response.status}`);
+    handleClick(event) {
+        console.log('Handle click is called for key: ' + this.state.mediaKey);
+        this.setState({
+            isLoading: true
+        });
+        this.SendDownloadRequest();
+
+    }
+
+    async SendDownloadRequest() {
+        const settings = {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
             }
+        };
 
-            const result = await response.json();
+        return fetch('api/download/' + this.props.mediaKey, settings)
+            .then(response => {
+                if (response.status >= 200 && response.status < 300) {
+                    console.log(response);
+                    window.location.reload();
+                } else {
+                    console.log('Somthing happened wrong');
+                }
+            }).catch(err => console.log(err)).finally(x => {
+                this.setState({
+                    isLoading: false
+                });
+            });
+    }
 
-            console.log('result is: ', JSON.stringify(result, null, 4));
+    render() {
+        return (<button disabled={this.state.isLoading} onClick={this.handleClick.bind(this)}>Download</button>);
+    }
+}
 
-            setData(result);
-        } catch (err) {
-            setErr(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-        
-    };
-    
-    return (
-        <button disabled={isLoading} onClick={handleClick}>Download</button>
-    );
-};
-
-export default App;
