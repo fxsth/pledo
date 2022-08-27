@@ -9,22 +9,24 @@ namespace Web.Controllers;
 public class TaskController : ControllerBase
 {
     private readonly IDownloadService _downloadService;
-    private readonly ILogger<AccountsController> _logger;
+    private readonly ILogger<TaskController> _logger;
 
-    public TaskController(IDownloadService downloadService, ILogger<AccountsController> logger)
+    public TaskController(IDownloadService downloadService, ILogger<TaskController> logger)
     {
         _downloadService = downloadService;
         _logger = logger;
     }
 
     [HttpGet]
-    public async Task<IEnumerable<BusyTask>> Get()
+    public IEnumerable<BusyTask> Get()
     {
         return _downloadService.PendingDownloads.Select(x=>new BusyTask()
         {
             Id = x.Id,
             Name = x.Name,
-            Type = TaskType.Downloading
+            Type = TaskType.Downloading,
+            Progress = (double) x.DownloadedBytes/x.TotalBytes,
+            Completed = x.FinishedSuccessfully
         });
     }
 }

@@ -19,6 +19,7 @@ namespace Web.Models
         public ElementType ElementType { get; set; }
         public IProgress<double> Progress { get; set; }
         public long TotalBytes { get; set; }
+        public long DownloadedBytes { get; set; }
         
         [NotMapped]
         public CancellationTokenSource CancellationTokenSource { get; set; }

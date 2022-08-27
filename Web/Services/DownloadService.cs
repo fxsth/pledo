@@ -140,15 +140,13 @@ namespace Web.Services
             CancellationToken cancellationToken = downloadElement.CancellationTokenSource.Token;
             var buffer = new byte[bufferSize];
             int bytesRead;
-            long downloaded = 0;
             // DownloadProgress downloadProgress = new DownloadProgress() { Total = source.Length, Downloaded = 0 };
             while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
             {
                 await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                Console.WriteLine($"Download progress: {downloaded*100/downloadElement.TotalBytes}% - {downloaded}/{downloadElement.TotalBytes}");
-                downloaded += bytesRead;
-                //progress.Report(downloadProgress);
+                Console.WriteLine($"Download progress: {downloadElement.DownloadedBytes*100/downloadElement.TotalBytes}% - {downloadElement.DownloadedBytes}/{downloadElement.TotalBytes}");
+                downloadElement.DownloadedBytes += bytesRead;
             }
         }
     }

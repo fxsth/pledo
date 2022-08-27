@@ -36,9 +36,8 @@ export default class DownloadButton extends React.Component {
             .then(response => {
                 if (response.status >= 200 && response.status < 300) {
                     console.log(response);
-                    window.location.reload();
                 } else {
-                    console.log('Somthing happened wrong');
+                    alert('Could not add to the download queue');
                 }
             }).catch(err => console.log(err)).finally(x => {
                 this.setState({

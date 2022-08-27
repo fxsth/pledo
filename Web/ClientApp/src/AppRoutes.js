@@ -3,6 +3,7 @@ import { FetchData } from "./components/FetchData";
 import { Home } from "./components/Home";
 import {Settings} from "./components/Settings";
 import {Movies} from "./components/Movies";
+import {Tasks} from "./components/Tasks";
 // import {Series} from "./components/Series";
 
 const AppRoutes = [
@@ -11,8 +12,8 @@ const AppRoutes = [
     element: <Home />
   },
   {
-    path: '/counter',
-    element: <Counter />
+    path: '/tasks',
+    element: <Tasks />
   },
   {
     path: '/fetch-data',
