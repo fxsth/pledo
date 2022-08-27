@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Web.Extensions;
 using Web.Models;
 
 namespace Web.Data;
@@ -15,7 +15,7 @@ public class ServerRepository : IServerRepository
 
     public async Task<IEnumerable<Server>> GetAll()
     {
-        return _dbContext.Servers.Include(x=>x.Connections).AsNoTracking().ToList();
+        return _dbContext.Servers.Include(x => x.Connections).AsNoTracking().ToList();
     }
 
     public async Task<Server> GetById(string id)
@@ -31,7 +31,7 @@ public class ServerRepository : IServerRepository
 
     public async Task Remove(Server t)
     {
-        var toRemove = _dbContext.Servers.FirstOrDefault(x => x.Id == x.Id);
+        var toRemove = _dbContext.Servers.FirstOrDefault(x => x.Id == t.Id);
         if (toRemove != null)
         {
             _dbContext.Servers.Remove(toRemove);
@@ -51,27 +51,33 @@ public class ServerRepository : IServerRepository
         var serversInDb = _dbContext.Servers;
         foreach (var serverFromApi in t)
         {
-            var serverToUpdate = serversInDb.Include(x=>x.Connections).FirstOrDefault(x => x.Id == serverFromApi.Id);
+            var serverToUpdate = serversInDb.Include(x => x.Connections).FirstOrDefault(x => x.Id == serverFromApi.Id);
             if (serverToUpdate == null)
                 await _dbContext.Servers.AddAsync(serverFromApi);
             else
             {
-                // serverToUpdate.AccessToken = serverFromApi.AccessToken;
-                // serverToUpdate.LastKnownUri = null;
-                _dbContext.Entry(serverToUpdate).CurrentValues.SetValues(serverFromApi);
-                // var toAdd = serverFromApi.Connections.Except(serverToUpdate.Connections);
-                // var toRemove = serverToUpdate.Connections.Except(serverFromApi.Connections);
-                // foreach (var serverConnection in toAdd)
-                // {
-                //     serverToUpdate.Connections.Add(serverConnection);
-                // }
-                // foreach (var serverConnection in toRemove)
+                serverToUpdate.AccessToken = serverFromApi.AccessToken;
+                serverToUpdate.LastKnownUri = null;
+                _dbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x=>x.Uri);
+                // _dbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = null;
+                //
+                // await _dbContext.SaveChangesAsync();
+                //
+                // _dbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = serverFromApi.Connections;
+                // await _dbContext.SaveChangesAsync();
+                // // var toAdd = serverFromApi.Connections.Except(serverToUpdate.Connections);
+                // // var toRemove = serverToUpdate.Connections.Except(serverFromApi.Connections);
+                // // foreach (var serverConnection in toAdd)
+                // // {
+                // //     serverToUpdate.Connections.Add(serverConnection);
+                // // }
+                // // foreach (var serverConnection in toRemove)
                 // {
                 //     serverToUpdate.Connections.Remove(serverConnection);
                 // }
             }
+
             await _dbContext.SaveChangesAsync();
-            
         }
     }
 

@@ -1,9 +1,8 @@
 ﻿using System.Collections.ObjectModel;
+using Microsoft.EntityFrameworkCore;
 using Plex.ServerApi;
-using Plex.ServerApi.Api;
-using Plex.ServerApi.Clients;
-using Web.Data;
 using Web.Models;
+using DbContext = Web.Data.DbContext;
 
 namespace Web.Services
 {
@@ -12,9 +11,10 @@ namespace Web.Services
         private readonly HttpClient _httpClient;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ClientOptions _clientOptions;
+
         // private readonly ILogger _logger;
 
-        public DownloadService(HttpClient httpClient, IServiceScopeFactory scopeFactory,ClientOptions clientOptions)
+        public DownloadService(HttpClient httpClient, IServiceScopeFactory scopeFactory, ClientOptions clientOptions)
         {
             _httpClient = httpClient;
             _scopeFactory = scopeFactory;
@@ -38,25 +38,32 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<DbContext>();
-                Movie? movie = await dbContext.Movies.FindAsync(key);
+                Movie? movie = dbContext.Movies.AsNoTracking().FirstOrDefault(x=>x.RatingKey == key);
                 if (movie == null)
                     throw new ArgumentException();
-                var server = await dbContext.Servers.FindAsync(movie.ServerId);
-                if (server == null)
+                Library? library = dbContext.Libraries.Include(x=>x.Server).FirstOrDefault(x=>x.Id == movie.LibraryId);
+                if (library == null)
                     throw new ArgumentException();
-                UriBuilder uriBuilder = new UriBuilder(server.LastKnownUri)
+                IPlexService plexService = scope.ServiceProvider.GetRequiredService<IPlexService>();
+                Movie movieByKey = await plexService.RetrieveMovieByKey(library, key);
+                if (movie == null)
+                    throw new ArgumentException();
+                dbContext.Movies.Update(movieByKey);
+
+                UriBuilder uriBuilder = new UriBuilder(library.Server.LastKnownUri)
                 {
-                    Path = movie.DownloadUri,
-                    Query = $"?X-Plex-Token={server.AccessToken}"
+                    Path = movieByKey.DownloadUri,
+                    Query = $"?X-Plex-Token={library.Server.AccessToken}"
                 };
                 AddToPendingDownloads(
                     new DownloadElement()
                     {
-                        Name = movie.Title,
+                        Name = movieByKey.Title,
                         Uri = uriBuilder.Uri.ToString(),
                         ElementType = ElementType.Movie,
-                        FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), Path.GetFileName(movie.ServerFilePath)),
-                        TotalBytes = movie.TotalBytes
+                        FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), 
+                            Path.GetFileName(movie.ServerFilePath)),
+                        TotalBytes = movieByKey.TotalBytes
                     });
             }
         }
@@ -135,7 +142,8 @@ namespace Web.Services
             }
         }
 
-        private static async Task CopyToAsync(Stream source, Stream destination, DownloadElement downloadElement, int bufferSize = 0x1000)
+        private static async Task CopyToAsync(Stream source, Stream destination, DownloadElement downloadElement,
+            int bufferSize = 0x1000)
         {
             CancellationToken cancellationToken = downloadElement.CancellationTokenSource.Token;
             var buffer = new byte[bufferSize];
@@ -145,7 +153,8 @@ namespace Web.Services
             {
                 await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
-                Console.WriteLine($"Download progress: {downloadElement.DownloadedBytes*100/downloadElement.TotalBytes}% - {downloadElement.DownloadedBytes}/{downloadElement.TotalBytes}");
+                Console.WriteLine(
+                    $"Download progress: {downloadElement.DownloadedBytes * 100 / downloadElement.TotalBytes}% - {downloadElement.DownloadedBytes}/{downloadElement.TotalBytes}");
                 downloadElement.DownloadedBytes += bytesRead;
             }
         }

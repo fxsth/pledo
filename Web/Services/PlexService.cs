@@ -1,0 +1,175 @@
+﻿using System.Net.NetworkInformation;
+using Plex.ServerApi.Clients.Interfaces;
+using Plex.ServerApi.Enums;
+using Plex.ServerApi.PlexModels.Library;
+using Web.Models;
+using Web.Models.DTO;
+using Library = Web.Models.Library;
+using PlexAccount = Plex.ServerApi.PlexModels.Account.PlexAccount;
+
+namespace Web.Services;
+
+
+public class PlexService : IPlexService
+{
+    private readonly IPlexAccountClient _plexAccountClient;
+    private readonly IPlexLibraryClient _plexLibraryClient;
+    private readonly IPlexServerClient _plexServerClient;
+
+    public PlexService(IPlexAccountClient plexAccountClient,
+        IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient)
+    {
+        _plexAccountClient = plexAccountClient;
+        _plexLibraryClient = plexLibraryClient;
+        _plexServerClient = plexServerClient;
+    }
+    
+    public async Task<PlexAccount?> LoginAccount(Credentials credentials)
+    {
+        return await _plexAccountClient.GetPlexAccountAsync(credentials.username, credentials.password);
+    }
+
+    public async Task<IEnumerable<Server>> RetrieveServers(Account account)
+    {
+        var resources = await _plexAccountClient.GetResourcesAsync(account.UserToken);
+        var serverList = resources.Where(x => x.Provides == "server");
+        return serverList.Select(x => new Server()
+        {
+            Id = x.Name,
+            Name = x.Name,
+            AccessToken = x.AccessToken,
+            Connections = x.Connections.Select(y => new ServerConnection()
+            {
+                Uri = y.Uri,
+                Address = y.Address,
+                Local = y.Local,
+                Port = y.Port,
+                Protocol = y.Protocol,
+                Relay = y.Relay,
+                IpV6 = y.IpV6
+            }).ToList()
+        });
+    }
+
+    public async Task<IEnumerable<Library>> RetrieveLibraries(Server server)
+    {
+        LibraryContainer libraryContainer =
+            await _plexServerClient.GetLibrariesAsync(server.AccessToken, server.LastKnownUri);
+        return libraryContainer.Libraries.Select(x => new Library()
+        {
+            Id = x.Uuid,
+            Key = x.Key,
+            Name = x.Title, Type = x.Type,
+            Server = server
+        });
+    }
+
+    public async Task<Movie> RetrieveMovieByKey(Library library, string movieKey)
+    {
+        var mediaContainer = await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, movieKey);
+        if (mediaContainer.Media == null)
+            return null;
+        IEnumerable<Movie> movies = mediaContainer.Media
+            .Select(x => new Movie()
+            {
+                Title = x.Title,
+                Key = x.Key,
+                RatingKey = x.RatingKey,
+                ServerFilePath = x.Media.First().Part.First().File,
+                DownloadUri = x.Media.First().Part.First().Key,
+                LibraryId = library.Id,
+                ServerId = library.Server.Id,
+                TotalBytes = x.Media.First().Part.First().Size
+            });
+        if (movies.Count() > 1)
+            throw new InvalidDataException();
+        return movies.First();
+    }
+    
+    public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
+    {
+        List<Movie> movies = new List<Movie>();
+        int offset = 0;
+        int limit = 100;
+        while (true)
+        {
+            var retrieveMovies = (await RetrieveMovies(library, offset, offset + limit)).ToList();
+            if (retrieveMovies.Any())
+                movies.AddRange(retrieveMovies);
+            else
+                break;
+            offset += limit;
+        }
+
+        return movies;
+    }
+
+    private async Task<IEnumerable<Movie>> RetrieveMovies(Library library, int offset, int limit)
+    {
+        var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
+            library.Server.LastKnownUri, null, library.Key,
+            null, SearchType.Movie, null, offset, limit);
+        if (mediaContainer.Media == null)
+            return Enumerable.Empty<Movie>();
+        IEnumerable<Movie> movies = mediaContainer.Media.Where(x => x.Media?.First()?.Part?.First()?.File != null)
+            .Select(x => new Movie()
+            {
+                Title = x.Title,
+                Key = x.Key,
+                RatingKey = x.RatingKey,
+                ServerFilePath = x.Media.First().Part.First().File,
+                DownloadUri = x.Media.First().Part.First().Key,
+                LibraryId = library.Id,
+                ServerId = library.Server.Id,
+                TotalBytes = x.Media.First().Part.First().Size
+            });
+        return movies;
+    }
+
+    public async Task<string> GetUriFromFastestConnection(Server server)
+    {
+        List<ServerConnection> resourceConnections = server.Connections.ToList();
+        if (resourceConnections?.Any() != true)
+            throw new ArgumentException("No resource connections specified.");
+        string bestUri ="";
+        HttpClient httpClient = new HttpClient();
+        List<Task<HttpResponseMessage>> tasks = new List<Task<HttpResponseMessage>>();
+        CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        List<ServerConnection> connections = resourceConnections.OrderByDescending(x => x.Local).ThenBy(x => x.Relay)
+            .ThenBy(x => x.Address.Contains("plex.direct")).ToList();
+        foreach (ServerConnection connectionForSync in connections)
+        {
+            try
+            {
+                Uri uri = new UriBuilder(connectionForSync.Uri) { Query = $"?X-Plex-Token={server.AccessToken}" }.Uri;
+                tasks.Add(httpClient.GetAsync(uri, cancellationTokenSource.Token));
+            }
+            catch (Exception)
+            {
+            }
+        }
+        
+        foreach (Task<HttpResponseMessage> task in tasks)
+        {
+            try
+            {
+                await task;
+                if (task.IsCompletedSuccessfully)
+                {
+                    HttpResponseMessage responseMessage = await task;
+                    if (responseMessage.IsSuccessStatusCode)
+                    {
+                        return responseMessage.RequestMessage.RequestUri.ToString().Split('?')[0];
+                    }
+                }
+            }
+            catch
+            {
+                // ignored
+            }
+        }
+        if (string.IsNullOrEmpty(bestUri))
+            throw new InvalidOperationException("Could not get uris for connecting to server.");
+        return bestUri;
+    }
+}
