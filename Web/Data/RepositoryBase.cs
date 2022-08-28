@@ -1,4 +1,7 @@
-﻿namespace Web.Data;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
+
+namespace Web.Data;
 
 public class RepositoryBase<T> : IRepository<T> where T : class
 {
@@ -12,6 +15,34 @@ public class RepositoryBase<T> : IRepository<T> where T : class
     public virtual Task<IEnumerable<T>> GetAll()
     {
         throw new NotImplementedException();
+    }
+    
+    public virtual IEnumerable<T> Get(
+        Expression<Func<T, bool>>? filter = null,
+        Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
+        string includeProperties = "")
+    {
+        IQueryable<T> query = DbContext.Set<T>();
+
+        if (filter != null)
+        {
+            query = query.Where(filter);
+        }
+
+        foreach (var includeProperty in includeProperties.Split
+                     (new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            query = query.Include(includeProperty);
+        }
+
+        if (orderBy != null)
+        {
+            return orderBy(query).ToList();
+        }
+        else
+        {
+            return query.ToList();
+        }
     }
 
     public virtual async Task<T?> GetById(string id)
@@ -41,11 +72,14 @@ public class RepositoryBase<T> : IRepository<T> where T : class
 
     public virtual Task Update(IEnumerable<T> t)
     {
-        var items = t.ToList();
-        foreach (var item in items)
-        {
-            DbContext.Update(item);
-        }
+        DbContext.UpdateRange(t);
+
+        return Task.CompletedTask;
+    }
+
+    public virtual Task Update(T t)
+    {
+        DbContext.Update(t);
         return Task.CompletedTask;
     }
 }

@@ -37,18 +37,16 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                Movie? movie = await unitOfWork.MovieRepository.GetById(key);
+                Movie? movie = unitOfWork.MovieRepository.Get(x => x.RatingKey == key).FirstOrDefault();
                 if (movie == null)
                     throw new ArgumentException();
-                Library? library = (await unitOfWork.LibraryRepository.GetAll()).FirstOrDefault(x=>x.Id == movie.LibraryId);
+                Library? library = unitOfWork.LibraryRepository.Get(x=>x.Id == movie.LibraryId, null, nameof(Library.Server)).FirstOrDefault();
                 if (library == null)
                     throw new ArgumentException();
                 IPlexService plexService = scope.ServiceProvider.GetRequiredService<IPlexService>();
                 Movie movieByKey = await plexService.RetrieveMovieByKey(library, key);
-                if (movie == null)
-                    throw new ArgumentException();
-                await unitOfWork.MovieRepository.Update(new []{movieByKey});
-                await unitOfWork.Save();
+                // await unitOfWork.MovieRepository.Update(new []{movieByKey});
+                // await unitOfWork.Save();
                 UriBuilder uriBuilder = new UriBuilder(library.Server.LastKnownUri)
                 {
                     Path = movieByKey.DownloadUri,
