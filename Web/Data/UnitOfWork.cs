@@ -14,65 +14,21 @@ public class UnitOfWork : IDisposable
     private LibraryRepository? _libraryRepository;
     private MovieRepository? _movieRepository;
 
-    public AccountRepository AccountRepository
-    {
-        get
-        {
-            if (_accountRepository == null)
-            {
-                _accountRepository = new AccountRepository(_dbContext);
-            }
-
-            return _accountRepository;
-        }
-    }
-    public ServerRepository ServerRepository
-    {
-        get
-        {
-            if (_serverRepository == null)
-            {
-                _serverRepository = new ServerRepository(_dbContext);
-            }
-
-            return _serverRepository;
-        }
-    }
-    public LibraryRepository LibraryRepository
-    {
-        get
-        {
-            if (_libraryRepository == null)
-            {
-                _libraryRepository = new LibraryRepository(_dbContext);
-            }
-
-            return _libraryRepository;
-        }
-    }
-    public MovieRepository MovieRepository
-    {
-        get
-        {
-            if (_movieRepository == null)
-            {
-                this._movieRepository = new MovieRepository(_dbContext);
-            }
-
-            return _movieRepository;
-        }
-    }
+    public AccountRepository AccountRepository => _accountRepository ??= new AccountRepository(_dbContext);
+    public ServerRepository ServerRepository => _serverRepository ??= new ServerRepository(_dbContext);
+    public LibraryRepository LibraryRepository => _libraryRepository ??= new LibraryRepository(_dbContext);
+    public MovieRepository MovieRepository => _movieRepository ??= new MovieRepository(_dbContext);
 
     public async Task Save()
     {
         await _dbContext.SaveChangesAsync();
     }
 
-    private bool disposed = false;
+    private bool _disposed = false;
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!this.disposed)
+        if (!_disposed)
         {
             if (disposing)
             {
@@ -80,7 +36,7 @@ public class UnitOfWork : IDisposable
             }
         }
 
-        this.disposed = true;
+        _disposed = true;
     }
 
     public void Dispose()

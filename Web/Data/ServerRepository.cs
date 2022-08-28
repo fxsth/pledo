@@ -54,25 +54,8 @@ public class ServerRepository : RepositoryBase<Server>, IServerRepository
                 serverToUpdate.AccessToken = serverFromApi.AccessToken;
                 serverToUpdate.LastKnownUri = serverFromApi.LastKnownUri;
                 DbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
-                // DbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = null;
-                //
-                // await DbContext.SaveChangesAsync();
-                //
-                // DbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = serverFromApi.Connections;
-                // await DbContext.SaveChangesAsync();
-                // // var toAdd = serverFromApi.Connections.Except(serverToUpdate.Connections);
-                // // var toRemove = serverToUpdate.Connections.Except(serverFromApi.Connections);
-                // // foreach (var serverConnection in toAdd)
-                // // {
-                // //     serverToUpdate.Connections.Add(serverConnection);
-                // // }
-                // // foreach (var serverConnection in toRemove)
-                // {
-                //     serverToUpdate.Connections.Remove(serverConnection);
-                // }
             }
 
-            await DbContext.SaveChangesAsync();
         }
     }
 

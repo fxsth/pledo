@@ -76,7 +76,6 @@ public class SyncService : ISyncService
             server.LastKnownUri = uriFromFastestConnection;
             await serverRepository.Upsert(new[] { server });
         }
-        
     }
 
     private async Task SyncLibraries(UnitOfWork unitOfWork)
@@ -108,11 +107,13 @@ public class SyncService : ISyncService
         var libraryRepository = unitOfWork.LibraryRepository;
         var movieRepository = unitOfWork.MovieRepository;
         _syncTask = new BusyTask() { Name = "Sync movies" };
-        IEnumerable<Library> libraries = await libraryRepository.GetAll();
+        IEnumerable<Library> libraries = (await libraryRepository.GetAll()).Where(x => x.Type == "movie");
+        List<Movie> movies = new List<Movie>();
         foreach (var library in libraries)
         {
-            var movies = (await _plexService.RetrieveMovies(library)).ToList();
-            await movieRepository.Upsert(movies);
+            var moviesFromThisLibrary = (await _plexService.RetrieveMovies(library)).ToList();
+            movies.AddRange(moviesFromThisLibrary);
         }
+        await movieRepository.Upsert(movies);
     }
 }

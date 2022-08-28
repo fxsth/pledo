@@ -1,6 +1,6 @@
 ﻿namespace Web.Data;
 
-public class RepositoryBase<T> : IRepository<T>
+public class RepositoryBase<T> : IRepository<T> where T : class
 {
     protected readonly DbContext DbContext;
 
@@ -8,34 +8,44 @@ public class RepositoryBase<T> : IRepository<T>
     {
         DbContext = dbContext;
     }
+
     public virtual Task<IEnumerable<T>> GetAll()
     {
         throw new NotImplementedException();
     }
 
-    public virtual Task<T?> GetById(string id)
+    public virtual async Task<T?> GetById(string id)
+    {
+        return await DbContext.FindAsync<T>(id);
+    }
+
+    public virtual async Task<T?> GetByIdIncludeProperty(string id, Func<T, object> include)
+    {
+        return await DbContext.FindAsync<T>(id);
+    }
+
+    public virtual Task Insert(IEnumerable<T> t)
     {
         throw new NotImplementedException();
     }
 
-    public  virtual Task Insert(IEnumerable<T> t)
+    public virtual Task Remove(T t)
     {
         throw new NotImplementedException();
     }
 
-    public  virtual Task Remove(T t)
-    {
-        throw new NotImplementedException();
-    }
-
-    public  virtual Task Upsert(IEnumerable<T> t)
+    public virtual Task Upsert(IEnumerable<T> t)
     {
         throw new NotImplementedException();
     }
 
     public virtual Task Update(IEnumerable<T> t)
     {
-        throw new NotImplementedException();
+        var items = t.ToList();
+        foreach (var item in items)
+        {
+            DbContext.Update(item);
+        }
+        return Task.CompletedTask;
     }
-    
 }

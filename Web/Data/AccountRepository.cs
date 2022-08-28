@@ -11,7 +11,7 @@ public class AccountRepository : RepositoryBase<Account>, IAccountRepository
 
     public override async Task<IEnumerable<Account>> GetAll()
     {
-        return DbContext.Accounts.AsNoTracking();
+        return DbContext.Accounts.AsNoTracking().ToList();
     }
 
     public override async Task<Models.Account> GetById(string id)

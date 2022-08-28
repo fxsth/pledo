@@ -24,6 +24,6 @@ public class SyncController : ControllerBase
         if (_syncService.GetCurrentSyncTask() != null)
             Conflict("Sync is already ongoing");
         else
-            await Task.Run(() => _syncService.SyncAll());
+            await _syncService.SyncAll();
     }
 }

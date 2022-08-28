@@ -34,7 +34,6 @@ public class LibraryRepository : RepositoryBase<Library>, ILibraryRepository
             var toRemove = DbContext.Libraries.AsNoTracking().FirstOrDefault(x => x.Id == t.Id);
             if (toRemove != null) 
                 DbContext.Libraries.Remove(toRemove);
-            await DbContext.SaveChangesAsync();
     }
 
     public override async  Task Upsert(IEnumerable<Models.Library> t)

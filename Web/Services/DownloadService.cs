@@ -1,8 +1,7 @@
 ﻿using System.Collections.ObjectModel;
-using Microsoft.EntityFrameworkCore;
 using Plex.ServerApi;
+using Web.Data;
 using Web.Models;
-using DbContext = Web.Data.DbContext;
 
 namespace Web.Services
 {
@@ -37,19 +36,19 @@ namespace Web.Services
         {
             using (var scope = _scopeFactory.CreateScope())
             {
-                var dbContext = scope.ServiceProvider.GetRequiredService<DbContext>();
-                Movie? movie = dbContext.Movies.AsNoTracking().FirstOrDefault(x=>x.RatingKey == key);
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                Movie? movie = await unitOfWork.MovieRepository.GetById(key);
                 if (movie == null)
                     throw new ArgumentException();
-                Library? library = dbContext.Libraries.Include(x=>x.Server).FirstOrDefault(x=>x.Id == movie.LibraryId);
+                Library? library = (await unitOfWork.LibraryRepository.GetAll()).FirstOrDefault(x=>x.Id == movie.LibraryId);
                 if (library == null)
                     throw new ArgumentException();
                 IPlexService plexService = scope.ServiceProvider.GetRequiredService<IPlexService>();
                 Movie movieByKey = await plexService.RetrieveMovieByKey(library, key);
                 if (movie == null)
                     throw new ArgumentException();
-                dbContext.Movies.Update(movieByKey);
-
+                await unitOfWork.MovieRepository.Update(new []{movieByKey});
+                await unitOfWork.Save();
                 UriBuilder uriBuilder = new UriBuilder(library.Server.LastKnownUri)
                 {
                     Path = movieByKey.DownloadUri,
