@@ -39,12 +39,15 @@ public class LibraryRepository : ILibraryRepository
     {
         foreach (var libraryFromApi in t)
         {
-            var libraryToUpdate = _dbContext.Libraries.Include(x => x.Server)
-                .FirstOrDefault(x => x.Id == libraryFromApi.Id);
+            var libraryToUpdate = _dbContext.Libraries.FirstOrDefault(x => x.Id == libraryFromApi.Id);
             if (libraryToUpdate == null)
                 await _dbContext.Libraries.AddAsync(libraryFromApi);
             else
-                _dbContext.Entry(libraryToUpdate).CurrentValues.SetValues(libraryFromApi);
+            {
+                libraryToUpdate.Key = libraryFromApi.Key;
+                libraryToUpdate.Name = libraryFromApi.Name;
+                libraryToUpdate.Type = libraryFromApi.Type;
+            }
         }
 
         await _dbContext.SaveChangesAsync();

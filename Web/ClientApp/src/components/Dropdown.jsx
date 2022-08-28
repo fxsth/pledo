@@ -19,10 +19,12 @@ class Dropdown extends Component {
         const listItems = this.state.list.map((entry) =>
             <option value={entry.value}>{entry.label}</option>
         );
+        listItems.unshift(
+            <option>{this.state.title}</option>
+        )
         return (
             <div>
                 <select onChange={this.state.onChange}>
-                    <option>{this.state.title}</option>
                     {listItems}
                 </select>
             </div>

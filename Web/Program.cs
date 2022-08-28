@@ -11,6 +11,7 @@ builder.Services
     .AddPlexServices()
     .AddDataLayer()
     .AddScoped<ISettingsService, SettingsService>()
+    .AddSingleton<ISyncService, SyncService>()
     .AddScoped<IPlexService, PlexService>()
     .AddSingleton<HttpClient>()
     .AddSingleton<IDownloadService, DownloadService>();

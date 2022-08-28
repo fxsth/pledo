@@ -54,4 +54,10 @@ export class Settings extends Component {
         const data = await response.json();
         this.setState({servers: data, loading: false});
     }
+
+    async startSync() {
+        const response = await fetch('api/server');
+        const data = await response.json();
+        this.setState({servers: data, loading: false});
+    }
 }

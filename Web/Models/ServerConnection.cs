@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace Web.Models;
@@ -19,4 +18,7 @@ public class ServerConnection
     public bool Relay { get; set; }
 
     public bool IpV6 { get; set; }
+    [JsonIgnore]
+    [Required]
+    public Server Server { get; set; }
 }

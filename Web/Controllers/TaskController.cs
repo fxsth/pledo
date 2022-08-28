@@ -10,23 +10,30 @@ public class TaskController : ControllerBase
 {
     private readonly IDownloadService _downloadService;
     private readonly ILogger<TaskController> _logger;
+    private readonly ISyncService _syncService;
 
-    public TaskController(IDownloadService downloadService, ILogger<TaskController> logger)
+    public TaskController(IDownloadService downloadService, ILogger<TaskController> logger, ISyncService syncService)
     {
         _downloadService = downloadService;
         _logger = logger;
+        _syncService = syncService;
     }
 
     [HttpGet]
     public IEnumerable<BusyTask> Get()
     {
-        return _downloadService.PendingDownloads.Select(x=>new BusyTask()
+        List<BusyTask> busyTasks = new List<BusyTask>();
+        var currentSyncTask = _syncService.GetCurrentSyncTask();
+        if (currentSyncTask != null)
+            busyTasks.Add(currentSyncTask);
+        busyTasks.AddRange(_downloadService.PendingDownloads.Select(x => new BusyTask()
         {
             Id = x.Id,
             Name = x.Name,
             Type = TaskType.Downloading,
-            Progress = (double) x.DownloadedBytes/x.TotalBytes,
+            Progress = (double)x.DownloadedBytes / x.TotalBytes,
             Completed = x.FinishedSuccessfully
-        });
+        }));
+        return busyTasks;
     }
 }

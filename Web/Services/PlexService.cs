@@ -1,5 +1,4 @@
-﻿using System.Net.NetworkInformation;
-using Plex.ServerApi.Clients.Interfaces;
+﻿using Plex.ServerApi.Clients.Interfaces;
 using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
 using Web.Models;
@@ -8,7 +7,6 @@ using Library = Web.Models.Library;
 using PlexAccount = Plex.ServerApi.PlexModels.Account.PlexAccount;
 
 namespace Web.Services;
-
 
 public class PlexService : IPlexService
 {
@@ -23,7 +21,7 @@ public class PlexService : IPlexService
         _plexLibraryClient = plexLibraryClient;
         _plexServerClient = plexServerClient;
     }
-    
+
     public async Task<PlexAccount?> LoginAccount(Credentials credentials)
     {
         return await _plexAccountClient.GetPlexAccountAsync(credentials.username, credentials.password);
@@ -66,7 +64,8 @@ public class PlexService : IPlexService
 
     public async Task<Movie> RetrieveMovieByKey(Library library, string movieKey)
     {
-        var mediaContainer = await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, movieKey);
+        var mediaContainer =
+            await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, movieKey);
         if (mediaContainer.Media == null)
             return null;
         IEnumerable<Movie> movies = mediaContainer.Media
@@ -85,7 +84,7 @@ public class PlexService : IPlexService
             throw new InvalidDataException();
         return movies.First();
     }
-    
+
     public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
     {
         List<Movie> movies = new List<Movie>();
@@ -128,48 +127,49 @@ public class PlexService : IPlexService
 
     public async Task<string> GetUriFromFastestConnection(Server server)
     {
-        List<ServerConnection> resourceConnections = server.Connections.ToList();
+        var resourceConnections = server.Connections;
         if (resourceConnections?.Any() != true)
             throw new ArgumentException("No resource connections specified.");
-        string bestUri ="";
-        HttpClient httpClient = new HttpClient();
-        List<Task<HttpResponseMessage>> tasks = new List<Task<HttpResponseMessage>>();
-        CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        List<ServerConnection> connections = resourceConnections.OrderByDescending(x => x.Local).ThenBy(x => x.Relay)
-            .ThenBy(x => x.Address.Contains("plex.direct")).ToList();
-        foreach (ServerConnection connectionForSync in connections)
+        List<Task> tasks = new List<Task>();
+        string uri = "";
+        try
         {
-            try
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            HttpClient httpClient = new HttpClient();
+            List<ServerConnection> connections = resourceConnections.Where(x => !x.Relay).ToList();
+            connections.AddRange(resourceConnections.Where(x => x.Relay).ToList());
+            foreach (ServerConnection connectionForSync in connections)
             {
-                Uri uri = new UriBuilder(connectionForSync.Uri) { Query = $"?X-Plex-Token={server.AccessToken}" }.Uri;
-                tasks.Add(httpClient.GetAsync(uri, cancellationTokenSource.Token));
-            }
-            catch (Exception)
-            {
-            }
-        }
-        
-        foreach (Task<HttpResponseMessage> task in tasks)
-        {
-            try
-            {
-                await task;
-                if (task.IsCompletedSuccessfully)
+                try
                 {
-                    HttpResponseMessage responseMessage = await task;
-                    if (responseMessage.IsSuccessStatusCode)
+                    Uri serverInfoUri = new UriBuilder(connectionForSync.Uri)
+                        { Query = $"?X-Plex-Token={server.AccessToken}" }.Uri;
+                    tasks.Add(httpClient.GetAsync(serverInfoUri, cancellationTokenSource.Token).ContinueWith(t =>
                     {
-                        return responseMessage.RequestMessage.RequestUri.ToString().Split('?')[0];
-                    }
+                        if (t.IsCompletedSuccessfully && t.Result.IsSuccessStatusCode)
+                        {
+                            if (string.IsNullOrEmpty(uri))
+                            {
+                                uri = t.Result.RequestMessage.RequestUri?.ToString().Split('?')[0];
+                            }
+
+                            cancellationTokenSource.Cancel();
+                        }
+                    }, cancellationTokenSource.Token));
+                }
+                catch (Exception)
+                {
                 }
             }
-            catch
-            {
-                // ignored
-            }
+
+            await Task.WhenAll(tasks);
+            if (string.IsNullOrEmpty(uri))
+                throw new InvalidOperationException("Could not get uris for connecting to server.");
         }
-        if (string.IsNullOrEmpty(bestUri))
-            throw new InvalidOperationException("Could not get uris for connecting to server.");
-        return bestUri;
+        catch
+        {
+            // ignored
+        }
+        return uri;
     }
 }

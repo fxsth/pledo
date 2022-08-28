@@ -31,10 +31,11 @@ public class ServerRepository : IServerRepository
 
     public async Task Remove(Server t)
     {
-        var toRemove = _dbContext.Servers.FirstOrDefault(x => x.Id == t.Id);
+        var toRemove = _dbContext.Servers.Where(x => x.Id == t.Id).Include(x => x.Connections).FirstOrDefault();
+        await _dbContext.Libraries.Where(x => x.Server == toRemove).LoadAsync();
         if (toRemove != null)
         {
-            _dbContext.Servers.Remove(toRemove);
+            _dbContext.Remove(toRemove);
         }
 
         await _dbContext.SaveChangesAsync();
@@ -48,17 +49,18 @@ public class ServerRepository : IServerRepository
 
     public async Task Upsert(IEnumerable<Server> t)
     {
-        var serversInDb = _dbContext.Servers;
         foreach (var serverFromApi in t)
         {
-            var serverToUpdate = serversInDb.Include(x => x.Connections).FirstOrDefault(x => x.Id == serverFromApi.Id);
+            var testAllServersInDb = _dbContext.Servers.AsNoTracking().ToList();
+            var serverToUpdate = _dbContext.Servers.Where(x => x.Id == serverFromApi.Id).Include(x => x.Connections)
+                .FirstOrDefault();
             if (serverToUpdate == null)
                 await _dbContext.Servers.AddAsync(serverFromApi);
             else
             {
                 serverToUpdate.AccessToken = serverFromApi.AccessToken;
-                serverToUpdate.LastKnownUri = null;
-                _dbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x=>x.Uri);
+                serverToUpdate.LastKnownUri = serverFromApi.LastKnownUri;
+                _dbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
                 // _dbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = null;
                 //
                 // await _dbContext.SaveChangesAsync();

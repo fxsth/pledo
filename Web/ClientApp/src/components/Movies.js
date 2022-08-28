@@ -7,24 +7,37 @@ export class Movies extends Component {
 
     constructor(props) {
         super(props);
-        this.state = {servers: [], libraries: [], movies: [], serverloading: true, libraryloading: true, movieloading: true};
+        this.state = {
+            servers: [],
+            libraries: [],
+            movies: [],
+            serverselected: false,
+            libraryselected: false,
+            serverloading: true,
+            libraryloading: true,
+            movieloading: true
+        };
     }
 
     componentDidMount() {
         this.populateServersData();
     }
-    
+
     handleServerChange = (event) => {
-        this.setState({libraryloading:true})
-        if(event.target.value != null) {
+        this.setState({serverselected: true, libraryselected: false, libraryloading: true})
+        if (event.target.value != null) {
             this.populateLibrariesData(event.target.value);
+        } else {
+            this.setState({serverselected: false});
         }
     };
 
     handleLibraryChange = (event) => {
-        this.setState({movieloading:true})
-        if(event.target.value != null) {
+        this.setState({libraryselected: true, movieloading: true})
+        if (event.target.value != null) {
             this.populateMoviesData(event.target.value);
+        } else {
+            this.setState({libraryselected: false});
         }
     };
 
@@ -62,16 +75,20 @@ export class Movies extends Component {
 
     render() {
         let serverDropdown = this.state.serverloading
-            ? <p><em>Loading...</em></p>
+            ? <p><em>Loading servers...</em></p>
             : this.renderServerDropdown(this.state.servers);
 
-        let libraryDropdown = this.state.libraryloading
-            ? <p><em>Loading...</em></p>
-            : this.renderLibraryDropdown(this.state.libraries);
+        let libraryDropdown = this.state.serverselected
+            ? this.state.libraryloading
+                ? <p><em>Loading libraries...</em></p>
+                : this.renderLibraryDropdown(this.state.libraries)
+            : <p/>;
 
-        let moviesContent = this.state.movieloading
-            ? <p><em>Loading...</em></p>
-            : Movies.renderMoviesTable(this.state.movies);
+        let moviesContent = this.state.libraryselected
+            ? this.state.movieloading
+                ? <p><em>Loading movies...</em></p>
+                : Movies.renderMoviesTable(this.state.movies)
+            : <p/>;
 
         return (
             <div>
@@ -79,7 +96,9 @@ export class Movies extends Component {
                 <p>Select server and library to see a list of all movies.</p>
                 <br/>
                 {serverDropdown}
+                <br/>
                 {libraryDropdown}
+                <br/>
                 {moviesContent}
             </div>
         );
