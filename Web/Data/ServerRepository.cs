@@ -4,69 +4,62 @@ using Web.Models;
 
 namespace Web.Data;
 
-public class ServerRepository : IServerRepository
+public class ServerRepository : RepositoryBase<Server>, IServerRepository
 {
-    private readonly DbContext _dbContext;
-
-    public ServerRepository(DbContext dbContext)
+    public ServerRepository(DbContext dbContext) : base(dbContext)
     {
-        _dbContext = dbContext;
     }
 
-    public async Task<IEnumerable<Server>> GetAll()
+    public override async Task<IEnumerable<Server>> GetAll()
     {
-        return _dbContext.Servers.Include(x => x.Connections).AsNoTracking().ToList();
+        return DbContext.Servers.Include(x => x.Connections).AsNoTracking().ToList();
     }
 
-    public async Task<Server> GetById(string id)
+    public override async  Task<Server> GetById(string id)
     {
-        return _dbContext.Servers.Include(x => x.Connections).AsNoTracking().FirstOrDefault(x => x.Id == id);
+        return DbContext.Servers.Include(x => x.Connections).AsNoTracking().FirstOrDefault(x => x.Id == id);
     }
 
-    public async Task Insert(IEnumerable<Server> t)
+    public override async  Task Insert(IEnumerable<Server> t)
     {
-        _dbContext.Servers.AddRange(t);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Servers.AddRange(t);
     }
 
-    public async Task Remove(Server t)
+    public override async  Task Remove(Server t)
     {
-        var toRemove = _dbContext.Servers.Where(x => x.Id == t.Id).Include(x => x.Connections).FirstOrDefault();
-        await _dbContext.Libraries.Where(x => x.Server == toRemove).LoadAsync();
+        var toRemove = DbContext.Servers.Where(x => x.Id == t.Id).Include(x => x.Connections).FirstOrDefault();
+        await DbContext.Libraries.Where(x => x.Server == toRemove).LoadAsync();
         if (toRemove != null)
         {
-            _dbContext.Remove(toRemove);
+            DbContext.Remove(toRemove);
         }
 
-        await _dbContext.SaveChangesAsync();
     }
 
-    public async Task Remove(IEnumerable<Server> t)
+    public async  Task Remove(IEnumerable<Server> t)
     {
-        _dbContext.Servers.RemoveRange(t);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Servers.RemoveRange(t);
     }
 
-    public async Task Upsert(IEnumerable<Server> t)
+    public override async  Task Upsert(IEnumerable<Server> t)
     {
         foreach (var serverFromApi in t)
         {
-            var testAllServersInDb = _dbContext.Servers.AsNoTracking().ToList();
-            var serverToUpdate = _dbContext.Servers.Where(x => x.Id == serverFromApi.Id).Include(x => x.Connections)
+            var serverToUpdate = DbContext.Servers.Where(x => x.Id == serverFromApi.Id).Include(x => x.Connections)
                 .FirstOrDefault();
             if (serverToUpdate == null)
-                await _dbContext.Servers.AddAsync(serverFromApi);
+                await DbContext.Servers.AddAsync(serverFromApi);
             else
             {
                 serverToUpdate.AccessToken = serverFromApi.AccessToken;
                 serverToUpdate.LastKnownUri = serverFromApi.LastKnownUri;
-                _dbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
-                // _dbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = null;
+                DbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
+                // DbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = null;
                 //
-                // await _dbContext.SaveChangesAsync();
+                // await DbContext.SaveChangesAsync();
                 //
-                // _dbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = serverFromApi.Connections;
-                // await _dbContext.SaveChangesAsync();
+                // DbContext.Entry(serverToUpdate).Collection(x=>x.Connections).CurrentValue = serverFromApi.Connections;
+                // await DbContext.SaveChangesAsync();
                 // // var toAdd = serverFromApi.Connections.Except(serverToUpdate.Connections);
                 // // var toRemove = serverToUpdate.Connections.Except(serverFromApi.Connections);
                 // // foreach (var serverConnection in toAdd)
@@ -79,13 +72,12 @@ public class ServerRepository : IServerRepository
                 // }
             }
 
-            await _dbContext.SaveChangesAsync();
+            await DbContext.SaveChangesAsync();
         }
     }
 
-    public async Task Update(IEnumerable<Server> t)
+    public override async  Task Update(IEnumerable<Server> t)
     {
-        _dbContext.Servers.UpdateRange(t);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Servers.UpdateRange(t);
     }
 }

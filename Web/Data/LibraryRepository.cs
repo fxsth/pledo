@@ -1,47 +1,49 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Web.Models;
 
 namespace Web.Data;
 
-public class LibraryRepository : ILibraryRepository
+public class LibraryRepository : RepositoryBase<Library>, ILibraryRepository
 {
-    private readonly DbContext _dbContext;
-
-    public LibraryRepository(DbContext dbContext)
+    public LibraryRepository(DbContext dbContext) : base(dbContext)
     {
-        _dbContext = dbContext;
     }
 
-    public async Task<IEnumerable<Models.Library>> GetAll()
+    public override async Task<IEnumerable<Models.Library>> GetAll()
     {
-        return _dbContext.Libraries.Include(x => x.Server).AsNoTracking();
+        return DbContext.Libraries.Include(x => x.Server).AsNoTracking();
     }
 
-    public async Task<Models.Library> GetById(string id)
+    public override async Task<Models.Library> GetById(string id)
     {
-        return _dbContext.Libraries.Include(x => x.Server).AsNoTracking().FirstOrDefault(x => x.Id == id);
+        return DbContext.Libraries.Include(x => x.Server).AsNoTracking().FirstOrDefault(x => x.Id == id);
     }
 
-    public async Task Insert(IEnumerable<Models.Library> t)
+    public override async  Task Insert(IEnumerable<Models.Library> t)
     {
-        _dbContext.Libraries.AddRange(t);
-        await _dbContext.SaveChangesAsync();
+        foreach (var library in t)
+        {
+            DbContext.Entry(library.Server).State = EntityState.Detached;
+
+        }
+        await DbContext.AddRangeAsync(t);
     }
 
-    public async Task Remove(Models.Library t)
+    public override async  Task Remove(Models.Library t)
     {
-            var toRemove = _dbContext.Libraries.AsNoTracking().FirstOrDefault(x => x.Id == t.Id);
+            var toRemove = DbContext.Libraries.AsNoTracking().FirstOrDefault(x => x.Id == t.Id);
             if (toRemove != null) 
-                _dbContext.Libraries.Remove(toRemove);
-            await _dbContext.SaveChangesAsync();
+                DbContext.Libraries.Remove(toRemove);
+            await DbContext.SaveChangesAsync();
     }
 
-    public async Task Upsert(IEnumerable<Models.Library> t)
+    public override async  Task Upsert(IEnumerable<Models.Library> t)
     {
         foreach (var libraryFromApi in t)
         {
-            var libraryToUpdate = _dbContext.Libraries.FirstOrDefault(x => x.Id == libraryFromApi.Id);
+            var libraryToUpdate = DbContext.Libraries.FirstOrDefault(x => x.Id == libraryFromApi.Id);
             if (libraryToUpdate == null)
-                await _dbContext.Libraries.AddAsync(libraryFromApi);
+                await DbContext.Libraries.AddAsync(libraryFromApi);
             else
             {
                 libraryToUpdate.Key = libraryFromApi.Key;
@@ -50,12 +52,10 @@ public class LibraryRepository : ILibraryRepository
             }
         }
 
-        await _dbContext.SaveChangesAsync();
     }
 
-    public async Task Update(IEnumerable<Models.Library> t)
+    public override async  Task Update(IEnumerable<Models.Library> t)
     {
-        _dbContext.Libraries.RemoveRange(t);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Libraries.RemoveRange(t);
     }
 }

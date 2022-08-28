@@ -58,7 +58,7 @@ public class PlexService : IPlexService
             Id = x.Uuid,
             Key = x.Key,
             Name = x.Title, Type = x.Type,
-            Server = server
+            ServerId = server.Id
         });
     }
 

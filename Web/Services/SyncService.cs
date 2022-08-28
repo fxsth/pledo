@@ -1,5 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Web.Data;
+﻿using Web.Data;
 using Web.Models;
 
 namespace Web.Services;
@@ -28,14 +27,12 @@ public class SyncService : ISyncService
             using (var scope = _scopeFactory.CreateScope())
             {
                 _plexService = scope.ServiceProvider.GetRequiredService<IPlexService>();
-                var serverRepository = scope.ServiceProvider.GetRequiredService<IServerRepository>();
-                var accountRepository = scope.ServiceProvider.GetRequiredService<IAccountRepository>();
-                var libraryRepository = scope.ServiceProvider.GetRequiredService<ILibraryRepository>();
-                var movieRepository = scope.ServiceProvider.GetRequiredService<IMovieRepository>();
-                await SyncServers(accountRepository, serverRepository);
-                await SyncConnections(serverRepository);
-                await SyncLibraries(libraryRepository, serverRepository);
-                await SyncMovies(libraryRepository, movieRepository);
+                UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                await SyncServers(unitOfWork);
+                await SyncConnections(unitOfWork);
+                await SyncLibraries(unitOfWork);
+                await SyncMovies(unitOfWork);
+                await unitOfWork.Save();
             }
         }
         catch
@@ -48,8 +45,10 @@ public class SyncService : ISyncService
         }
     }
 
-    private async Task SyncServers(IAccountRepository accountRepository, IServerRepository serverRepository)
+    private async Task SyncServers(UnitOfWork unitOfWork)
     {
+        AccountRepository accountRepository = unitOfWork.AccountRepository;
+        ServerRepository serverRepository = unitOfWork.ServerRepository;
         _syncTask = new BusyTask() { Name = "Sync servers" };
         var account = (await accountRepository.GetAll()).FirstOrDefault();
         if (account != null)
@@ -66,8 +65,9 @@ public class SyncService : ISyncService
         }
     }
 
-    private async Task SyncConnections(IServerRepository serverRepository)
+    private async Task SyncConnections(UnitOfWork unitOfWork)
     {
+        ServerRepository serverRepository = unitOfWork.ServerRepository;
         _syncTask = new BusyTask() { Name = "Sync server connections" };
         IEnumerable<Server> servers = await serverRepository.GetAll();
         foreach (var server in servers)
@@ -76,10 +76,14 @@ public class SyncService : ISyncService
             server.LastKnownUri = uriFromFastestConnection;
             await serverRepository.Upsert(new[] { server });
         }
+        
     }
 
-    private async Task SyncLibraries(ILibraryRepository libraryRepository, IServerRepository serverRepository)
+    private async Task SyncLibraries(UnitOfWork unitOfWork)
     {
+        var serverRepository = unitOfWork.ServerRepository;
+        var libraryRepository = unitOfWork.LibraryRepository;
+
         _syncTask = new BusyTask() { Name = "Sync libraries" };
         IEnumerable<Server> servers = await serverRepository.GetAll();
         var librariesInDb = (await libraryRepository.GetAll()).ToList();
@@ -99,8 +103,10 @@ public class SyncService : ISyncService
         }
     }
 
-    private async Task SyncMovies(ILibraryRepository libraryRepository, IMovieRepository movieRepository)
+    private async Task SyncMovies(UnitOfWork unitOfWork)
     {
+        var libraryRepository = unitOfWork.LibraryRepository;
+        var movieRepository = unitOfWork.MovieRepository;
         _syncTask = new BusyTask() { Name = "Sync movies" };
         IEnumerable<Library> libraries = await libraryRepository.GetAll();
         foreach (var library in libraries)

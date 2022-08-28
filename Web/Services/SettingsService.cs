@@ -8,71 +8,33 @@ namespace Web.Services;
 public class SettingsService : ISettingsService
 {
     private readonly IPlexService _plexService;
-    private readonly ILibraryRepository _libraryRepository;
-    private readonly IServerRepository _serverRepository;
-    private readonly IMovieRepository _movieRepository;
-    private readonly IAccountRepository _accountRepository;
+    private readonly UnitOfWork _unitOfWork;
 
     public SettingsService(IPlexService plexService,
-        ILibraryRepository libraryRepository,
-        IServerRepository serverRepository, IMovieRepository movieRepository,
-        IAccountRepository accountRepository)
+        UnitOfWork unitOfWork)
     {
         _plexService = plexService;
-        _libraryRepository = libraryRepository;
-        _serverRepository = serverRepository;
-        _movieRepository = movieRepository;
-        _accountRepository = accountRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<IEnumerable<Account>> GetPlexAccounts()
     {
-        return await _accountRepository.GetAll();
+        return await _unitOfWork.AccountRepository.GetAll();
     }
 
     public async Task<IEnumerable<Server>> GetServers()
     {
-        var account = (await _accountRepository.GetAll()).FirstOrDefault();
-        if (account != null)
-        {
-            var servers = (await _plexService.RetrieveServers(account)).ToList();
-            await _serverRepository.Upsert(servers);
-
-            return servers;
-        }
-        else
-            return Enumerable.Empty<Server>();
+        return await _unitOfWork.ServerRepository.GetAll();
     }
 
     public async Task<IEnumerable<Library>> GetLibraries(string serverId)
     {
-        var server = (await _serverRepository.GetAll()).FirstOrDefault(x => x.Name == serverId);
-        if (server != null)
-        {
-            string uri = await _plexService.GetUriFromFastestConnection(server);
-            server.LastKnownUri = uri;
-            await _serverRepository.Update(new[] { server });
-            // var libraries = (await RetrieveLibraries(server)).ToList();
-            // await _libraryRepository.Upsert(libraries);
-            var libraries = (await _libraryRepository.GetAll()).Where(x => x.Server.Id == serverId);
-            return libraries;
-        }
-        else
-            return Enumerable.Empty<Library>();
+        return (await _unitOfWork.LibraryRepository.GetAll()).Where(x => x.ServerId == serverId);
     }
 
     public async Task<IEnumerable<Movie>> GetMovies(string libraryId)
     {
-        var library = await _libraryRepository.GetById(libraryId);
-        if (library != null)
-        {
-            // var movies = (await RetrieveMovies(library)).ToList();
-            // await _movieRepository.Upsert(movies);
-            var movies = (await _movieRepository.GetAll()).Where(x => x.LibraryId == libraryId);
-            return movies;
-        }
-        else
-            return Enumerable.Empty<Movie>();
+        return (await _unitOfWork.MovieRepository.GetAll()).Where(x => x.LibraryId == libraryId);
     }
 
     public async Task<IEnumerable<BusyTask>> GetTasks()
@@ -92,14 +54,13 @@ public class SettingsService : ISettingsService
             Username = plexAccount.Username,
             UserToken = plexAccount.AuthToken
         };
-        await _accountRepository.Insert(new[] { account });
+        await _unitOfWork.AccountRepository.Insert(new[] { account });
         return true;
     }
 
     public async Task RemovePlexAccount(string username)
     {
         Account account = new Account() { Username = username };
-        await _accountRepository.Remove(account);
+        await _unitOfWork.AccountRepository.Remove(account);
     }
-
 }

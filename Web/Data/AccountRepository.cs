@@ -1,55 +1,50 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Web.Models;
 
 namespace Web.Data;
 
-public class AccountRepository : IAccountRepository
+public class AccountRepository : RepositoryBase<Account>, IAccountRepository
 {
-    private readonly DbContext _dbContext;
-
-    public AccountRepository(DbContext dbContext)
+    public AccountRepository(DbContext dbContext) : base(dbContext)
     {
-        _dbContext = dbContext;
     }
 
-    public async Task<IEnumerable<Models.Account>> GetAll()
+    public override async Task<IEnumerable<Account>> GetAll()
     {
-        return _dbContext.Accounts.AsNoTracking();
+        return DbContext.Accounts.AsNoTracking();
     }
 
-    public async Task<Models.Account> GetById(string id)
+    public override async Task<Models.Account> GetById(string id)
     {
-        return await _dbContext.Accounts.FindAsync(id);
+        return await DbContext.Accounts.FindAsync(id);
     }
 
-    public async Task Insert(IEnumerable<Models.Account> t)
+    public override async Task Insert(IEnumerable<Models.Account> t)
     {
-        _dbContext.Accounts.AddRange(t);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Accounts.AddRange(t);
     }
 
-    public async Task Remove(Models.Account t)
+    public override async Task Remove(Models.Account t)
     {
-        var toRemove = _dbContext.Accounts.AsNoTracking().FirstOrDefault(x => x.Username == t.Username);
+        var toRemove = DbContext.Accounts.AsNoTracking().FirstOrDefault(x => x.Username == t.Username);
         if (toRemove != null) 
-            _dbContext.Accounts.Remove(toRemove);
-        await _dbContext.SaveChangesAsync();
+            DbContext.Accounts.Remove(toRemove);
     }
 
-    public async Task Upsert(IEnumerable<Models.Account> t)
+    public override async Task Upsert(IEnumerable<Models.Account> t)
     {
         foreach (var item in t)
         {
-            var toUpdate = _dbContext.Accounts.FirstOrDefault(x => x.Username == item.Username);
+            var toUpdate = DbContext.Accounts.FirstOrDefault(x => x.Username == item.Username);
             if (toUpdate == null)
-                await _dbContext.Accounts.AddAsync(item);
+                await DbContext.Accounts.AddAsync(item);
             else
-                _dbContext.Accounts.Update(item);
+                DbContext.Accounts.Update(item);
         }
     }
 
-    public async Task Update(IEnumerable<Models.Account> t)
+    public override async Task Update(IEnumerable<Models.Account> t)
     {
-        _dbContext.Accounts.RemoveRange(t);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Accounts.RemoveRange(t);
     }
 }

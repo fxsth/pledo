@@ -16,6 +16,7 @@ public static class DataLayerServiceBuilderExtension
     {
 
         services
+            .AddScoped<UnitOfWork>()
             .AddScoped<IAccountRepository, AccountRepository>()
             .AddScoped<IServerRepository, ServerRepository>()
             .AddScoped<ILibraryRepository, LibraryRepository>()

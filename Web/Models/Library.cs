@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Web.Models;
 
@@ -9,6 +10,8 @@ public class Library
     public string Name { get; set; }
     public string Type { get; set; }
     public string Key { get; set; }
-    [Required]
+    
+    [ForeignKey("Server")]
+    public string ServerId { get; set; }
     public Server Server { get; set; }
 }

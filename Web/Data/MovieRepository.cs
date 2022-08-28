@@ -1,56 +1,51 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Web.Models;
 using Web.Models.Helper;
 
 namespace Web.Data;
 
-public class MovieRepository : IMovieRepository
+public class MovieRepository : RepositoryBase<Movie>, IMovieRepository
 {
-    private readonly DbContext _dbContext;
-
-    public MovieRepository(DbContext dbContext)
+    
+    public MovieRepository(DbContext dbContext) : base(dbContext)
     {
-        _dbContext = dbContext;
     }
-    public async Task<IEnumerable<Models.Movie>> GetAll()
+    public override async  Task<IEnumerable<Models.Movie>> GetAll()
     {
-        return _dbContext.Movies.AsNoTracking().ToList();
+        return DbContext.Movies.AsNoTracking().ToList();
     }
 
-    public async Task<Models.Movie> GetById(string id)
+    public override async Task<Models.Movie> GetById(string id)
     {
-        return await _dbContext.Movies.FindAsync(id);
+        return await DbContext.Movies.FindAsync(id);
     }
 
-    public async Task Insert(IEnumerable<Models.Movie> t)
+    public override async  Task Insert(IEnumerable<Models.Movie> t)
     {
-        _dbContext.Movies.AddRange(t);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Movies.AddRange(t);
     }
 
-    public async Task Remove(Models.Movie t)
+    public override async  Task Remove(Models.Movie t)
     {
-        var toRemove = _dbContext.Movies.AsNoTracking().FirstOrDefault(x => x.RatingKey == t.RatingKey);
+        var toRemove = DbContext.Movies.AsNoTracking().FirstOrDefault(x => x.RatingKey == t.RatingKey);
         if (toRemove != null) 
-            _dbContext.Movies.Remove(toRemove);
-        await _dbContext.SaveChangesAsync();
+            DbContext.Movies.Remove(toRemove);
     }
 
-    public async Task Upsert(IEnumerable<Models.Movie> t)
+    public override async  Task Upsert(IEnumerable<Models.Movie> t)
     {
-        var moviesInDb = _dbContext.Movies.AsNoTracking().ToHashSet();
+        var moviesInDb = DbContext.Movies.AsNoTracking().ToHashSet();
         var moviesToUpsert = t.ToHashSet();
         var moviesToDelete = moviesInDb.Except(moviesToUpsert, new MovieEqualityComparer());
         var moviesToInsert = moviesToUpsert.Except(moviesInDb, new MovieEqualityComparer());
         var moviesToUpdate = moviesInDb.Intersect(moviesToUpsert, new MovieEqualityComparer());
-        _dbContext.Movies.RemoveRange(moviesToDelete);
-        _dbContext.Movies.AddRange(moviesToInsert);
-        _dbContext.Movies.UpdateRange(moviesToUpdate);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Movies.RemoveRange(moviesToDelete);
+        DbContext.Movies.AddRange(moviesToInsert);
+        DbContext.Movies.UpdateRange(moviesToUpdate);
     }
 
-    public async Task Update(IEnumerable<Models.Movie> t)
+    public override async Task Update(IEnumerable<Models.Movie> t)
     {
-        _dbContext.Movies.RemoveRange(t);
-        await _dbContext.SaveChangesAsync();
+        DbContext.Movies.RemoveRange(t);
     }
 }
