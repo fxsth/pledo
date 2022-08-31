@@ -8,13 +8,13 @@ using PlexAccount = Plex.ServerApi.PlexModels.Account.PlexAccount;
 
 namespace Web.Services;
 
-public class PlexService : IPlexService
+public class PlexRestService : IPlexRestService
 {
     private readonly IPlexAccountClient _plexAccountClient;
     private readonly IPlexLibraryClient _plexLibraryClient;
     private readonly IPlexServerClient _plexServerClient;
 
-    public PlexService(IPlexAccountClient plexAccountClient,
+    public PlexRestService(IPlexAccountClient plexAccountClient,
         IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient)
     {
         _plexAccountClient = plexAccountClient;
@@ -103,6 +103,56 @@ public class PlexService : IPlexService
         return movies;
     }
 
+    public async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library)
+    {
+        List<Episode> tvShows = new List<Episode>();
+        int offset = 0;
+        int limit = 100;
+        while (true)
+        {
+            var retrieveTvShows = (await RetrieveEpisodes(library, offset, offset + limit)).ToList();
+            if (retrieveTvShows.Any())
+                tvShows.AddRange(retrieveTvShows);
+            else
+                break;
+            offset += limit;
+        }
+
+        return tvShows;
+    }
+
+    private async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library, int offset, int limit)
+    {
+        var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
+            library.Server.LastKnownUri, null, library.Key,
+            null, SearchType.Episode, null, offset, limit);
+        if (mediaContainer.Media == null)
+            return Enumerable.Empty<Episode>();
+        IEnumerable<Episode> episodes = mediaContainer.Media.Where(x => x.Media?.First()?.Part?.First()?.File != null)
+            .Select(x => new Episode()
+            {
+                Title = x.Title,
+                Key = x.Key,
+                RatingKey = x.RatingKey,
+                LibraryId = library.Id,
+                ServerId = library.ServerId,
+                DownloadUri = x.Media.First().Part.First().Key,
+                TotalBytes = x.Media.First().Part.First().Size,
+                ServerFilePath = x.Media.First().Part.First().File,
+                EpisodeNumber = x.Index,
+                SeasonNumber = x.ParentIndex,
+                TvShow = new TvShow()
+                {
+                    RatingKey = x.GrandparentRatingKey,
+                    Key = x.GrandparentKey,
+                    Title = x.GrandparentTitle,
+                    LibraryId = library.Id,
+                    ServerId = library.ServerId
+                }
+            });
+        return episodes;
+    }
+
     private async Task<IEnumerable<Movie>> RetrieveMovies(Library library, int offset, int limit)
     {
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
@@ -170,6 +220,7 @@ public class PlexService : IPlexService
         {
             // ignored
         }
+
         return uri;
     }
 }

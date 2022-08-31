@@ -4,7 +4,7 @@ using Web.Models;
 
 namespace Web.Data;
 
-public class ServerRepository : RepositoryBase<Server>, IServerRepository
+public class ServerRepository : RepositoryBase<Server>
 {
     public ServerRepository(DbContext dbContext) : base(dbContext)
     {

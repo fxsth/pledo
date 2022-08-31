@@ -5,7 +5,7 @@ namespace Web.Services;
 
 public class SyncService : ISyncService
 {
-    private IPlexService _plexService;
+    private IPlexRestService _plexService;
     private readonly IServiceScopeFactory _scopeFactory;
 
     private BusyTask? _syncTask;
@@ -26,7 +26,7 @@ public class SyncService : ISyncService
         {
             using (var scope = _scopeFactory.CreateScope())
             {
-                _plexService = scope.ServiceProvider.GetRequiredService<IPlexService>();
+                _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
                 await SyncServers(unitOfWork);
                 await SyncConnections(unitOfWork);

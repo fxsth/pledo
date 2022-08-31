@@ -7,10 +7,10 @@ namespace Web.Services;
 
 public class SettingsService : ISettingsService
 {
-    private readonly IPlexService _plexService;
+    private readonly IPlexRestService _plexService;
     private readonly UnitOfWork _unitOfWork;
 
-    public SettingsService(IPlexService plexService,
+    public SettingsService(IPlexRestService plexService,
         UnitOfWork unitOfWork)
     {
         _plexService = plexService;

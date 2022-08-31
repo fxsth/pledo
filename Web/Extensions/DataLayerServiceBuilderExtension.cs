@@ -16,11 +16,11 @@ public static class DataLayerServiceBuilderExtension
     {
 
         services
-            .AddScoped<UnitOfWork>()
-            .AddScoped<IAccountRepository, AccountRepository>()
-            .AddScoped<IServerRepository, ServerRepository>()
-            .AddScoped<ILibraryRepository, LibraryRepository>()
-            .AddScoped<IMovieRepository, MovieRepository>();
+            .AddScoped<UnitOfWork>();
+            // .AddScoped<IAccountRepository, AccountRepository>()
+            // .AddScoped<IServerRepository, ServerRepository>()
+            // .AddScoped<ILibraryRepository, LibraryRepository>()
+            // .AddScoped<IMovieRepository, MovieRepository>();
         return services;
     }
 }

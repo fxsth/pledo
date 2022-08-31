@@ -4,7 +4,7 @@ using Web.Models.Helper;
 
 namespace Web.Data;
 
-public class MovieRepository : RepositoryBase<Movie>, IMovieRepository
+public class MovieRepository : RepositoryBase<Movie>
 {
     public MovieRepository(DbContext dbContext) : base(dbContext)
     {

@@ -3,7 +3,7 @@ using Web.Models;
 
 namespace Web.Data;
 
-public class LibraryRepository : RepositoryBase<Library>, ILibraryRepository
+public class LibraryRepository : RepositoryBase<Library>
 {
     public LibraryRepository(DbContext dbContext) : base(dbContext)
     {

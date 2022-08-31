@@ -12,7 +12,7 @@ builder.Services
     .AddDataLayer()
     .AddScoped<ISettingsService, SettingsService>()
     .AddSingleton<ISyncService, SyncService>()
-    .AddScoped<IPlexService, PlexService>()
+    .AddScoped<IPlexRestService, PlexRestService>()
     .AddSingleton<HttpClient>()
     .AddSingleton<IDownloadService, DownloadService>();
 builder.Services.AddControllers();

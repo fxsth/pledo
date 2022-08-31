@@ -3,7 +3,7 @@ using Web.Models;
 
 namespace Web.Data;
 
-public class AccountRepository : RepositoryBase<Account>, IAccountRepository
+public class AccountRepository : RepositoryBase<Account>
 {
     public AccountRepository(DbContext dbContext) : base(dbContext)
     {

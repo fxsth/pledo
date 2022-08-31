@@ -6,12 +6,12 @@ namespace Web.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class MovieController : ControllerBase
+public class TvShowController : ControllerBase
 {
     private readonly ISettingsService _settingsService;
     private readonly ILogger<TvShowController> _logger;
 
-    public MovieController(ISettingsService settingsService, ILogger<TvShowController> logger)
+    public TvShowController(ISettingsService settingsService, ILogger<TvShowController> logger)
     {
         _settingsService = settingsService;
         _logger = logger;

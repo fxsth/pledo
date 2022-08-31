@@ -43,7 +43,7 @@ namespace Web.Services
                 Library? library = unitOfWork.LibraryRepository.Get(x=>x.Id == movie.LibraryId, null, nameof(Library.Server)).FirstOrDefault();
                 if (library == null)
                     throw new ArgumentException();
-                IPlexService plexService = scope.ServiceProvider.GetRequiredService<IPlexService>();
+                IPlexRestService plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 Movie movieByKey = await plexService.RetrieveMovieByKey(library, key);
                 // await unitOfWork.MovieRepository.Update(new []{movieByKey});
                 // await unitOfWork.Save();
