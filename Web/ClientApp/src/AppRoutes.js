@@ -1,5 +1,3 @@
-import { Counter } from "./components/Counter";
-import { FetchData } from "./components/FetchData";
 import { Home } from "./components/Home";
 import {Settings} from "./components/Settings";
 import {Movies} from "./components/Movies";
@@ -15,10 +13,6 @@ const AppRoutes = [
   {
     path: '/tasks',
     element: <Tasks />
-  },
-  {
-    path: '/fetch-data',
-    element: <FetchData />
   },{
     path: '/settings',
     element: <Settings/>

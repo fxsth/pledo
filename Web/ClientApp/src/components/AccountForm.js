@@ -49,7 +49,7 @@ export default class AccountForm extends React.Component {
     }
 
     async addAccount() {
-        return fetch('api/accounts', {
+        return fetch('api/account', {
             method: 'POST',
             body: JSON.stringify({
                 username: this.state.username,

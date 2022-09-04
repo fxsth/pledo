@@ -5,13 +5,13 @@ namespace Web.Services;
 
 public interface ISettingsService
 {
-    Task<IEnumerable<Account>> GetPlexAccounts();
+    Task<Account?> GetPlexAccount();
     Task<IEnumerable<Server>> GetServers();
     Task<IEnumerable<Library>> GetLibraries(string serverName);
-    Task<IEnumerable<BusyTask>> GetTasks();
     Task<IEnumerable<Movie>> GetMovies(string libraryId);
 
     Task<bool> AddPlexAccount(Credentials credentials);
 
     Task RemovePlexAccount(string username);
+    Task<string> GeneratePlexAuthUrl(Uri forwardUri);
 }

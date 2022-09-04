@@ -1,4 +1,6 @@
-﻿using Web.Data;
+﻿using Plex.ServerApi;
+using Plex.ServerApi.Clients.Interfaces;
+using Web.Data;
 using Web.Models;
 using Web.Models.DTO;
 using Library = Web.Models.Library;
@@ -7,19 +9,23 @@ namespace Web.Services;
 
 public class SettingsService : ISettingsService
 {
-    private readonly IPlexRestService _plexService;
+    private readonly IPlexRestService _plexRestService;
+    private readonly IPlexAccountClient _plexAccountClient;
+    private readonly ClientOptions _clientOptions;
     private readonly UnitOfWork _unitOfWork;
 
-    public SettingsService(IPlexRestService plexService,
+    public SettingsService(IPlexRestService plexRestService, IPlexAccountClient plexAccountClient, ClientOptions clientOptions,
         UnitOfWork unitOfWork)
     {
-        _plexService = plexService;
+        _plexRestService = plexRestService;
+        _plexAccountClient = plexAccountClient;
+        _clientOptions = clientOptions;
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IEnumerable<Account>> GetPlexAccounts()
+    public Task<Account?> GetPlexAccount()
     {
-        return  _unitOfWork.AccountRepository.GetAll();
+        return Task.FromResult(_unitOfWork.AccountRepository.GetAll().FirstOrDefault());
     }
 
     public async Task<IEnumerable<Server>> GetServers()
@@ -45,7 +51,7 @@ public class SettingsService : ISettingsService
 
     public async Task<bool> AddPlexAccount(Credentials credentials)
     {
-        var plexAccount = await _plexService.LoginAccount(credentials);
+        var plexAccount = await _plexRestService.LoginAccount(credentials);
         if (plexAccount == null)
             return false;
         Account account = new Account()
@@ -63,5 +69,23 @@ public class SettingsService : ISettingsService
     {
         Account account = new Account() { Username = username };
         await _unitOfWork.AccountRepository.Remove(account);
+    }
+
+    public async Task<string> GeneratePlexAuthUrl(Uri forwardUri)
+    {
+        var oAuthPinAsync = await _plexAccountClient.CreateOAuthPinAsync(Uri.EscapeDataString(forwardUri.ToString()));
+        var uri = oAuthPinAsync.Url.Replace("[", "%5B");
+        uri = uri.Replace("]", "%5D");
+        return uri;
+    }
+    
+    private Uri GetPlexAuthAppUrl(string clientId, string code, string forwardUrl, string appName)
+    {
+        string uri;
+        if (forwardUrl == null)
+            uri = $"https://app.plex.tv/auth#!?clientID={clientId}&code={code}&context%5Bdevice%5D%5Bproduct%5D={appName}";
+        else
+            uri = $"https://app.plex.tv/auth#!?clientID={clientId}&code={code}&context%5Bdevice%5D%5Bproduct%5D={appName}&forwardUrl={forwardUrl}";
+        return new Uri(uri);
     }
 }

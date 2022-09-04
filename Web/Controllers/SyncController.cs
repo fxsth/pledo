@@ -10,9 +10,9 @@ namespace Web.Controllers;
 public class SyncController : ControllerBase
 {
     private readonly ISyncService _syncService;
-    private readonly ILogger<AccountsController> _logger;
+    private readonly ILogger<AccountController> _logger;
 
-    public SyncController(ISyncService syncService, ILogger<AccountsController> logger)
+    public SyncController(ISyncService syncService, ILogger<AccountController> logger)
     {
         _syncService = syncService;
         _logger = logger;

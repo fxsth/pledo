@@ -9,9 +9,9 @@ namespace Web.Controllers;
 public class DownloadController : ControllerBase
 {
     private readonly IDownloadService _downloadService;
-    private readonly ILogger<AccountsController> _logger;
+    private readonly ILogger<AccountController> _logger;
 
-    public DownloadController(IDownloadService downloadService, ILogger<AccountsController> logger)
+    public DownloadController(IDownloadService downloadService, ILogger<AccountController> logger)
     {
         _downloadService = downloadService;
         _logger = logger;

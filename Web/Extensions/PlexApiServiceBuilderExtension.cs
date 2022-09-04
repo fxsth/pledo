@@ -15,7 +15,7 @@ public static class PlexApiServiceBuilderExtension
         ClientOptions apiOptions = new ClientOptions
         {
             Product = "pledo",
-            DeviceName = Environment.MachineName,
+            DeviceName = "Asp.net app",
             ClientId = "ff0106f8-6106-4983-8099-b441ce5dbf2c",
             Platform = "Windows",
             Version = "v1"
