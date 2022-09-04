@@ -12,7 +12,6 @@ public class SettingsService : ISettingsService
 {
     private readonly IPlexRestService _plexRestService;
     private readonly IPlexAccountClient _plexAccountClient;
-    private readonly ClientOptions _clientOptions;
     private readonly UnitOfWork _unitOfWork;
     private static OAuthPin? _oAuthPin;
 
@@ -21,7 +20,6 @@ public class SettingsService : ISettingsService
     {
         _plexRestService = plexRestService;
         _plexAccountClient = plexAccountClient;
-        _clientOptions = clientOptions;
         _unitOfWork = unitOfWork;
     }
 
@@ -51,11 +49,6 @@ public class SettingsService : ISettingsService
     public async Task<IEnumerable<Server>> GetServers()
     {
         return _unitOfWork.ServerRepository.GetAll();
-    }
-
-    public async Task<IEnumerable<Library>> GetLibraries(string serverId)
-    {
-        return _unitOfWork.LibraryRepository.Get(x => x.ServerId == serverId);
     }
 
     public async Task<IEnumerable<Movie>> GetMovies(string libraryId)

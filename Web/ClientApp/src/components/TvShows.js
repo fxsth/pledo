@@ -148,7 +148,8 @@ export class TvShows extends Component {
 
     async populateLibrariesData(server) {
         const uri = 'api/library?' + new URLSearchParams({
-            server: server
+            server: server,
+            mediaType: 'show'
         });
         const response = await fetch(uri);
         const data = await response.json();

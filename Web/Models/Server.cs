@@ -9,6 +9,8 @@ public class Server
     public string Id { get; set; }
     public string Name { get; set; }
     
+    public string SourceTitle { get; set; }
+    
     [InverseProperty("Server")]
     public ICollection<ServerConnection> Connections { get; set; }
     public string? LastKnownUri { get; set; }

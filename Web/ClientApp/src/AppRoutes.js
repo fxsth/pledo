@@ -1,5 +1,4 @@
 import { Home } from "./components/Home";
-import {Settings} from "./components/Settings";
 import {Movies} from "./components/Movies";
 import {Tasks} from "./components/Tasks";
 import {TvShows} from "./components/TvShows";
@@ -9,13 +8,9 @@ const AppRoutes = [
   {
     index: true,
     element: <Home />
-  },
-  {
+  },{
     path: '/tasks',
     element: <Tasks />
-  },{
-    path: '/settings',
-    element: <Settings/>
   },{
     path: '/movies',
     element: <Movies/>

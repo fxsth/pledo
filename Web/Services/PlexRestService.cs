@@ -35,6 +35,7 @@ public class PlexRestService : IPlexRestService
         {
             Id = x.Name,
             Name = x.Name,
+            SourceTitle = x.SourceTitle,
             AccessToken = x.AccessToken,
             Connections = x.Connections.Select(y => new ServerConnection()
             {

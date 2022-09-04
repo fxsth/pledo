@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Web.Data;
 using Web.Models;
 using Web.Services;
 
@@ -8,18 +9,21 @@ namespace Web.Controllers;
 [Route("api/[controller]")]
 public class LibraryController : ControllerBase
 {
-    private readonly ISettingsService _settingsService;
+    private readonly UnitOfWork _unitOfWork;
     private readonly ILogger<AccountController> _logger;
 
-    public LibraryController(ISettingsService settingsService, ILogger<AccountController> logger)
+    public LibraryController(UnitOfWork unitOfWork, ILogger<AccountController> logger)
     {
-        _settingsService = settingsService;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
     [HttpGet]
-    public async Task<IEnumerable<Library>> Get([FromQuery] string server)
+    public Task<IEnumerable<Library>> Get([FromQuery] string server, [FromQuery] string? mediaType = null)
     {
-        return await _settingsService.GetLibraries(server);
+        if (mediaType == null)
+            return Task.FromResult(_unitOfWork.LibraryRepository.Get(library => library.ServerId == server));
+        else
+            return Task.FromResult(_unitOfWork.LibraryRepository.Get(library => library.ServerId == server && library.Type == mediaType));
     }
 }
