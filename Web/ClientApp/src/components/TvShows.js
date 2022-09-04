@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import Dropdown from "./Dropdown";
 import DownloadButton from "./DownloadButton";
+import CollapsibleTableRow from "./CollapsibleTableRow";
 
 export class TvShows extends Component {
     static displayName = TvShows.name;
@@ -11,14 +12,12 @@ export class TvShows extends Component {
             servers: [],
             libraries: [],
             tvshows: [],
-            episodes: [],
             serverselected: false,
             libraryselected: false,
             tvshowselected: false,
             serverloading: true,
             libraryloading: true,
-            tvshowsloading: true,
-            episodesloading: true,
+            tvshowloading: true
         };
     }
 
@@ -88,9 +87,9 @@ export class TvShows extends Component {
             : <p/>;
 
         let tvshowsContent = this.state.libraryselected
-            ? this.state.movieloading
-                ? <p><em>Loading movies...</em></p>
-                : TvShows.renderEpisodesTable(this.state.tvshows)
+            ? this.state.tvshowloading
+                ? <p><em>Loading TV shows...</em></p>
+                : TvShows.renderTvShowsTable(this.state.tvshows)
             : <p/>;
 
         return (
@@ -107,25 +106,34 @@ export class TvShows extends Component {
         );
     }
 
-    static renderEpisodesTable(episodes) {
+    static renderTvShowsTable(tvShows) {
         return (
             <table className='table table-striped' aria-labelledby="tabelLabel">
-                <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Key</th>
-                    <th>Rating Key</th>
-                    <th>Download Url</th>
-                </tr>
-                </thead>
                 <tbody>
-                {episodes.map(episode =>
-                    <tr key={episode.title}>
-                        <td>{episode.title}</td>
-                        <td>{episode.key}</td>
-                        <td>{episode.ratingKey}</td>
-                        <td><DownloadButton mediaKey={episode.ratingKey}/></td>
-                    </tr>
+                {tvShows.map(tvShow =>
+                    <CollapsibleTableRow label={tvShow.title}>
+                        <table className='table table-striped' aria-labelledby="tabelLabel2">
+                            <thead>
+                            <tr>
+                                <th>Season & Episode</th>
+                                <th>Episode Title</th>
+                                <th>Rating Key</th>
+                                <th>Download Url</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {tvShow.episodes.map(episode =>
+                                <tr>
+                                    <td>S{episode.seasonNumber}E{episode.episodeNumber}</td>
+                                    <td>{episode.title}</td>
+                                    <td>{episode.ratingKey}</td>
+                                    <td><DownloadButton mediaKey={episode.ratingKey}/></td>
+                                </tr>
+                            )}
+                            )}
+                            </tbody>
+                        </table>
+                    </CollapsibleTableRow>
                 )}
                 </tbody>
             </table>
@@ -153,6 +161,6 @@ export class TvShows extends Component {
         });
         const response = await fetch(uri);
         const data = await response.json();
-        this.setState({movies: data, movieloading: false});
+        this.setState({tvshows: data, tvshowloading: false});
     }
 }

@@ -1,12 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Web.Models;
 
 public class Episode
 {
-    [Key]
-    public string RatingKey { get; set; }
+    [Key] public string RatingKey { get; set; }
     public string Key { get; set; }
     public string Title { get; set; }
     public string ServerFilePath { get; set; }
@@ -18,5 +18,6 @@ public class Episode
     public int EpisodeNumber { get; set; }
     [ForeignKey("TvShow")]
     public string TvShowId { get; set; }
+    [JsonIgnore]
     public TvShow TvShow { get; set; }
 }

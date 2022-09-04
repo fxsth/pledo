@@ -2,7 +2,7 @@
 
 public interface IRepository<T> where T : class
 {
-    Task<IEnumerable<T>> GetAll();
+    IReadOnlyCollection<T> GetAll();
     Task<T?> GetById(string id);
     Task Insert(IEnumerable<T> t);
     Task Remove(T t);

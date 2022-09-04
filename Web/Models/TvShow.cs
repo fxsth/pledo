@@ -8,6 +8,7 @@ public class TvShow
     [Key] 
     public string RatingKey { get; set; }
     public string Key { get; set; }
+    public string Guid { get; set; }
     public string Title { get; set; }
     public string LibraryId { get; set; }
     public string ServerId { get; set; }

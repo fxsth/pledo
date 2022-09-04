@@ -29,9 +29,11 @@ public class SyncService : ISyncService
                 _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
                 await SyncServers(unitOfWork);
-                await SyncConnections(unitOfWork);
-                await SyncLibraries(unitOfWork);
-                await SyncMovies(unitOfWork);
+                IReadOnlyCollection<Server> servers = await SyncConnections(unitOfWork);
+                IReadOnlyCollection<Library> libraries = await SyncLibraries(servers, unitOfWork);
+                await SyncMovies(libraries, unitOfWork);
+                await SyncTvShows(libraries, unitOfWork);
+                await SyncEpisodes(libraries, unitOfWork);
                 await unitOfWork.Save();
             }
         }
@@ -50,10 +52,10 @@ public class SyncService : ISyncService
         AccountRepository accountRepository = unitOfWork.AccountRepository;
         ServerRepository serverRepository = unitOfWork.ServerRepository;
         _syncTask = new BusyTask() { Name = "Sync servers" };
-        var account = (await accountRepository.GetAll()).FirstOrDefault();
+        var account = accountRepository.GetAll().FirstOrDefault();
         if (account != null)
         {
-            var serversInDb = await serverRepository.GetAll();
+            var serversInDb = serverRepository.GetAll();
             var newServers = (await _plexService.RetrieveServers(account)).ToList();
             var toRemove = serversInDb.ExceptBy(newServers.Select(x => x.Id), server => server.Id);
             foreach (var server in toRemove)
@@ -65,27 +67,28 @@ public class SyncService : ISyncService
         }
     }
 
-    private async Task SyncConnections(UnitOfWork unitOfWork)
+    private async Task<IReadOnlyCollection<Server>> SyncConnections(UnitOfWork unitOfWork)
     {
         ServerRepository serverRepository = unitOfWork.ServerRepository;
         _syncTask = new BusyTask() { Name = "Sync server connections" };
-        IEnumerable<Server> servers = await serverRepository.GetAll();
+        List<Server> servers = serverRepository.GetAll().ToList();
         foreach (var server in servers)
         {
             var uriFromFastestConnection = await _plexService.GetUriFromFastestConnection(server);
             server.LastKnownUri = uriFromFastestConnection;
-            await serverRepository.Upsert(new[] { server });
         }
+
+        await serverRepository.Upsert(servers);
+
+        return servers;
     }
 
-    private async Task SyncLibraries(UnitOfWork unitOfWork)
+    private async Task<IReadOnlyCollection<Library>> SyncLibraries(IEnumerable<Server> servers, UnitOfWork unitOfWork)
     {
-        var serverRepository = unitOfWork.ServerRepository;
         var libraryRepository = unitOfWork.LibraryRepository;
 
         _syncTask = new BusyTask() { Name = "Sync libraries" };
-        IEnumerable<Server> servers = await serverRepository.GetAll();
-        var librariesInDb = (await libraryRepository.GetAll()).ToList();
+        var librariesInDb = libraryRepository.Get().ToList();
         List<Library> librariesFromApi = new List<Library>();
         foreach (var server in servers)
         {
@@ -100,20 +103,52 @@ public class SyncService : ISyncService
         {
             await libraryRepository.Remove(library);
         }
+
+        return librariesFromApi;
     }
 
-    private async Task SyncMovies(UnitOfWork unitOfWork)
+    private async Task SyncMovies(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
     {
-        var libraryRepository = unitOfWork.LibraryRepository;
         var movieRepository = unitOfWork.MovieRepository;
         _syncTask = new BusyTask() { Name = "Sync movies" };
-        IEnumerable<Library> libraries = (await libraryRepository.GetAll()).Where(x => x.Type == "movie");
+        libraries = libraries.Where(x => x.Type == "movie");
         List<Movie> movies = new List<Movie>();
         foreach (var library in libraries)
         {
             var moviesFromThisLibrary = (await _plexService.RetrieveMovies(library)).ToList();
             movies.AddRange(moviesFromThisLibrary);
         }
+
         await movieRepository.Upsert(movies);
+    }
+
+    private async Task SyncTvShows(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
+    {
+        var tvShowRepository = unitOfWork.TvShowRepository;
+        _syncTask = new BusyTask() { Name = "Sync TV shows" };
+        libraries = libraries.Where(x => x.Type == "show");
+        List<TvShow> tvShows = new List<TvShow>();
+        foreach (var library in libraries)
+        {
+            var tvShowsFromLibrary = (await _plexService.RetrieveTvShows(library)).ToList();
+            tvShows.AddRange(tvShowsFromLibrary);
+        }
+
+        await tvShowRepository.Upsert(tvShows.DistinctBy(x=>x.RatingKey));
+    }
+    
+    private async Task SyncEpisodes(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
+    {
+        var episodeRepository = unitOfWork.EpisodeRepository;
+        _syncTask = new BusyTask() { Name = "Sync TV shows" };
+        libraries = libraries.Where(x => x.Type == "show");
+        List<Episode> episodes = new List<Episode>();
+        foreach (var library in libraries)
+        {
+            var episodesFromThisLibrary = (await _plexService.RetrieveEpisodes(library)).ToList();
+            episodes.AddRange(episodesFromThisLibrary);
+        }
+
+        await episodeRepository.Upsert(episodes.DistinctBy(x=>x.RatingKey));
     }
 }

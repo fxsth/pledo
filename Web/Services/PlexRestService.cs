@@ -89,10 +89,10 @@ public class PlexRestService : IPlexRestService
     {
         List<Movie> movies = new List<Movie>();
         int offset = 0;
-        int limit = 100;
+        int limit = 200;
         while (true)
         {
-            var retrieveMovies = (await RetrieveMovies(library, offset, offset + limit)).ToList();
+            var retrieveMovies = (await RetrieveMovies(library, offset, limit)).ToList();
             if (retrieveMovies.Any())
                 movies.AddRange(retrieveMovies);
             else
@@ -107,10 +107,10 @@ public class PlexRestService : IPlexRestService
     {
         List<Episode> tvShows = new List<Episode>();
         int offset = 0;
-        int limit = 100;
+        int limit = 24;
         while (true)
         {
-            var retrieveTvShows = (await RetrieveEpisodes(library, offset, offset + limit)).ToList();
+            var retrieveTvShows = (await RetrieveEpisodes(library, offset, limit)).ToList();
             if (retrieveTvShows.Any())
                 tvShows.AddRange(retrieveTvShows);
             else
@@ -123,6 +123,7 @@ public class PlexRestService : IPlexRestService
 
     private async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library, int offset, int limit)
     {
+        
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
             library.Server.LastKnownUri, null, library.Key,
             null, SearchType.Episode, null, offset, limit);
@@ -141,14 +142,45 @@ public class PlexRestService : IPlexRestService
                 ServerFilePath = x.Media.First().Part.First().File,
                 EpisodeNumber = x.Index,
                 SeasonNumber = x.ParentIndex,
-                TvShow = new TvShow()
-                {
-                    RatingKey = x.GrandparentRatingKey,
-                    Key = x.GrandparentKey,
-                    Title = x.GrandparentTitle,
-                    LibraryId = library.Id,
-                    ServerId = library.ServerId
-                }
+                TvShowId = x.GrandparentRatingKey
+            });
+        return episodes;
+    }
+    
+    public async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library)
+    {
+        List<TvShow> tvShows = new List<TvShow>();
+        int offset = 0;
+        int limit = 24;
+        while (true)
+        {
+            var retrieveTvShows = (await RetrieveTvShows(library, offset, limit)).ToList();
+            if (retrieveTvShows.Any())
+                tvShows.AddRange(retrieveTvShows);
+            else
+                break;
+            offset += limit;
+        }
+
+        return tvShows;
+    }
+
+    private async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library, int offset, int limit)
+    {
+        
+        var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
+            library.Server.LastKnownUri, null, library.Key,
+            null, SearchType.Show, null, offset, limit);
+        if (mediaContainer.Media == null)
+            return Enumerable.Empty<TvShow>();
+        IEnumerable<TvShow> episodes = mediaContainer.Media.Select(x => new TvShow()
+            {
+                Title = x.Title,
+                Key = x.Key,
+                RatingKey = x.RatingKey,
+                Guid = x.Guid,
+                LibraryId = library.Id,
+                ServerId = library.ServerId
             });
         return episodes;
     }

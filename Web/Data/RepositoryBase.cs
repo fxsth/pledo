@@ -12,9 +12,9 @@ public class RepositoryBase<T> : IRepository<T> where T : class
         DbContext = dbContext;
     }
 
-    public virtual Task<IEnumerable<T>> GetAll()
+    public virtual IReadOnlyCollection<T> GetAll()
     {
-        throw new NotImplementedException();
+        return DbContext.Set<T>().AsNoTracking().ToList();
     }
     
     public virtual IEnumerable<T> Get(
@@ -57,17 +57,27 @@ public class RepositoryBase<T> : IRepository<T> where T : class
 
     public virtual Task Insert(IEnumerable<T> t)
     {
-        throw new NotImplementedException();
+        DbContext.AddRange(t);
+        return Task.CompletedTask;
     }
 
     public virtual Task Remove(T t)
     {
-        throw new NotImplementedException();
+        DbContext.Remove(t);
+        return Task.CompletedTask;
     }
 
     public virtual Task Upsert(IEnumerable<T> t)
     {
-        throw new NotImplementedException();
+        var itemsInDb = DbContext.Set<T>().ToList();
+        var itemsToUpsert = t.ToList();
+        var itemsToDelete = itemsInDb.Where(x=>!itemsToUpsert.Contains(x));
+        var itemsToInsert = itemsToUpsert.Where(x=>!itemsInDb.Contains(x));
+        var itemsToUpdate = itemsInDb.Where(x=>itemsToUpsert.Contains(x));
+        DbContext.RemoveRange(itemsToDelete);
+        DbContext.AddRangeAsync(itemsToInsert);
+        DbContext.UpdateRange(itemsToUpdate);
+        return Task.CompletedTask;
     }
 
     public virtual Task Update(IEnumerable<T> t)

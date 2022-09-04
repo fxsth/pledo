@@ -9,10 +9,6 @@ public class MovieRepository : RepositoryBase<Movie>
     public MovieRepository(DbContext dbContext) : base(dbContext)
     {
     }
-    public override async  Task<IEnumerable<Movie>> GetAll()
-    {
-        return DbContext.Movies.AsNoTracking().ToList();
-    }
 
     public override async  Task Insert(IEnumerable<Movie> t)
     {

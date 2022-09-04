@@ -10,11 +10,6 @@ public class ServerRepository : RepositoryBase<Server>
     {
     }
 
-    public override async Task<IEnumerable<Server>> GetAll()
-    {
-        return DbContext.Servers.Include(x => x.Connections).AsNoTracking().ToList();
-    }
-
     public override async  Task<Server> GetById(string id)
     {
         return DbContext.Servers.Include(x => x.Connections).AsNoTracking().FirstOrDefault(x => x.Id == id);
@@ -41,7 +36,7 @@ public class ServerRepository : RepositoryBase<Server>
         DbContext.Servers.RemoveRange(t);
     }
 
-    public override async  Task Upsert(IEnumerable<Server> t)
+    public override async Task Upsert(IEnumerable<Server> t)
     {
         foreach (var serverFromApi in t)
         {
@@ -55,7 +50,7 @@ public class ServerRepository : RepositoryBase<Server>
                 serverToUpdate.LastKnownUri = serverFromApi.LastKnownUri;
                 DbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
             }
-
+    
         }
     }
 

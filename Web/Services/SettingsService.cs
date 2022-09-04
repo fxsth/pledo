@@ -19,22 +19,22 @@ public class SettingsService : ISettingsService
 
     public async Task<IEnumerable<Account>> GetPlexAccounts()
     {
-        return await _unitOfWork.AccountRepository.GetAll();
+        return  _unitOfWork.AccountRepository.GetAll();
     }
 
     public async Task<IEnumerable<Server>> GetServers()
     {
-        return await _unitOfWork.ServerRepository.GetAll();
+        return _unitOfWork.ServerRepository.GetAll();
     }
 
     public async Task<IEnumerable<Library>> GetLibraries(string serverId)
     {
-        return (await _unitOfWork.LibraryRepository.GetAll()).Where(x => x.ServerId == serverId);
+        return _unitOfWork.LibraryRepository.Get(x => x.ServerId == serverId);
     }
 
     public async Task<IEnumerable<Movie>> GetMovies(string libraryId)
     {
-        return (await _unitOfWork.MovieRepository.GetAll()).Where(x => x.LibraryId == libraryId);
+        return _unitOfWork.MovieRepository.Get(x => x.LibraryId == libraryId);
     }
 
     public async Task<IEnumerable<BusyTask>> GetTasks()
@@ -55,6 +55,7 @@ public class SettingsService : ISettingsService
             UserToken = plexAccount.AuthToken
         };
         await _unitOfWork.AccountRepository.Insert(new[] { account });
+        await _unitOfWork.Save();
         return true;
     }
 

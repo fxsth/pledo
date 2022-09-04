@@ -9,31 +9,9 @@ public class LibraryRepository : RepositoryBase<Library>
     {
     }
 
-    public override async Task<IEnumerable<Models.Library>> GetAll()
-    {
-        return DbContext.Libraries.Include(x => x.Server).AsNoTracking();
-    }
-
     public override async Task<Models.Library> GetById(string id)
     {
         return DbContext.Libraries.Include(x => x.Server).AsNoTracking().FirstOrDefault(x => x.Id == id);
-    }
-
-    public override async  Task Insert(IEnumerable<Models.Library> t)
-    {
-        foreach (var library in t)
-        {
-            DbContext.Entry(library.Server).State = EntityState.Detached;
-
-        }
-        await DbContext.AddRangeAsync(t);
-    }
-
-    public override async  Task Remove(Models.Library t)
-    {
-            var toRemove = DbContext.Libraries.AsNoTracking().FirstOrDefault(x => x.Id == t.Id);
-            if (toRemove != null) 
-                DbContext.Libraries.Remove(toRemove);
     }
 
     public override async  Task Upsert(IEnumerable<Models.Library> t)

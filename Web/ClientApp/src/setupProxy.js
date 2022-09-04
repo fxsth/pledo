@@ -9,6 +9,7 @@ const context =  [
   "/api/server",
   "/api/library",
   "/api/movie",
+  "/api/tvshow",
   "/api/download",
   "/api/task",
   "/api/sync",

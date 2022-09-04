@@ -9,11 +9,6 @@ public class AccountRepository : RepositoryBase<Account>
     {
     }
 
-    public override async Task<IEnumerable<Account>> GetAll()
-    {
-        return DbContext.Accounts.AsNoTracking().ToList();
-    }
-
     public override async Task<Models.Account> GetById(string id)
     {
         return await DbContext.Accounts.FindAsync(id);
