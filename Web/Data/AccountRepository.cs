@@ -14,11 +14,6 @@ public class AccountRepository : RepositoryBase<Account>
         return await DbContext.Accounts.FindAsync(id);
     }
 
-    public override async Task Insert(IEnumerable<Models.Account> t)
-    {
-        DbContext.Accounts.AddRange(t);
-    }
-
     public override async Task Remove(Models.Account t)
     {
         var toRemove = DbContext.Accounts.AsNoTracking().FirstOrDefault(x => x.Username == t.Username);

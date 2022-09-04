@@ -17,9 +17,15 @@ public class DownloadController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("{key}")]
-    public async Task Download( string key)
+    [HttpPost("movie/{key}")]
+    public async Task DownloadMovie( string key)
     {
-        await _downloadService.Download(key);
+        await _downloadService.DownloadMovie(key);
+    }
+    
+    [HttpPost("episode/{key}")]
+    public async Task DownloadEpisode( string key)
+    {
+        await _downloadService.DownloadEpisode(key);
     }
 }

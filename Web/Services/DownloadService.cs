@@ -32,7 +32,7 @@ namespace Web.Services
 
         public Collection<DownloadElement> PendingDownloads { get; }
 
-        public async Task Download(string key)
+        public async Task DownloadMovie(string key)
         {
             using (var scope = _scopeFactory.CreateScope())
             {
@@ -63,6 +63,41 @@ namespace Web.Services
                         TotalBytes = movieByKey.TotalBytes
                     });
             }
+        }
+        
+        public async Task DownloadEpisode(string key)
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                Episode? episode = unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key).FirstOrDefault();
+                if (episode == null)
+                    throw new ArgumentException();
+                Library? library = unitOfWork.LibraryRepository.Get(x=>x.Id == episode.LibraryId, null, nameof(Library.Server)).FirstOrDefault();
+                if (library == null)
+                    throw new ArgumentException();
+                IPlexRestService plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
+                UriBuilder uriBuilder = new UriBuilder(library.Server.LastKnownUri)
+                {
+                    Path = episode.DownloadUri,
+                    Query = $"?X-Plex-Token={library.Server.AccessToken}"
+                };
+                AddToPendingDownloads(
+                    new DownloadElement()
+                    {
+                        Name = episode.Title,
+                        Uri = uriBuilder.Uri.ToString(),
+                        ElementType = ElementType.TvShow,
+                        FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), 
+                            Path.GetFileName(episode.ServerFilePath)),
+                        TotalBytes = episode.TotalBytes
+                    });
+            }
+        }
+
+        public Task DownloadSeries(string key)
+        {
+            throw new NotImplementedException();
         }
 
         private void AddToPendingDownloads(IEnumerable<DownloadElement> toDownload)

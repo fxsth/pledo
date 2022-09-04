@@ -1,5 +1,6 @@
 ﻿using Plex.ServerApi;
 using Plex.ServerApi.Clients.Interfaces;
+using Plex.ServerApi.PlexModels.OAuth;
 using Web.Data;
 using Web.Models;
 using Web.Models.DTO;
@@ -13,6 +14,7 @@ public class SettingsService : ISettingsService
     private readonly IPlexAccountClient _plexAccountClient;
     private readonly ClientOptions _clientOptions;
     private readonly UnitOfWork _unitOfWork;
+    private static OAuthPin? _oAuthPin;
 
     public SettingsService(IPlexRestService plexRestService, IPlexAccountClient plexAccountClient, ClientOptions clientOptions,
         UnitOfWork unitOfWork)
@@ -23,9 +25,27 @@ public class SettingsService : ISettingsService
         _unitOfWork = unitOfWork;
     }
 
-    public Task<Account?> GetPlexAccount()
+    public async Task<Account?> GetPlexAccount()
     {
-        return Task.FromResult(_unitOfWork.AccountRepository.GetAll().FirstOrDefault());
+        if (_oAuthPin != null)
+        {
+            OAuthPin? authTokenFromOAuthPinAsync = await _plexAccountClient.GetAuthTokenFromOAuthPinAsync(_oAuthPin.Id.ToString());
+            var account = await _plexAccountClient.GetPlexAccountAsync(authTokenFromOAuthPinAsync.AuthToken);
+            var plexAccount = new Account()
+            {
+                Email = account.Email,
+                Id = account.Id,
+                Title = account.Title,
+                Username = account.Username,
+                Uuid = account.Uuid,
+                AuthToken = account.AuthToken
+            };
+            await _unitOfWork.AccountRepository.Insert(plexAccount);
+            _oAuthPin = null;
+            await _unitOfWork.Save();
+            return plexAccount;
+        }
+        return _unitOfWork.AccountRepository.GetAll().FirstOrDefault();
     }
 
     public async Task<IEnumerable<Server>> GetServers()
@@ -58,7 +78,7 @@ public class SettingsService : ISettingsService
         {
             Title = plexAccount.Title,
             Username = plexAccount.Username,
-            UserToken = plexAccount.AuthToken
+            AuthToken = plexAccount.AuthToken
         };
         await _unitOfWork.AccountRepository.Insert(new[] { account });
         await _unitOfWork.Save();
@@ -74,6 +94,7 @@ public class SettingsService : ISettingsService
     public async Task<string> GeneratePlexAuthUrl(Uri forwardUri)
     {
         var oAuthPinAsync = await _plexAccountClient.CreateOAuthPinAsync(Uri.EscapeDataString(forwardUri.ToString()));
+        _oAuthPin = oAuthPinAsync;
         var uri = oAuthPinAsync.Url.Replace("[", "%5B");
         uri = uri.Replace("]", "%5D");
         return uri;

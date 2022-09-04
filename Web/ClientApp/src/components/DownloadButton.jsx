@@ -5,7 +5,8 @@ export default class DownloadButton extends React.Component {
         super(props);
         this.state = {
             mediaKey: this.props.mediaKey,
-            isLoading: false
+            isLoading: false,
+            mediatype: this.props.mediaType
         };
     }
 
@@ -32,7 +33,7 @@ export default class DownloadButton extends React.Component {
             }
         };
 
-        return fetch('api/download/' + this.props.mediaKey, settings)
+        return fetch('api/download/' + this.props.mediaType + '/' + this.props.mediaKey, settings)
             .then(response => {
                 if (response.status >= 200 && response.status < 300) {
                     console.log(response);

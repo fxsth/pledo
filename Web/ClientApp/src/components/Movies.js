@@ -121,7 +121,7 @@ export class Movies extends Component {
                         <td>{movie.title}</td>
                         <td>{movie.key}</td>
                         <td>{movie.ratingKey}</td>
-                        <td><DownloadButton mediaKey={movie.ratingKey}/></td>
+                        <td><DownloadButton mediaType='movie' mediaKey={movie.ratingKey}/></td>
                     </tr>
                 )}
                 </tbody>

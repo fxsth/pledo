@@ -28,8 +28,8 @@ public class SyncService : ISyncService
             {
                 _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                await SyncServers(unitOfWork);
-                IReadOnlyCollection<Server> servers = await SyncConnections(unitOfWork);
+                IReadOnlyCollection<Server> syncServers = await SyncServers(unitOfWork);
+                IEnumerable<Server> servers = await SyncConnections(syncServers, unitOfWork);
                 IReadOnlyCollection<Library> libraries = await SyncLibraries(servers, unitOfWork);
                 await SyncMovies(libraries, unitOfWork);
                 await SyncTvShows(libraries, unitOfWork);
@@ -47,7 +47,7 @@ public class SyncService : ISyncService
         }
     }
 
-    private async Task SyncServers(UnitOfWork unitOfWork)
+    private async Task<IReadOnlyCollection<Server>> SyncServers(UnitOfWork unitOfWork)
     {
         AccountRepository accountRepository = unitOfWork.AccountRepository;
         ServerRepository serverRepository = unitOfWork.ServerRepository;
@@ -64,14 +64,16 @@ public class SyncService : ISyncService
             }
 
             await serverRepository.Upsert(newServers);
+            return newServers;
         }
+
+        return new List<Server>();
     }
 
-    private async Task<IReadOnlyCollection<Server>> SyncConnections(UnitOfWork unitOfWork)
+    private async Task<IEnumerable<Server>> SyncConnections(IEnumerable<Server> servers, UnitOfWork unitOfWork)
     {
         ServerRepository serverRepository = unitOfWork.ServerRepository;
         _syncTask = new BusyTask() { Name = "Sync server connections" };
-        List<Server> servers = serverRepository.GetAll().ToList();
         foreach (var server in servers)
         {
             var uriFromFastestConnection = await _plexService.GetUriFromFastestConnection(server);
@@ -79,7 +81,6 @@ public class SyncService : ISyncService
         }
 
         await serverRepository.Upsert(servers);
-
         return servers;
     }
 
@@ -140,7 +141,7 @@ public class SyncService : ISyncService
     private async Task SyncEpisodes(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
     {
         var episodeRepository = unitOfWork.EpisodeRepository;
-        _syncTask = new BusyTask() { Name = "Sync TV shows" };
+        _syncTask = new BusyTask() { Name = "Sync episodes" };
         libraries = libraries.Where(x => x.Type == "show");
         List<Episode> episodes = new List<Episode>();
         foreach (var library in libraries)

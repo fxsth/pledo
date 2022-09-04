@@ -43,7 +43,7 @@ public class ServerRepository : RepositoryBase<Server>
             var serverToUpdate = DbContext.Servers.Where(x => x.Id == serverFromApi.Id).Include(x => x.Connections)
                 .FirstOrDefault();
             if (serverToUpdate == null)
-                await DbContext.Servers.AddAsync(serverFromApi);
+                await DbContext.AddAsync(serverFromApi);
             else
             {
                 serverToUpdate.AccessToken = serverFromApi.AccessToken;
@@ -52,10 +52,5 @@ public class ServerRepository : RepositoryBase<Server>
             }
     
         }
-    }
-
-    public override async  Task Update(IEnumerable<Server> t)
-    {
-        DbContext.Servers.UpdateRange(t);
     }
 }

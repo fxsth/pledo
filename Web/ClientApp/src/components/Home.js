@@ -8,25 +8,26 @@ export class Home extends Component {
         this.state = {
             account: null,
             servers: null,
-            loginuri:''
         };
     }
 
     componentDidMount() {
         this.populateAccountData();
-        if(this.state.account)
+        if (this.state.account)
             this.populateServerData();
-        else
-            this.populateLoginData();
     }
+
+    openInNewTab = async (event) => {
+        const response = await fetch('api/account/loginuri');
+        const data = await response.text();
+        console.log('Login uri: ' + data);
+        window.open(data, '_blank', 'noopener,noreferrer');
+    };
 
     render() {
 
-        const openInNewTab = url => {
-            window.open(url, '_blank', 'noopener,noreferrer');
-        };
-        
-        if(this.state.account) {
+
+        if (this.state.account) {
             return (
                 <div>
                     <h1>Hello, {this.state.account ? this.state.account.username : "User"}!</h1>
@@ -61,9 +62,7 @@ export class Home extends Component {
                         run <code>npm</code> commands such as <code>npm test</code> or <code>npm install</code>.</p>
                 </div>
             );
-        }
-        else
-        {
+        } else {
             return (
                 <div>
                     <h1>Hello, guest!</h1>
@@ -73,8 +72,8 @@ export class Home extends Component {
                         <a href={this.state.loginuri} target="_blank" rel="noopener noreferrer">
                             Login with plex
                         </a>
-                        <hr />
-                        <button onClick={() => openInNewTab(this.state.loginuri)}>
+                        <hr/>
+                        <button onClick={this.openInNewTab.bind(this)}>
                             Login with plex
                         </button>
                     </div>
@@ -88,11 +87,13 @@ export class Home extends Component {
         const data = await response.json();
         this.setState({account: data, loading: false});
     }
+
     async populateLoginData() {
         const response = await fetch('api/account/loginuri');
         const data = await response.text();
         this.setState({loginuri: data, loading: false});
     }
+
     async populateServerData() {
         const response = await fetch('api/server');
         const data = await response.json();

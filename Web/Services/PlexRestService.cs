@@ -29,7 +29,7 @@ public class PlexRestService : IPlexRestService
 
     public async Task<IEnumerable<Server>> RetrieveServers(Account account)
     {
-        var resources = await _plexAccountClient.GetResourcesAsync(account.UserToken);
+        var resources = await _plexAccountClient.GetResourcesAsync(account.AuthToken);
         var serverList = resources.Where(x => x.Provides == "server");
         return serverList.Select(x => new Server()
         {
@@ -83,6 +83,29 @@ public class PlexRestService : IPlexRestService
         if (movies.Count() > 1)
             throw new InvalidDataException();
         return movies.First();
+    }
+    
+    public async Task<Episode> RetrieveEpisodeByKey(Library library, string episodeRatingKey)
+    {
+        var mediaContainer =
+            await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, episodeRatingKey);
+        if (mediaContainer.Media == null)
+            return null;
+        IEnumerable<Episode> episodes = mediaContainer.Media
+            .Select(x => new Episode()
+            {
+                Title = x.Title,
+                Key = x.Key,
+                RatingKey = x.RatingKey,
+                ServerFilePath = x.Media.First().Part.First().File,
+                DownloadUri = x.Media.First().Part.First().Key,
+                LibraryId = library.Id,
+                ServerId = library.Server.Id,
+                TotalBytes = x.Media.First().Part.First().Size
+            });
+        if (episodes.Count() > 1)
+            throw new InvalidDataException();
+        return episodes.First();
     }
 
     public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)

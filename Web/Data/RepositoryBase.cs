@@ -55,10 +55,14 @@ public class RepositoryBase<T> : IRepository<T> where T : class
         return await DbContext.FindAsync<T>(id);
     }
 
-    public virtual Task Insert(IEnumerable<T> t)
+    public virtual async Task Insert(IEnumerable<T> t)
     {
-        DbContext.AddRange(t);
-        return Task.CompletedTask;
+        await DbContext.AddRangeAsync(t);
+    }
+    
+    public virtual async Task Insert(T t)
+    {
+        await DbContext.AddAsync(t);
     }
 
     public virtual Task Remove(T t)

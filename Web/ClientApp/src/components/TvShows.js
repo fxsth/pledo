@@ -127,7 +127,7 @@ export class TvShows extends Component {
                                     <td>S{episode.seasonNumber}E{episode.episodeNumber}</td>
                                     <td>{episode.title}</td>
                                     <td>{episode.ratingKey}</td>
-                                    <td><DownloadButton mediaKey={episode.ratingKey}/></td>
+                                    <td><DownloadButton mediaType='episode' mediaKey={episode.ratingKey}/></td>
                                 </tr>
                             )}
                             )}
