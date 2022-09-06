@@ -8,3 +8,5 @@ Focused on proper functioning rather than good looking design. Features:
 - Sync all media metadata of all accessible servers, backed by local db
 - Browse all media, select and download directly
 - docker support (yet untested)
+
+Until now it downloads stuff into MyVideos - will be changed to configurable download directory.
