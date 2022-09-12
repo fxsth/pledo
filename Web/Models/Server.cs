@@ -15,5 +15,7 @@ public class Server
     public ICollection<ServerConnection> Connections { get; set; }
     public string? LastKnownUri { get; set; }
     public string AccessToken { get; set; }
-    public DateTimeOffset LastModified { get; set; }
+    
+    [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
+    public DateTimeOffset? LastModified { get; set; }
 }

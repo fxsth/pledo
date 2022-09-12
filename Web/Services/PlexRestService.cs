@@ -37,6 +37,7 @@ public class PlexRestService : IPlexRestService
             Name = x.Name,
             SourceTitle = x.SourceTitle,
             AccessToken = x.AccessToken,
+            LastModified = DateTimeOffset.Now,
             Connections = x.Connections.Select(y => new ServerConnection()
             {
                 Uri = y.Uri,
@@ -59,7 +60,8 @@ public class PlexRestService : IPlexRestService
             Id = x.Uuid,
             Key = x.Key,
             Name = x.Title, Type = x.Type,
-            ServerId = server.Id
+            ServerId = server.Id,
+            Server = server
         });
     }
 
@@ -131,7 +133,7 @@ public class PlexRestService : IPlexRestService
     {
         List<Episode> tvShows = new List<Episode>();
         int offset = 0;
-        int limit = 24;
+        int limit = 72;
         while (true)
         {
             var retrieveTvShows = (await RetrieveEpisodes(library, offset, limit)).ToList();
