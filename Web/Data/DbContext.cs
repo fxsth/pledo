@@ -12,7 +12,7 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<TvShow> TvShows { get; set; }
     public DbSet<Episode> Episodes { get; set; }
     public DbSet<BusyTask> Tasks { get; set; }
-
+    public DbSet<Setting> Settings { get; set; }
     public DbContext(DbContextOptions<DbContext> options)
         : base(options)
     {

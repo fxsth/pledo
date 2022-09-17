@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Web.Data;
 using Web.Models;
 using Web.Services;
 
@@ -8,18 +9,18 @@ namespace Web.Controllers;
 [Route("api/[controller]")]
 public class MovieController : ControllerBase
 {
-    private readonly ISettingsService _settingsService;
+    private readonly UnitOfWork _unitOfWork;
     private readonly ILogger<TvShowController> _logger;
 
-    public MovieController(ISettingsService settingsService, ILogger<TvShowController> logger)
+    public MovieController(UnitOfWork unitOfWork, ILogger<TvShowController> logger)
     {
-        _settingsService = settingsService;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
     [HttpGet]
     public async Task<IEnumerable<Movie>> Get([FromQuery] string libraryId)
     {
-        return await _settingsService.GetMovies(libraryId);
+        return _unitOfWork.MovieRepository.Get(x => x.LibraryId == libraryId);
     }
 }

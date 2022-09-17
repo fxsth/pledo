@@ -22,9 +22,9 @@ public class PlexRestService : IPlexRestService
         _plexServerClient = plexServerClient;
     }
 
-    public async Task<PlexAccount?> LoginAccount(Credentials credentials)
+    public async Task<PlexAccount?> LoginAccount(CredentialsResource credentialsResource)
     {
-        return await _plexAccountClient.GetPlexAccountAsync(credentials.username, credentials.password);
+        return await _plexAccountClient.GetPlexAccountAsync(credentialsResource.username, credentialsResource.password);
     }
 
     public async Task<IEnumerable<Server>> RetrieveServers(Account account)
