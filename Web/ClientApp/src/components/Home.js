@@ -33,7 +33,7 @@ export class Home extends Component {
                     <p>You have access to following servers:</p>
                     <ul>
                         {this.state.servers ? this.state.servers.map(server =>
-                            <li><strong>{server.sourceTitle}</strong> {server.name}</li>
+                            <li><strong>{server.sourceTitle == null ? server.name : server.sourceTitle}</strong> {server.name}</li>
                         ) : null}
                     </ul>
                 </div>

@@ -38,6 +38,7 @@ public class PlexRestService : IPlexRestService
             SourceTitle = x.SourceTitle,
             AccessToken = x.AccessToken,
             LastModified = DateTimeOffset.Now,
+            OwnerId = x.OwnerId,
             Connections = x.Connections.Select(y => new ServerConnection()
             {
                 Uri = y.Uri,
