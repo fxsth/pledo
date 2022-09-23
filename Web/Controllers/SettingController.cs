@@ -18,17 +18,15 @@ public class SettingController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost]
-    [Route("[controller]/directory")]
-    public async Task SetDirectories([FromBody] Directories directories)
+    [HttpPut]
+    public async Task UpdateSettings([FromBody] SettingsResource settings)
     {
-        await _settingsService.UpdateDirectories(directories);
+        await _settingsService.UpdateSettings(settings);
     }
     
     [HttpGet]
-    [Route("[controller]/directory")]
-    public async Task<Directories> GetDirectories()
+    public async Task<SettingsResource> GetSettings()
     {
-        return await _settingsService.GetDirectories();
+        return await _settingsService.GetSettings();
     }
 }

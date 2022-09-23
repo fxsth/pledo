@@ -1,6 +1,6 @@
-﻿namespace Web.Models;
+﻿namespace Web.Models.DTO;
 
-public class Directories
+public class SettingsResource
 {
     public string MovieDownloadPath { get; set; }
     public string EpisodeDownloadPath { get; set; }

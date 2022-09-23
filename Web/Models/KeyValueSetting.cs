@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Web.Models;
 
-public class Setting
+public class KeyValueSetting
 {
     [Key]
     public string Key { get; set; }

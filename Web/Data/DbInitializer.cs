@@ -8,12 +8,12 @@ public static class DbInitializer
     {
         if (!context.Settings.Any())
         {
-            var movieDirectory = new Setting()
+            var movieDirectory = new KeyValueSetting()
             {
                 Key = "MovieDirectoryPath",
                 Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)
             };
-            var episodeDirectory = new Setting()
+            var episodeDirectory = new KeyValueSetting()
             {
                 Key = "EpisodeDirectoryPath", Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)
             };

@@ -1,5 +1,5 @@
 ﻿using Web.Data;
-using Web.Models;
+using Web.Models.DTO;
 
 namespace Web.Services;
 
@@ -14,15 +14,15 @@ public class SettingsService : ISettingsService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<Directories> GetDirectories()
+    public async Task<SettingsResource> GetSettings()
     {
         var movieDirectory = await _unitOfWork.SettingRepository.GetById(MovieDirectoryKey);
         var episodeDirectory = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
-        return new Directories()
+        return new SettingsResource()
             { MovieDownloadPath = movieDirectory.Value, EpisodeDownloadPath = episodeDirectory.Value };
     }
 
-    public async Task UpdateDirectories(Directories directories)
+    public async Task UpdateSettings(SettingsResource directories)
     {
         var movieDirectory = await _unitOfWork.SettingRepository.GetById(MovieDirectoryKey);
         var episodeDirectory = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
