@@ -19,13 +19,13 @@ public class SettingController : ControllerBase
     }
 
     [HttpPut]
-    public async Task UpdateSettings([FromBody] SettingsResource settings)
+    public async Task UpdateSettings([FromBody] IEnumerable<SettingsResource> settings)
     {
         await _settingsService.UpdateSettings(settings);
     }
     
     [HttpGet]
-    public async Task<SettingsResource> GetSettings()
+    public async Task<IEnumerable<SettingsResource>> GetSettings()
     {
         return await _settingsService.GetSettings();
     }

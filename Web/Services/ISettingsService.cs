@@ -6,6 +6,6 @@ namespace Web.Services;
 
 public interface ISettingsService
 {
-    Task<SettingsResource> GetSettings();
-    Task UpdateSettings(SettingsResource settings);
+    Task<IEnumerable<SettingsResource>> GetSettings();
+    Task UpdateSettings(IEnumerable<SettingsResource> settings);
 }

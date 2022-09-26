@@ -14,20 +14,24 @@ public class SettingsService : ISettingsService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<SettingsResource> GetSettings()
+    public async Task<IEnumerable<SettingsResource>> GetSettings()
     {
-        var movieDirectory = await _unitOfWork.SettingRepository.GetById(MovieDirectoryKey);
-        var episodeDirectory = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
-        return new SettingsResource()
-            { MovieDownloadPath = movieDirectory.Value, EpisodeDownloadPath = episodeDirectory.Value };
+        var settings = _unitOfWork.SettingRepository.GetAll();
+        return settings.Select(x => new SettingsResource()
+        {
+            Key = x.Key,
+            Description = x.Description,
+            Value = x.Value,
+            Name = x.Name
+        });
     }
 
-    public async Task UpdateSettings(SettingsResource directories)
+    public async Task UpdateSettings(IEnumerable<SettingsResource> settings)
     {
         var movieDirectory = await _unitOfWork.SettingRepository.GetById(MovieDirectoryKey);
         var episodeDirectory = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
-        movieDirectory.Value = directories.MovieDownloadPath;
-        episodeDirectory.Value = directories.EpisodeDownloadPath;
+        movieDirectory.Value = settings.FirstOrDefault(x=>x.Key==MovieDirectoryKey).Value;
+        episodeDirectory.Value = settings.FirstOrDefault(x=>x.Key==EpisodeDirectoryKey).Value;
         await _unitOfWork.Save();
     }
 }
