@@ -6,6 +6,8 @@ namespace Web.Services;
 
 public interface ISettingsService
 {
+    Task<string> GetMovieDirectory();
+    Task<string> GetEpisodeDirectory();
     Task<IEnumerable<SettingsResource>> GetSettings();
     Task UpdateSettings(IEnumerable<SettingsResource> settings);
 }

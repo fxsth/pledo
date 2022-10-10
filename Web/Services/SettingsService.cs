@@ -14,6 +14,18 @@ public class SettingsService : ISettingsService
         _unitOfWork = unitOfWork;
     }
 
+    public async Task<string> GetMovieDirectory()
+    {
+        var setting = await _unitOfWork.SettingRepository.GetById(MovieDirectoryKey);
+        return setting.Value;
+    }
+    
+    public async Task<string> GetEpisodeDirectory()
+    {
+        var setting = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
+        return setting.Value;
+    }
+
     public async Task<IEnumerable<SettingsResource>> GetSettings()
     {
         var settings = _unitOfWork.SettingRepository.GetAll();

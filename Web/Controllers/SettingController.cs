@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Web.Models;
 using Web.Models.DTO;
 using Web.Services;
 
@@ -18,7 +17,7 @@ public class SettingController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPut]
+    [HttpPost]
     public async Task UpdateSettings([FromBody] IEnumerable<SettingsResource> settings)
     {
         await _settingsService.UpdateSettings(settings);

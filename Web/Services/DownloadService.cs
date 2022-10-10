@@ -52,14 +52,16 @@ namespace Web.Services
                     Path = movieByKey.DownloadUri,
                     Query = $"?X-Plex-Token={library.Server.AccessToken}"
                 };
+                ISettingsService settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
+                var movieDirectory = await settingsService.GetMovieDirectory();
+                Directory.CreateDirectory(movieDirectory);
                 AddToPendingDownloads(
                     new DownloadElement()
                     {
                         Name = movieByKey.Title,
                         Uri = uriBuilder.Uri.ToString(),
                         ElementType = ElementType.Movie,
-                        FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), 
-                            Path.GetFileName(movie.ServerFilePath)),
+                        FilePath = Path.Combine(movieDirectory, Path.GetFileName(movie.ServerFilePath)),
                         TotalBytes = movieByKey.TotalBytes
                     });
             }
@@ -82,14 +84,16 @@ namespace Web.Services
                     Path = episode.DownloadUri,
                     Query = $"?X-Plex-Token={library.Server.AccessToken}"
                 };
+                ISettingsService settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
+                var episodeDirectory = await settingsService.GetEpisodeDirectory();
+                Directory.CreateDirectory(episodeDirectory);
                 AddToPendingDownloads(
                     new DownloadElement()
                     {
                         Name = episode.Title,
                         Uri = uriBuilder.Uri.ToString(),
                         ElementType = ElementType.TvShow,
-                        FilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), 
-                            Path.GetFileName(episode.ServerFilePath)),
+                        FilePath = Path.Combine(episodeDirectory, Path.GetFileName(episode.ServerFilePath)),
                         TotalBytes = episode.TotalBytes
                     });
             }
