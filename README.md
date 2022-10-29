@@ -7,6 +7,4 @@ Focused on proper functioning rather than good looking design. Features:
 - Log in by plex.tv, no need for typing in password into this app
 - Sync all media metadata of all accessible servers, backed by local db
 - Browse all media, select and download directly
-- docker support (yet untested)
-
-Until now it downloads stuff into MyVideos - will be changed to configurable download directory soon.
+- docker support (coming soon)
