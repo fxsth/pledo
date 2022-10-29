@@ -6,23 +6,23 @@ public static class DbInitializer
 {
     public static void Initialize(DbContext context)
     {
-        // Look for any students.
-        if (context.Accounts.Any())
+        if (!context.Settings.Any())
         {
-            return; // DB has been seeded
+            var movieDirectory = new KeyValueSetting()
+            {
+                Key = "MovieDirectoryPath",
+                Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+                Name = "Movie Download Directory"
+            };
+            var episodeDirectory = new KeyValueSetting()
+            {
+                Key = "EpisodeDirectoryPath", 
+                Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+                Name = "Movie Download Directory"
+            };
+            context.Settings.Add(movieDirectory);
+            context.Settings.Add(episodeDirectory);
+            context.SaveChanges();
         }
-
-        // var plexAccounts = new Account[]
-        // {
-        //     new Account()
-        //     {
-        //         Username = "MaxMustermann",
-        //         Password = "******",
-        //         UserToken = "jgfieowjcsylr<j2453983"
-        //     }
-        // };
-
-        // context.PlexAccounts.AddRange(plexAccounts);
-        // context.SaveChanges();
     }
 }

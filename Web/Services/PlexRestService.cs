@@ -22,9 +22,9 @@ public class PlexRestService : IPlexRestService
         _plexServerClient = plexServerClient;
     }
 
-    public async Task<PlexAccount?> LoginAccount(Credentials credentials)
+    public async Task<PlexAccount?> LoginAccount(CredentialsResource credentialsResource)
     {
-        return await _plexAccountClient.GetPlexAccountAsync(credentials.username, credentials.password);
+        return await _plexAccountClient.GetPlexAccountAsync(credentialsResource.username, credentialsResource.password);
     }
 
     public async Task<IEnumerable<Server>> RetrieveServers(Account account)
@@ -37,6 +37,8 @@ public class PlexRestService : IPlexRestService
             Name = x.Name,
             SourceTitle = x.SourceTitle,
             AccessToken = x.AccessToken,
+            LastModified = DateTimeOffset.Now,
+            OwnerId = x.OwnerId,
             Connections = x.Connections.Select(y => new ServerConnection()
             {
                 Uri = y.Uri,
@@ -59,7 +61,8 @@ public class PlexRestService : IPlexRestService
             Id = x.Uuid,
             Key = x.Key,
             Name = x.Title, Type = x.Type,
-            ServerId = server.Id
+            ServerId = server.Id,
+            Server = server
         });
     }
 
@@ -131,7 +134,7 @@ public class PlexRestService : IPlexRestService
     {
         List<Episode> tvShows = new List<Episode>();
         int offset = 0;
-        int limit = 24;
+        int limit = 72;
         while (true)
         {
             var retrieveTvShows = (await RetrieveEpisodes(library, offset, limit)).ToList();

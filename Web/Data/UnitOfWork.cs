@@ -15,6 +15,7 @@ public class UnitOfWork : IDisposable
     private MovieRepository? _movieRepository;
     private TvShowRepository? _tvShowRepository;
     private EpisodeRepository? _episodeRepository;
+    private SettingRepository? _settingRepository;
 
     public AccountRepository AccountRepository => _accountRepository ??= new AccountRepository(_dbContext);
     public ServerRepository ServerRepository => _serverRepository ??= new ServerRepository(_dbContext);
@@ -22,6 +23,7 @@ public class UnitOfWork : IDisposable
     public MovieRepository MovieRepository => _movieRepository ??= new MovieRepository(_dbContext);
     public TvShowRepository TvShowRepository => _tvShowRepository ??= new TvShowRepository(_dbContext);
     public EpisodeRepository EpisodeRepository => _episodeRepository ??= new EpisodeRepository(_dbContext);
+    public SettingRepository SettingRepository => _settingRepository ??= new SettingRepository(_dbContext);
 
     public async Task Save()
     {

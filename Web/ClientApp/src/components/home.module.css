@@ -1,0 +1,15 @@
+﻿.splitScreen {
+  display: flex;
+  flexDirection: 'row';
+}
+.topPane {
+  width: 50%
+}
+.bottomPane {
+  width: 50%
+}
+
+.vl {
+  border-left: 6px solid lightgray;
+  height: 500px;
+}

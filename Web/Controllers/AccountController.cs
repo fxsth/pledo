@@ -9,12 +9,12 @@ namespace Web.Controllers;
 [Route("api/[controller]")]
 public class AccountController : ControllerBase
 {
-    private readonly ISettingsService _settingsService;
+    private readonly ILoginService _loginService;
     private readonly ILogger<AccountController> _logger;
 
-    public AccountController(ISettingsService settingsService, ILogger<AccountController> logger)
+    public AccountController(ILoginService loginService, ILogger<AccountController> logger)
     {
-        _settingsService = settingsService;
+        _loginService = loginService;
         _logger = logger;
     }
 
@@ -28,24 +28,24 @@ public class AccountController : ControllerBase
             Port = HttpContext.Request.Host.Port.Value,
             Scheme = HttpContext.Request.Scheme
         };
-        return await _settingsService.GeneratePlexAuthUrl(uriBuilder.Uri);
+        return await _loginService.GeneratePlexAuthUrl(uriBuilder.Uri);
     }
     
     [HttpGet]
     public async Task<Account?> Get()
     {
-        return await _settingsService.GetPlexAccount();
+        return await _loginService.GetPlexAccount();
     }
     
     [HttpPost]
-    public async Task Add([FromBody] Credentials credentials)
+    public async Task Add([FromBody] CredentialsResource credentialsResource)
     {
-        await _settingsService.AddPlexAccount(credentials);
+        await _loginService.AddPlexAccount(credentialsResource);
     }
     
     [HttpDelete("{username}")]
     public async Task Delete(string username)
     {
-        await _settingsService.RemovePlexAccount(username);
+        await _loginService.RemovePlexAccount(username);
     }
 }

@@ -63,7 +63,7 @@ public class SyncService : ISyncService
                 await serverRepository.Remove(server);
             }
 
-            await serverRepository.Upsert(newServers);
+            // await serverRepository.Upsert(newServers);
             return newServers;
         }
 
@@ -78,6 +78,7 @@ public class SyncService : ISyncService
         {
             var uriFromFastestConnection = await _plexService.GetUriFromFastestConnection(server);
             server.LastKnownUri = uriFromFastestConnection;
+            server.LastModified = DateTimeOffset.Now;
         }
 
         await serverRepository.Upsert(servers);

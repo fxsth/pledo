@@ -6,7 +6,7 @@ namespace Web.Services;
 
 public interface IPlexRestService
 {
-    Task<PlexAccount?> LoginAccount(Credentials credentials);
+    Task<PlexAccount?> LoginAccount(CredentialsResource credentialsResource);
     Task<IEnumerable<Server>> RetrieveServers(Account account);
     Task<IEnumerable<Library>> RetrieveLibraries(Server server);
     Task<Movie> RetrieveMovieByKey(Library library, string movieKey);
