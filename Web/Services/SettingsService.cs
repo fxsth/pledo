@@ -1,4 +1,5 @@
 ﻿using Web.Data;
+using Web.Models;
 using Web.Models.DTO;
 
 namespace Web.Services;
@@ -17,12 +18,16 @@ public class SettingsService : ISettingsService
     public async Task<string> GetMovieDirectory()
     {
         var setting = await _unitOfWork.SettingRepository.GetById(MovieDirectoryKey);
+        if (setting == null)
+            throw new InvalidOperationException("The movie directory setting is missing in db.");
         return setting.Value;
     }
     
     public async Task<string> GetEpisodeDirectory()
     {
         var setting = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
+        if (setting == null)
+            throw new InvalidOperationException("The episode directory setting is missing in db.");
         return setting.Value;
     }
 
@@ -34,16 +39,27 @@ public class SettingsService : ISettingsService
             Key = x.Key,
             Description = x.Description,
             Value = x.Value,
-            Name = x.Name
+            Name = x.Name ?? ""
         });
     }
 
     public async Task UpdateSettings(IEnumerable<SettingsResource> settings)
     {
-        var movieDirectory = await _unitOfWork.SettingRepository.GetById(MovieDirectoryKey);
-        var episodeDirectory = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
-        movieDirectory.Value = settings.FirstOrDefault(x=>x.Key==MovieDirectoryKey).Value;
-        episodeDirectory.Value = settings.FirstOrDefault(x=>x.Key==EpisodeDirectoryKey).Value;
-        await _unitOfWork.Save();
+        foreach (var setting in settings)
+        {    
+            var settingFromDb = await _unitOfWork.SettingRepository.GetById(setting.Key);
+            if (settingFromDb != null)
+            {
+                settingFromDb.Value = setting.Value;
+            }
+            else
+            {
+                await _unitOfWork.SettingRepository.Insert(new KeyValueSetting()
+                {
+                    Key = setting.Key,
+                    Value = setting.Value
+                });
+            }
+        }await _unitOfWork.Save();
     }
 }
