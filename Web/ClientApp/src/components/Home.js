@@ -14,11 +14,7 @@ export class Home extends Component {
     render() {
 
         return (
-            <div className={styles.splitScreen}>
-                <div className={styles.topPane}><Overview/></div>
-                <div className={styles.vl}></div>
-                <div className={styles.bottomPane}><Settings/></div>
-            </div>
+            <div><Overview/></div>
         );
 
     }
