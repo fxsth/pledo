@@ -44,7 +44,9 @@ namespace Web.Services
                 if (library == null)
                     throw new ArgumentException();
                 IPlexRestService plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
-                Movie movieByKey = await plexService.RetrieveMovieByKey(library, key);
+                Movie? movieByKey = await plexService.RetrieveMovieByKey(library, key);
+                if (movieByKey == null)
+                    throw new InvalidOperationException("Cannot find metadata of selected movie.");
                 // await unitOfWork.MovieRepository.Update(new []{movieByKey});
                 // await unitOfWork.Save();
                 UriBuilder uriBuilder = new UriBuilder(library.Server.LastKnownUri)

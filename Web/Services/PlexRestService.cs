@@ -13,13 +13,15 @@ public class PlexRestService : IPlexRestService
     private readonly IPlexAccountClient _plexAccountClient;
     private readonly IPlexLibraryClient _plexLibraryClient;
     private readonly IPlexServerClient _plexServerClient;
+    private readonly ILogger<PlexRestService> _logger;
 
     public PlexRestService(IPlexAccountClient plexAccountClient,
-        IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient)
+        IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient, ILogger<PlexRestService> logger)
     {
         _plexAccountClient = plexAccountClient;
         _plexLibraryClient = plexLibraryClient;
         _plexServerClient = plexServerClient;
+        _logger = logger;
     }
 
     public async Task<PlexAccount?> LoginAccount(CredentialsResource credentialsResource)
@@ -54,19 +56,27 @@ public class PlexRestService : IPlexRestService
 
     public async Task<IEnumerable<Library>> RetrieveLibraries(Server server)
     {
-        LibraryContainer libraryContainer =
-            await _plexServerClient.GetLibrariesAsync(server.AccessToken, server.LastKnownUri);
-        return libraryContainer.Libraries.Select(x => new Library()
+        try
         {
-            Id = x.Uuid,
-            Key = x.Key,
-            Name = x.Title, Type = x.Type,
-            ServerId = server.Id,
-            Server = server
-        });
+            LibraryContainer libraryContainer =
+                await _plexServerClient.GetLibrariesAsync(server.AccessToken, server.LastKnownUri);
+            return libraryContainer.Libraries.Select(x => new Library()
+            {
+                Id = x.Uuid,
+                Key = x.Key,
+                Name = x.Title, Type = x.Type,
+                ServerId = server.Id,
+                Server = server
+            });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e,"An error occured while retrieving libraries from server {0}", server.Name);
+            return Enumerable.Empty<Library>();
+        }
     }
 
-    public async Task<Movie> RetrieveMovieByKey(Library library, string movieKey)
+    public async Task<Movie?> RetrieveMovieByKey(Library library, string movieKey)
     {
         var mediaContainer =
             await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, movieKey);
@@ -83,13 +93,13 @@ public class PlexRestService : IPlexRestService
                 LibraryId = library.Id,
                 ServerId = library.Server.Id,
                 TotalBytes = x.Media.First().Part.First().Size
-            });
+            }).ToList();
         if (movies.Count() > 1)
             throw new InvalidDataException();
         return movies.First();
     }
     
-    public async Task<Episode> RetrieveEpisodeByKey(Library library, string episodeRatingKey)
+    public async Task<Episode?> RetrieveEpisodeByKey(Library library, string episodeRatingKey)
     {
         var mediaContainer =
             await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, episodeRatingKey);
@@ -106,7 +116,7 @@ public class PlexRestService : IPlexRestService
                 LibraryId = library.Id,
                 ServerId = library.Server.Id,
                 TotalBytes = x.Media.First().Part.First().Size
-            });
+            }).ToList();
         if (episodes.Count() > 1)
             throw new InvalidDataException();
         return episodes.First();
@@ -268,6 +278,7 @@ public class PlexRestService : IPlexRestService
                 }
                 catch (Exception)
                 {
+                    // ignored
                 }
             }
 
