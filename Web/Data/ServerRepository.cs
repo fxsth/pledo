@@ -15,11 +15,6 @@ public class ServerRepository : RepositoryBase<Server>
         return DbContext.Servers.Include(x => x.Connections).AsNoTracking().FirstOrDefault(x => x.Id == id);
     }
 
-    public override async  Task Insert(IEnumerable<Server> t)
-    {
-        DbContext.Servers.AddRange(t);
-    }
-
     public override async  Task Remove(Server t)
     {
         var toRemove = DbContext.Servers.Where(x => x.Id == t.Id).Include(x => x.Connections).FirstOrDefault();
@@ -50,7 +45,7 @@ public class ServerRepository : RepositoryBase<Server>
                 serverToUpdate.LastKnownUri = serverFromApi.LastKnownUri;
                 DbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
             }
-    
+        
         }
     }
 }

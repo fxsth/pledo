@@ -65,8 +65,7 @@ public class PlexRestService : IPlexRestService
                 Id = x.Uuid,
                 Key = x.Key,
                 Name = x.Title, Type = x.Type,
-                ServerId = server.Id,
-                Server = server
+                ServerId = server.Id
             });
         }
         catch (Exception e)

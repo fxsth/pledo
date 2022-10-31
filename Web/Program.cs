@@ -22,6 +22,8 @@ builder.Services.AddDbContext<DbContext>(o =>
         // o.UseSqlServer(builder.Configuration.GetConnectionString("LocalDbDatabase"));
         // o.UseInMemoryDatabase(builder.Configuration.GetConnectionString("Database"));
         o.UseSqlite(builder.Configuration.GetConnectionString("SqliteDatabase"));
+        // o.EnableDetailedErrors();
+        // o.EnableSensitiveDataLogging();
     }
 );
 

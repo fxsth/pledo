@@ -97,9 +97,10 @@ public class SyncService : ISyncService
     {
         var libraryRepository = unitOfWork.LibraryRepository;
         _syncTask = new BusyTask() { Name = "Sync libraries" };
-        var librariesInDb = libraryRepository.Get().ToList();
+        var librariesInDb = libraryRepository.GetAll();
         List<Library> librariesFromApi = new List<Library>();
-        foreach (var server in servers)
+        IEnumerable<Server> serverList = servers.ToList();
+        foreach (var server in serverList)
         {
             var libraries = (await _plexService.RetrieveLibraries(server)).ToList();
             _logger.LogInformation("Syncing libraries: Found {0} ({1}) of server {2}",libraries.Count,
@@ -115,6 +116,11 @@ public class SyncService : ISyncService
             await libraryRepository.Remove(library);
         }
 
+        foreach (var library in librariesFromApi)
+        {
+            library.Server = serverList.First(x => x.Id == library.ServerId);
+        }
+
         return librariesFromApi;
     }
 
@@ -127,7 +133,7 @@ public class SyncService : ISyncService
         foreach (var library in libraries)
         {
             var moviesFromThisLibrary = (await _plexService.RetrieveMovies(library)).ToList();
-            _logger.LogInformation("Syncing movies: Found {0} movies in library {1} from server {2}",moviesFromThisLibrary.Count, library.Name, library.Server.Name);
+            _logger.LogInformation("Syncing movies: Found {0} movies in library {1} from server {2}",moviesFromThisLibrary.Count, library.Name, library.ServerId);
             movies.AddRange(moviesFromThisLibrary);
         }
 
@@ -143,7 +149,7 @@ public class SyncService : ISyncService
         foreach (var library in libraries)
         {
             var tvShowsFromLibrary = (await _plexService.RetrieveTvShows(library)).ToList();
-            _logger.LogInformation("Syncing tv shows: Found {0} tv shows in library {1} from server {2}",tvShowsFromLibrary.Count, library.Name, library.Server.Name);
+            _logger.LogInformation("Syncing tv shows: Found {0} tv shows in library {1} from server {2}",tvShowsFromLibrary.Count, library.Name, library.ServerId);
             tvShows.AddRange(tvShowsFromLibrary);
         }
 
@@ -159,7 +165,7 @@ public class SyncService : ISyncService
         foreach (var library in libraries)
         {
             var episodesFromThisLibrary = (await _plexService.RetrieveEpisodes(library)).ToList();
-            _logger.LogInformation("Syncing episodes: Found {0} episodes in library {1} from server {2}",episodesFromThisLibrary.Count, library.Name, library.Server.Name);
+            _logger.LogInformation("Syncing episodes: Found {0} episodes in library {1} from server {2}",episodesFromThisLibrary.Count, library.Name, library.ServerId);
             episodes.AddRange(episodesFromThisLibrary);
         }
 
