@@ -16,6 +16,7 @@ public class UnitOfWork : IDisposable
     private TvShowRepository? _tvShowRepository;
     private EpisodeRepository? _episodeRepository;
     private SettingRepository? _settingRepository;
+    private DownloadHistoryRepository? _downloadHistoryRepository;
 
     public AccountRepository AccountRepository => _accountRepository ??= new AccountRepository(_dbContext);
     public ServerRepository ServerRepository => _serverRepository ??= new ServerRepository(_dbContext);
@@ -24,13 +25,15 @@ public class UnitOfWork : IDisposable
     public TvShowRepository TvShowRepository => _tvShowRepository ??= new TvShowRepository(_dbContext);
     public EpisodeRepository EpisodeRepository => _episodeRepository ??= new EpisodeRepository(_dbContext);
     public SettingRepository SettingRepository => _settingRepository ??= new SettingRepository(_dbContext);
+    public DownloadHistoryRepository DownloadHistoryRepository =>
+        _downloadHistoryRepository ??= new DownloadHistoryRepository(_dbContext);
 
     public async Task Save()
     {
         await _dbContext.SaveChangesAsync();
     }
 
-    private bool _disposed = false;
+    private bool _disposed;
 
     protected virtual void Dispose(bool disposing)
     {
