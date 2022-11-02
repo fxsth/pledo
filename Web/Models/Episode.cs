@@ -1,10 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
+using Web.Models.Interfaces;
 
 namespace Web.Models;
 
-public class Episode
+public class Episode : IMediaElement
 {
     [Key] public string RatingKey { get; set; }
     public string Key { get; set; }

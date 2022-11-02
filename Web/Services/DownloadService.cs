@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
+using OctaneEngine;
 using Web.Data;
 using Web.Models;
+using Web.Models.Interfaces;
 
 namespace Web.Services
 {
@@ -35,41 +37,23 @@ namespace Web.Services
             {
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
                 ISettingsService settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
-                if (elementType == ElementType.Movie)
+                IMediaElement? mediaElement = await GetMediaElement(unitOfWork, elementType, key);
+                if (mediaElement == null)
+                    throw new ArgumentException();
+                var downloadDirectory = elementType == ElementType.Movie
+                    ? await settingsService.GetMovieDirectory()
+                    : await settingsService.GetEpisodeDirectory();
+                Directory.CreateDirectory(downloadDirectory);
+                return new DownloadElement()
                 {
-                    Movie? movie = unitOfWork.MovieRepository.Get(x => x.RatingKey == key).FirstOrDefault();
-                    if (movie == null)
-                        throw new ArgumentException();
-                    var movieDirectory = await settingsService.GetMovieDirectory();
-                    Directory.CreateDirectory(movieDirectory);
-                    return new DownloadElement()
-                    {
-                        Uri = (await GetCompleteDownloadUri(unitOfWork, movie.LibraryId, movie.DownloadUri)).ToString(),
-                        Name = movie.Title,
-                        ElementType = elementType,
-                        FilePath = Path.Combine(movieDirectory, Path.GetFileName(movie.ServerFilePath)),
-                        FileName = Path.GetFileName(movie.ServerFilePath),
-                        TotalBytes = movie.TotalBytes
-                    };
-                }
-                else
-                {
-                    Episode? episode = unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key).FirstOrDefault();
-                    if (episode == null)
-                        throw new ArgumentException();
-                    var episodeDirectory = await settingsService.GetEpisodeDirectory();
-                    Directory.CreateDirectory(episodeDirectory);
-                    return new DownloadElement()
-                    {
-                        Uri = (await GetCompleteDownloadUri(unitOfWork, episode.LibraryId, episode.DownloadUri))
-                            .ToString(),
-                        Name = episode.Title,
-                        ElementType = elementType,
-                        FilePath = Path.Combine(episodeDirectory, Path.GetFileName(episode.ServerFilePath)),
-                        FileName = Path.GetFileName(episode.ServerFilePath),
-                        TotalBytes = episode.TotalBytes
-                    };
-                }
+                    Uri = (await GetCompleteDownloadUri(unitOfWork, mediaElement.LibraryId, mediaElement.DownloadUri))
+                        .ToString(),
+                    Name = mediaElement.Title,
+                    ElementType = elementType,
+                    FilePath = Path.Combine(downloadDirectory, Path.GetFileName(mediaElement.ServerFilePath)),
+                    FileName = Path.GetFileName(mediaElement.ServerFilePath),
+                    TotalBytes = mediaElement.TotalBytes
+                };
             }
         }
 
@@ -88,6 +72,20 @@ namespace Web.Services
             return uriBuilder.Uri;
         }
 
+        private async Task<IMediaElement?> GetMediaElement(UnitOfWork unitOfWork, ElementType elementType, string key)
+        {
+            if (elementType == ElementType.Movie)
+            {
+                return unitOfWork.MovieRepository.Get(x => x.RatingKey == key).FirstOrDefault();
+            }
+            else if (elementType == ElementType.TvShow)
+            {
+                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key).FirstOrDefault();
+            }
+
+            return null;
+        }
+
         public async Task DownloadMovie(string key)
         {
             var downloadElement = await CreateDownloadElement(key, ElementType.Movie);
@@ -100,9 +98,21 @@ namespace Web.Services
             AddToPendingDownloads(downloadElement);
         }
 
-        public Task DownloadSeries(string key)
+        public async Task DownloadSeason(string key, int season)
         {
-            throw new NotImplementedException();
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key).FirstOrDefault();
+                if (tvShow == null)
+                    throw new InvalidOperationException();
+                var episodes = tvShow.Episodes.Where(x => x.SeasonNumber == season);
+                foreach (Episode episode in episodes)
+                {
+                    var downloadElement = await CreateDownloadElement(episode.Key, ElementType.TvShow);
+                    AddToPendingDownloads(downloadElement);
+                }
+            }
         }
 
         private void AddToPendingDownloads(IEnumerable<DownloadElement> toDownload)
@@ -163,16 +173,23 @@ namespace Web.Services
         {
             try
             {
-                // downloadElement.CancellationTokenSource.CancelAfter(60000);
-                Stream response = await _httpClient.GetStreamAsync(downloadElement.Uri,
-                    downloadElement.CancellationTokenSource.Token);
-
-                var fileInfo = new FileInfo(downloadElement.FilePath);
-                fileInfo.Directory.Create();
-                using (var fileStream = fileInfo.OpenWrite())
-                {
-                    await CopyToAsync(response, fileStream, downloadElement);
-                }
+                // // downloadElement.CancellationTokenSource.CancelAfter(60000);
+                // Stream response = await _httpClient.GetStreamAsync(downloadElement.Uri,
+                //     downloadElement.CancellationTokenSource.Token);
+                //
+                // var fileInfo = new FileInfo(downloadElement.FilePath);
+                // fileInfo.Directory.Create();
+                // using (var fileStream = fileInfo.OpenWrite())
+                // {
+                //     await CopyToAsync(response, fileStream, downloadElement);
+                // }
+                OctaneConfiguration octaneConfiguration = new OctaneConfiguration() { Parts = 1,ProgressCallback = d =>
+                    {
+                        downloadElement.Progress.Report(d);
+                        downloadElement.DownloadedBytes = Convert.ToInt64(downloadElement.TotalBytes * d);
+                    }
+                };
+                await Engine.DownloadFile(downloadElement.Uri, outFile: downloadElement.FilePath, octaneConfiguration);
 
                 downloadElement.FinishedSuccessfully = true;
             }
