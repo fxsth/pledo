@@ -111,10 +111,7 @@ public class SyncService : ISyncService
         var toRemove = librariesInDb.ExceptBy(librariesFromApi.Select(x => x.Id), library => library.Id);
         var toAdd = librariesFromApi.ExceptBy(librariesInDb.Select(x => x.Id), library => library.Id);
         await libraryRepository.Insert(toAdd);
-        foreach (var library in toRemove)
-        {
-            await libraryRepository.Remove(library);
-        }
+        await libraryRepository.Remove(toRemove);
 
         foreach (var library in librariesFromApi)
         {
