@@ -9,9 +9,9 @@ namespace Web.Controllers;
 public class SettingController : ControllerBase
 {
     private readonly ISettingsService _settingsService;
-    private readonly ILogger<AccountController> _logger;
+    private readonly ILogger<SettingController> _logger;
 
-    public SettingController(ISettingsService settingsService,ILogger<AccountController> logger)
+    public SettingController(ISettingsService settingsService,ILogger<SettingController> logger)
     {
         _settingsService = settingsService;
         _logger = logger;
