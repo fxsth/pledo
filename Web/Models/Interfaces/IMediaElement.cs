@@ -1,11 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-using Web.Models.Interfaces;
+﻿namespace Web.Models.Interfaces;
 
-namespace Web.Models;
-
-public class Movie : IMediaElement
+public interface IMediaElement
 {
-    [Key]
     public string RatingKey { get; set; }
     public string Key { get; set; }
     public string Title { get; set; }

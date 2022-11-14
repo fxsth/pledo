@@ -5,14 +5,16 @@ namespace Web.Services;
 
 public class SyncService : ISyncService
 {
-    private IPlexRestService _plexService;
+    private IPlexRestService _plexService = null!;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<SyncService> _logger;
 
     private BusyTask? _syncTask;
 
-    public SyncService(IServiceScopeFactory scopeFactory)
+    public SyncService(IServiceScopeFactory scopeFactory, ILogger<SyncService> logger)
     {
         _scopeFactory = scopeFactory;
+        _logger = logger;
     }
 
     public BusyTask? GetCurrentSyncTask()
@@ -29,7 +31,7 @@ public class SyncService : ISyncService
                 _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
                 IReadOnlyCollection<Server> syncServers = await SyncServers(unitOfWork);
-                IEnumerable<Server> servers = await SyncConnections(syncServers, unitOfWork);
+                IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
                 IReadOnlyCollection<Library> libraries = await SyncLibraries(servers, unitOfWork);
                 await SyncMovies(libraries, unitOfWork);
                 await SyncTvShows(libraries, unitOfWork);
@@ -58,8 +60,11 @@ public class SyncService : ISyncService
             var serversInDb = serverRepository.GetAll();
             var newServers = (await _plexService.RetrieveServers(account)).ToList();
             var toRemove = serversInDb.ExceptBy(newServers.Select(x => x.Id), server => server.Id);
+            _logger.LogInformation("Syncing servers: {0} new ({1})", newServers.Count,
+                string.Join(", ", newServers.Select(x => x.Name)));
             foreach (var server in toRemove)
             {
+                _logger.LogWarning("Removing unlisted server {0} from database.", server.Name);
                 await serverRepository.Remove(server);
             }
 
@@ -70,13 +75,16 @@ public class SyncService : ISyncService
         return new List<Server>();
     }
 
-    private async Task<IEnumerable<Server>> SyncConnections(IEnumerable<Server> servers, UnitOfWork unitOfWork)
+    private async Task<IReadOnlyCollection<Server>> SyncConnections(IReadOnlyCollection<Server> servers,
+        UnitOfWork unitOfWork)
     {
         ServerRepository serverRepository = unitOfWork.ServerRepository;
         _syncTask = new BusyTask() { Name = "Sync server connections" };
         foreach (var server in servers)
         {
             var uriFromFastestConnection = await _plexService.GetUriFromFastestConnection(server);
+            _logger.LogInformation("Found fastest connection uri {0} for server {1}", uriFromFastestConnection,
+                server.Name);
             server.LastKnownUri = uriFromFastestConnection;
             server.LastModified = DateTimeOffset.Now;
         }
@@ -88,22 +96,26 @@ public class SyncService : ISyncService
     private async Task<IReadOnlyCollection<Library>> SyncLibraries(IEnumerable<Server> servers, UnitOfWork unitOfWork)
     {
         var libraryRepository = unitOfWork.LibraryRepository;
-
         _syncTask = new BusyTask() { Name = "Sync libraries" };
-        var librariesInDb = libraryRepository.Get().ToList();
+        var librariesInDb = libraryRepository.GetAll();
         List<Library> librariesFromApi = new List<Library>();
-        foreach (var server in servers)
+        IEnumerable<Server> serverList = servers.ToList();
+        foreach (var server in serverList)
         {
             var libraries = (await _plexService.RetrieveLibraries(server)).ToList();
+            _logger.LogInformation("Syncing libraries: Found {0} ({1}) of server {2}",libraries.Count,
+                string.Join(", ", libraries.Select(x => x.Name)), server.Name);
             librariesFromApi.AddRange(libraries);
         }
 
         var toRemove = librariesInDb.ExceptBy(librariesFromApi.Select(x => x.Id), library => library.Id);
         var toAdd = librariesFromApi.ExceptBy(librariesInDb.Select(x => x.Id), library => library.Id);
         await libraryRepository.Insert(toAdd);
-        foreach (var library in toRemove)
+        await libraryRepository.Remove(toRemove);
+
+        foreach (var library in librariesFromApi)
         {
-            await libraryRepository.Remove(library);
+            library.Server = serverList.First(x => x.Id == library.ServerId);
         }
 
         return librariesFromApi;
@@ -118,6 +130,7 @@ public class SyncService : ISyncService
         foreach (var library in libraries)
         {
             var moviesFromThisLibrary = (await _plexService.RetrieveMovies(library)).ToList();
+            _logger.LogInformation("Syncing movies: Found {0} movies in library {1} from server {2}",moviesFromThisLibrary.Count, library.Name, library.ServerId);
             movies.AddRange(moviesFromThisLibrary);
         }
 
@@ -133,12 +146,13 @@ public class SyncService : ISyncService
         foreach (var library in libraries)
         {
             var tvShowsFromLibrary = (await _plexService.RetrieveTvShows(library)).ToList();
+            _logger.LogInformation("Syncing tv shows: Found {0} tv shows in library {1} from server {2}",tvShowsFromLibrary.Count, library.Name, library.ServerId);
             tvShows.AddRange(tvShowsFromLibrary);
         }
 
-        await tvShowRepository.Upsert(tvShows.DistinctBy(x=>x.RatingKey));
+        await tvShowRepository.Upsert(tvShows.DistinctBy(x => x.RatingKey));
     }
-    
+
     private async Task SyncEpisodes(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
     {
         var episodeRepository = unitOfWork.EpisodeRepository;
@@ -148,9 +162,10 @@ public class SyncService : ISyncService
         foreach (var library in libraries)
         {
             var episodesFromThisLibrary = (await _plexService.RetrieveEpisodes(library)).ToList();
+            _logger.LogInformation("Syncing episodes: Found {0} episodes in library {1} from server {2}",episodesFromThisLibrary.Count, library.Name, library.ServerId);
             episodes.AddRange(episodesFromThisLibrary);
         }
 
-        await episodeRepository.Upsert(episodes.DistinctBy(x=>x.RatingKey));
+        await episodeRepository.Upsert(episodes.DistinctBy(x => x.RatingKey));
     }
 }

@@ -25,24 +25,25 @@ public class AccountController : ControllerBase
         UriBuilder uriBuilder = new UriBuilder()
         {
             Host = HttpContext.Request.Host.Host,
-            Port = HttpContext.Request.Host.Port.Value,
             Scheme = HttpContext.Request.Scheme
         };
+        if (HttpContext.Request.Host.Port.HasValue)
+            uriBuilder.Port = HttpContext.Request.Host.Port.Value;
         return await _loginService.GeneratePlexAuthUrl(uriBuilder.Uri);
     }
-    
+
     [HttpGet]
     public async Task<Account?> Get()
     {
         return await _loginService.GetPlexAccount();
     }
-    
+
     [HttpPost]
     public async Task Add([FromBody] CredentialsResource credentialsResource)
     {
         await _loginService.AddPlexAccount(credentialsResource);
     }
-    
+
     [HttpDelete("{username}")]
     public async Task Delete(string username)
     {

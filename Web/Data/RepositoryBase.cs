@@ -70,6 +70,11 @@ public class RepositoryBase<T> : IRepository<T> where T : class
         DbContext.Remove(t);
         return Task.CompletedTask;
     }
+    public virtual Task Remove(IEnumerable<T> t)
+    {
+        DbContext.RemoveRange(t);
+        return Task.CompletedTask;
+    }
 
     public virtual Task Upsert(IEnumerable<T> t)
     {
