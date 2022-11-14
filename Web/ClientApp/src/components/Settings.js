@@ -7,25 +7,11 @@ export class Settings extends React.Component {
             settings: []
         };
 
-        this.handleChange = this.handleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
     }
 
     componentDidMount() {
         this.populateData();
-    }
-
-    handleChange(event) {
-        const target = event.target;
-        const value = target.value;
-        const name = target.name;
-        const changedSettings = this.state.settings;
-        const index = changedSettings.findIndex(object => {
-            return object.key === name;
-        });
-        this.setState(state => {
-            state.settings[index].value = value
-        });
     }
 
     handleSubmit(event) {
@@ -46,8 +32,7 @@ export class Settings extends React.Component {
                         <div style={{width: "100%", marginBottom: 20}}>
                             <h6>{setting.name}:</h6>
                             <label style={{width: "100%"}}>
-                                <input style={{width: "100%"}} type="text" defaultValue={setting.value}
-                                       onChange={this.handleChange}/>
+                                <input style={{width: "100%"}} type="text" defaultValue={setting.value}/>
                             </label>
                         </div>
                     )} 
