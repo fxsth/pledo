@@ -9,26 +9,12 @@ export class Settings extends React.Component {
             settings: []
         };
 
-        // this.handleChange = this.handleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
     }
 
     componentDidMount() {
         this.populateData();
     }
-
-    // handleChange(event) {
-    //     const target = event.target;
-    //     const value = target.value;
-    //     const name = target.name;
-    //     const changedSettings = this.state.settings;
-    //     const index = changedSettings.findIndex(object => {
-    //         return object.key === name;
-    //     });
-    //     this.setState(state => {
-    //         state.settings[index].value = value
-    //     });
-    // }
 
     handleSubmit(event) {
         event.preventDefault();
