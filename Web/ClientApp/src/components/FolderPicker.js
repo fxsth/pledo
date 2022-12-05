@@ -21,6 +21,11 @@ export class FolderPicker extends React.Component {
         this.getSubdirectories(directory);
     }
 
+    saveCurrentDirectory = (directory, event) => {
+        if (this.prop.onInputChange)
+            this.props.onInputChange(this.state.currentDirectory);
+    }
+
     render() {
         return (
             <div>
@@ -30,11 +35,17 @@ export class FolderPicker extends React.Component {
                 </div>
                 {this.state.directories.map((directory) =>
                     <div>
-                        <button onClick={(e) => this.loadSubDirectories(directory, e)}>{this.directoryname(directory)}</button>
+                        <label
+                            onClick={(e) => this.loadSubDirectories(directory, e)}>{this.directoryname(directory)}</label>
                     </div>
                 )}
                 <div>
-                    <button onClick={this.props.onInputChange(this.state.currentDirectory)}>Save</button>
+                    <button onClick={() => {
+                        if (this.props.onInputChange) {
+                            this.props.onInputChange(this.state.currentDirectory);
+                        }
+                    }}>Save
+                    </button>
                 </div>
             </div>
         );
@@ -43,7 +54,7 @@ export class FolderPicker extends React.Component {
     async populateData() {
         const response = await fetch('api/directory');
         const data = await response.json();
-        this.setState({directories: data});
+        this.setState({directories: data.subDirectories, currentDirectory: data.currentDirectory});
     }
 
     async getSubdirectories(currentDirectory) {
@@ -51,11 +62,11 @@ export class FolderPicker extends React.Component {
             path: currentDirectory
         }));
         const data = await response.json();
-        this.setState({directories: data, currentDirectory: currentDirectory});
+        this.setState({directories: data.subDirectories, currentDirectory: data.currentDirectory});
     }
 
     parentname(path) {
-        return path.split(/[\\/]/).slice(0,-1).join('/');
+        return path.split(/[\\/]/).slice(0, -1).join('/');
     }
 
     directoryname(path) {

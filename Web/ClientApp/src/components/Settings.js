@@ -1,6 +1,5 @@
 import React from "react";
 import {FolderPicker} from "./FolderPicker";
-import {WindowPortal} from "./WindowPortal";
 
 export class Settings extends React.Component {
     constructor(props) {
@@ -19,11 +18,16 @@ export class Settings extends React.Component {
     handleSubmit(event) {
         event.preventDefault();
         const settings = this.state.settings;
+        const formData = new FormData(event.target);
         for (let i = 0; i < settings.length; i++) {
-            settings[i].value = event.target[i].value;
+            settings[i].value = formData.get(settings[i].key)
         }
-        settings.map(setting => console.log(setting.key + " : " + setting.value));
+        // settings.map(setting => console.log(setting.key + " : " + setting.value));
         this.updateSettings(settings);
+    }
+
+    openFolderPicker(event) {
+        
     }
 
     render() {
@@ -34,14 +38,26 @@ export class Settings extends React.Component {
                         <div style={{width: "100%", marginBottom: 20}}>
                             <h6>{setting.name}:</h6>
                             <label style={{width: "100%"}}>
-                                <input style={{width: "100%"}} type="text" defaultValue={setting.value}/>
+                                <input name={setting.key} style={{width: "100%"}} type="text" defaultValue={setting.value}/>
                             </label>
+                            <button onClick={()=>{setting.showFolderPicker = true}}>Select directory</button>
+                            <FolderPicker onInputChange={
+                                (directory)=>{
+                                    console.log("Directory set: " + directory)
+                                    const settings = this.state.settings;
+                                    for (let i = 0; i < settings.length; i++) {
+                                        if(settings[i].key === setting.key)
+                                            settings[i].value = directory
+                                    }
+                                    this.setState({settings: settings, loading: false});
+                                    this.updateSettings(settings);
+                                }
+                            }/>
                         </div>
                     )}
                     <input type="reset" value="Cancel"/>
                     <input style={{float: "right"}} type="submit" value="Save"/>
                 </form>
-                <WindowPortal><FolderPicker/></WindowPortal>
             </div>
         );
     }

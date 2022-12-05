@@ -16,7 +16,7 @@ public class DirectoryController : ControllerBase
     }
 
     [HttpGet]
-    public Task<IEnumerable<string>> GetDirectories([FromQuery] string? path)
+    public Task<DirectoryResource> GetDirectories([FromQuery] string? path)
     {
         if (string.IsNullOrEmpty(path))
             path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -29,6 +29,10 @@ public class DirectoryController : ControllerBase
         {
             list = Enumerable.Empty<string>();
         }
-        return Task.FromResult(list);
+        return Task.FromResult(new DirectoryResource()
+        {
+            CurrentDirectory = path,
+            SubDirectories = list
+        });
     }
 }
