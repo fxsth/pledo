@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import {Progress, Table} from "reactstrap";
 
 export class Tasks extends Component {
     static displayName = Tasks.name;
@@ -23,26 +24,29 @@ export class Tasks extends Component {
 
     static renderTaskTable(tasks) {
         return (
-            <table>
+            <Table>
                 <thead>
                 <tr>
-                    <th>Id</th>
                     <th>Name</th>
-                    <th>Type</th>
                     <th>Progress</th>
                 </tr>
                 </thead>
                 <tbody>
                 {tasks.map(task =>
                     <tr key={task.id}>
-                        <td>{task.id}</td>
                         <td>{task.name}</td>
-                        <td>{task.type}</td>
-                        <td>{task.progress == null ? "" : Math.round(task.progress * 100) + "%"}</td>
+                        <td>
+                            {task.progress != null ? 
+                                (<Progress visible={true} value={task.progress * 100}>
+                                    {Math.round(task.progress * 100)}%
+                                    </Progress>
+                                ) : ("Pending")
+                            }
+                        </td>
                     </tr>
                 )}
                 </tbody>
-            </table>
+            </Table>
         );
     }
 
