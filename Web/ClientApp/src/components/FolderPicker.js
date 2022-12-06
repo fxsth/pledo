@@ -1,4 +1,5 @@
 import React from "react";
+import {Table} from 'reactstrap'
 
 export class FolderPicker extends React.Component {
     constructor(props) {
@@ -29,16 +30,19 @@ export class FolderPicker extends React.Component {
     render() {
         return (
             <div>
-                <div>
-                    <h3>Directory path: {this.state.currentDirectory}</h3>
-                    <button onClick={this.goBackInPath}>Back</button>
-                </div>
-                {this.state.directories.map((directory) =>
-                    <div>
-                        <label
-                            onClick={(e) => this.loadSubDirectories(directory, e)}>{this.directoryname(directory)}</label>
-                    </div>
-                )}
+                <Table>
+                    <thead>Directory path: {this.state.currentDirectory}</thead>
+                    <tbody>
+                    <tr
+                        onClick={this.goBackInPath}>..</tr>
+                        {this.state.directories.map((directory) =>
+                            <tr
+                                onClick={(e) => this.loadSubDirectories(directory, e)}>{this.directoryname(directory)}
+                            </tr>
+                        )}
+                    
+                    </tbody>
+                </Table>
                 <div>
                     <button onClick={() => {
                         if (this.props.onInputChange) {

@@ -1,6 +1,6 @@
 import React from "react";
 import {FolderPicker} from "./FolderPicker";
-import { Modal, ModalBody, ModalHeader } from 'reactstrap';
+import { Modal, ModalBody, ModalHeader, Input } from 'reactstrap';
 
 export class Settings extends React.Component {
     constructor(props) {
@@ -59,7 +59,7 @@ export class Settings extends React.Component {
                                 <input name={setting.key} style={{width: "100%"}} type="text" defaultValue={setting.value}/>
                             </label>
                             <button onClick={()=>this.updateShowFolderPickerOfSetting(setting.key, true)}>Select directory</button>
-                            <Modal isOpen={setting.showFolderPicker} onHide={()=>setting.showFolderPicker=false}>
+                            <Modal  isOpen={setting.showFolderPicker} onHide={()=>setting.showFolderPicker=false}>
                                 <ModalHeader>Modal title</ModalHeader>
                                 <ModalBody>
                                     <FolderPicker onInputChange={
