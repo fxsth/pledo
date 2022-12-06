@@ -1,5 +1,6 @@
 import React from "react";
 import {FolderPicker} from "./FolderPicker";
+import { Modal, ModalBody, ModalHeader } from 'reactstrap';
 
 export class Settings extends React.Component {
     constructor(props) {
@@ -26,8 +27,25 @@ export class Settings extends React.Component {
         this.updateSettings(settings);
     }
 
-    openFolderPicker(event) {
-        
+    updateValueOfSetting(key, value)
+    {
+        const settings = this.state.settings;
+        for (let i = 0; i < settings.length; i++) {
+            if(settings[i].key === key)
+                settings[i].value = value
+        }
+        this.setState({[settings]: settings});
+    }
+
+    updateShowFolderPickerOfSetting(key, show)
+    {
+        console.log(`Folderpicker for setting ${key} set to ${show}`)
+        const settings = this.state.settings;
+        for (let i = 0; i < settings.length; i++) {
+            if(settings[i].key === key)
+                settings[i].showFolderPicker = show
+        }
+        this.setState({settings});
     }
 
     render() {
@@ -40,19 +58,20 @@ export class Settings extends React.Component {
                             <label style={{width: "100%"}}>
                                 <input name={setting.key} style={{width: "100%"}} type="text" defaultValue={setting.value}/>
                             </label>
-                            <button onClick={()=>{setting.showFolderPicker = true}}>Select directory</button>
-                            <FolderPicker onInputChange={
-                                (directory)=>{
-                                    console.log("Directory set: " + directory)
-                                    const settings = this.state.settings;
-                                    for (let i = 0; i < settings.length; i++) {
-                                        if(settings[i].key === setting.key)
-                                            settings[i].value = directory
-                                    }
-                                    this.setState({settings: settings, loading: false});
-                                    this.updateSettings(settings);
-                                }
-                            }/>
+                            <button onClick={()=>this.updateShowFolderPickerOfSetting(setting.key, true)}>Select directory</button>
+                            <Modal isOpen={setting.showFolderPicker} onHide={()=>setting.showFolderPicker=false}>
+                                <ModalHeader>Modal title</ModalHeader>
+                                <ModalBody>
+                                    <FolderPicker onInputChange={
+                                        (directory)=>{
+                                            console.log("Directory set: " + directory)
+                                            this.updateValueOfSetting(setting.key, directory)
+                                            setting.showFolderPicker=false
+                                        }
+                                    }/>
+                                </ModalBody>
+                            </Modal>
+                            
                         </div>
                     )}
                     <input type="reset" value="Cancel"/>
