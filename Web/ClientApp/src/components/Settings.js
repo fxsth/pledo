@@ -1,6 +1,6 @@
 import React from "react";
 import {FolderPicker} from "./FolderPicker";
-import { Modal, ModalBody, ModalHeader, Input } from 'reactstrap';
+import {Modal, ModalBody, ModalHeader, Form, FormGroup, Label, Input, InputGroup} from 'reactstrap';
 
 export class Settings extends React.Component {
     constructor(props) {
@@ -27,22 +27,20 @@ export class Settings extends React.Component {
         this.updateSettings(settings);
     }
 
-    updateValueOfSetting(key, value)
-    {
+    updateValueOfSetting(key, value) {
         const settings = this.state.settings;
         for (let i = 0; i < settings.length; i++) {
-            if(settings[i].key === key)
+            if (settings[i].key === key)
                 settings[i].value = value
         }
         this.setState({[settings]: settings});
     }
 
-    updateShowFolderPickerOfSetting(key, show)
-    {
+    updateShowFolderPickerOfSetting(key, show) {
         console.log(`Folderpicker for setting ${key} set to ${show}`)
         const settings = this.state.settings;
         for (let i = 0; i < settings.length; i++) {
-            if(settings[i].key === key)
+            if (settings[i].key === key)
                 settings[i].showFolderPicker = show
         }
         this.setState({settings});
@@ -50,34 +48,33 @@ export class Settings extends React.Component {
 
     render() {
         return (
-            <div style={{width: "50%"}}>
-                <form onSubmit={this.handleSubmit} style={{width: "100%"}}>
-                    {this.state.settings.map(setting =>
-                        <div style={{width: "100%", marginBottom: 20}}>
-                            <h6>{setting.name}:</h6>
-                            <label style={{width: "100%"}}>
-                                <input name={setting.key} style={{width: "100%"}} type="text" defaultValue={setting.value}/>
-                            </label>
-                            <button onClick={()=>this.updateShowFolderPickerOfSetting(setting.key, true)}>Select directory</button>
-                            <Modal  isOpen={setting.showFolderPicker} onHide={()=>setting.showFolderPicker=false}>
-                                <ModalHeader>Modal title</ModalHeader>
-                                <ModalBody>
-                                    <FolderPicker onInputChange={
-                                        (directory)=>{
-                                            console.log("Directory set: " + directory)
-                                            this.updateValueOfSetting(setting.key, directory)
-                                            setting.showFolderPicker=false
-                                        }
-                                    }/>
-                                </ModalBody>
-                            </Modal>
-                            
-                        </div>
-                    )}
-                    <input type="reset" value="Cancel"/>
-                    <input style={{float: "right"}} type="submit" value="Save"/>
-                </form>
-            </div>
+            <Form onSubmit={this.handleSubmit}>
+                {this.state.settings.map(setting =>
+                    <FormGroup>
+                        <Label for={setting.key}>{setting.name}</Label>
+                        <InputGroup>
+                            <Input id={setting.key} name={setting.key} type="text" value={setting.value}/>
+                            <button onClick={() => this.updateShowFolderPickerOfSetting(setting.key, true)}>Select
+                                directory
+                            </button>
+                        </InputGroup>
+                        <Modal isOpen={setting.showFolderPicker} onHide={() => setting.showFolderPicker = false}>
+                            <ModalHeader>Select directory</ModalHeader>
+                            <ModalBody>
+                                <FolderPicker onInputChange={
+                                    (directory) => {
+                                        console.log("Directory set: " + directory)
+                                        this.updateValueOfSetting(setting.key, directory)
+                                        setting.showFolderPicker = false
+                                    }
+                                }/>
+                            </ModalBody>
+                        </Modal>
+                    </FormGroup>
+                )}
+                <Input type="reset" value="Cancel"/>
+                <Input type="submit" value="Save"/>
+            </Form>
         );
     }
 
