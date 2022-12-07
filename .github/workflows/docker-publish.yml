@@ -20,18 +20,31 @@ jobs:
        - name: Checkout repository
          uses: actions/checkout@v3
        - name: Set up QEMU
-         uses: docker/setup-qemu-action@v2
+         uses: docker/setup-qemu-action@v2.1.0
          with:
           platforms: 'arm64,arm'
        - name: Set up Docker Buildx
-         uses: docker/setup-buildx-action@v2
-       - name: Login to DockerHub
-         uses: docker/login-action@v2
+         uses: docker/setup-buildx-action@v2.2.1
+       - name: Log into registry ${{ env.REGISTRY }}
+         if: github.event_name != 'pull_request'
+         uses: docker/login-action@v2.1.0
          with:
-           username: ${{ secrets.DOCKERHUB_USERNAME }}
-           password: ${{ secrets.DOCKERHUB_TOKEN }}
-       - name: Build and push
-         uses: docker/build-push-action@v3
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+       - name: Extract Docker metadata
+         id: meta
+         uses: docker/metadata-action@v4.1.1
          with:
-           push: true
-           tags: user/app:latest
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+       - name: Build and push Docker image
+         id: build-and-push
+         uses: docker/build-push-action@v3.2.0
+         with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
