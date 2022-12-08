@@ -19,7 +19,13 @@ public class DirectoryController : ControllerBase
     public Task<DirectoryResource> GetDirectories([FromQuery] string? path)
     {
         if (string.IsNullOrEmpty(path))
-            path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        {
+            if (OperatingSystem.IsWindows())
+                path = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+            else if (OperatingSystem.IsLinux())
+                path = "/";
+        }
+
         IEnumerable<string> list;
         try
         {
