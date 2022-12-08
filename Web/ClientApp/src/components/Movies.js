@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import Dropdown from "./Dropdown";
 import DownloadButton from "./DownloadButton";
+import {Table, Button} from "reactstrap";
 
 export class Movies extends Component {
     static displayName = Movies.name;
@@ -106,7 +107,7 @@ export class Movies extends Component {
 
     static renderMoviesTable(movies) {
         return (
-            <table className='table table-striped' aria-labelledby="tabelLabel">
+            <Table striped>
                 <thead>
                 <tr>
                     <th>Title</th>
@@ -125,7 +126,7 @@ export class Movies extends Component {
                     </tr>
                 )}
                 </tbody>
-            </table>
+            </Table>
         );
     }
 

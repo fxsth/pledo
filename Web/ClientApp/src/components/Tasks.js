@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {Progress, Table} from "reactstrap";
+import {Button, Progress, Spinner, Table} from "reactstrap";
 
 export class Tasks extends Component {
     static displayName = Tasks.name;
@@ -15,12 +15,12 @@ export class Tasks extends Component {
             2000
         );
     }
-    
-    handleClick = ()=>{
+
+    handleClick = () => {
         this.startSync();
     }
-    
-    isSyncOngoing = ()=> this.state.tasks.some(task=>task.type === 0)
+
+    isSyncOngoing = () => this.state.tasks.some(task => task.type === 0)
 
     static renderTaskTable(tasks) {
         return (
@@ -36,9 +36,9 @@ export class Tasks extends Component {
                     <tr key={task.id}>
                         <td>{task.name}</td>
                         <td>
-                            {task.progress != null ? 
+                            {task.progress != null ?
                                 (<Progress visible={true} value={task.progress * 100}>
-                                    {Math.round(task.progress * 100)}%
+                                        {Math.round(task.progress * 100)}%
                                     </Progress>
                                 ) : ("Pending")
                             }
@@ -59,16 +59,23 @@ export class Tasks extends Component {
             <div>
                 <h1 id="tabelLabel">Sync and download tasks</h1>
                 <p>Here you find information an progress of ongoing tasks.</p>
-                <button onClick={this.handleClick.bind(this)}>Sync all data now</button>
+                {this.isSyncOngoing() ? (
+                    <Button color="primary" disabled={this.isSyncOngoing()}>
+                        <Spinner size="sm">Loading...</Spinner>
+                        <span>{'  '}Syncing </span>
+                    </Button>
+                ) : (
+                    <Button color="primary" onClick={this.handleClick.bind(this)}>Sync all data now</Button>
+                )}
                 {contents}
             </div>
         );
     }
-    
+
     async populateTaskData() {
         const response = await fetch('api/task');
         const data = await response.json();
-        this.setState({ tasks: data, loading: false });
+        this.setState({tasks: data, loading: false});
     }
 
     async startSync() {
