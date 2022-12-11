@@ -58,8 +58,12 @@ public class PlexRestService : IPlexRestService
     {
         try
         {
+            string uri = server.LastKnownUri ?? await GetUriFromFastestConnection(server);
+            if (string.IsNullOrEmpty(uri))
+                uri = server.Connections.First().ToString();
             LibraryContainer libraryContainer =
-                await _plexServerClient.GetLibrariesAsync(server.AccessToken, server.LastKnownUri);
+                await _plexServerClient.GetLibrariesAsync(server.AccessToken, uri);
+            server.LastKnownUri = uri;
             return libraryContainer.Libraries.Select(x => new Library()
             {
                 Id = x.Uuid,
@@ -70,7 +74,7 @@ public class PlexRestService : IPlexRestService
         }
         catch (Exception e)
         {
-            _logger.LogError(e,"An error occured while retrieving libraries from server {0}", server.Name);
+            _logger.LogError(e, "An error occured while retrieving libraries from server {0}", server.Name);
             return Enumerable.Empty<Library>();
         }
     }
@@ -97,7 +101,7 @@ public class PlexRestService : IPlexRestService
             throw new InvalidDataException();
         return movies.First();
     }
-    
+
     public async Task<Episode?> RetrieveEpisodeByKey(Library library, string episodeRatingKey)
     {
         var mediaContainer =
@@ -159,7 +163,6 @@ public class PlexRestService : IPlexRestService
 
     private async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library, int offset, int limit)
     {
-        
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
             library.Server.LastKnownUri, null, library.Key,
             null, SearchType.Episode, null, offset, limit);
@@ -182,7 +185,7 @@ public class PlexRestService : IPlexRestService
             });
         return episodes;
     }
-    
+
     public async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library)
     {
         List<TvShow> tvShows = new List<TvShow>();
@@ -203,21 +206,20 @@ public class PlexRestService : IPlexRestService
 
     private async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library, int offset, int limit)
     {
-        
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
             library.Server.LastKnownUri, null, library.Key,
             null, SearchType.Show, null, offset, limit);
         if (mediaContainer.Media == null)
             return Enumerable.Empty<TvShow>();
         IEnumerable<TvShow> episodes = mediaContainer.Media.Select(x => new TvShow()
-            {
-                Title = x.Title,
-                Key = x.Key,
-                RatingKey = x.RatingKey,
-                Guid = x.Guid,
-                LibraryId = library.Id,
-                ServerId = library.ServerId
-            });
+        {
+            Title = x.Title,
+            Key = x.Key,
+            RatingKey = x.RatingKey,
+            Guid = x.Guid,
+            LibraryId = library.Id,
+            ServerId = library.ServerId
+        });
         return episodes;
     }
 
@@ -282,8 +284,10 @@ public class PlexRestService : IPlexRestService
             }
 
             await Task.WhenAll(tasks);
+
             if (string.IsNullOrEmpty(uri))
-                throw new InvalidOperationException("Could not get uris for connecting to server.");
+                throw new InvalidOperationException(
+                    $"Could not get fastest uri for connecting to server {server.Name}.");
         }
         catch
         {

@@ -12,13 +12,15 @@ public static class DbInitializer
             {
                 Key = "MovieDirectoryPath",
                 Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
-                Name = "Movie Download Directory"
+                Name = "Download directory for movies",
+                Type = "path"
             };
             var episodeDirectory = new KeyValueSetting()
             {
                 Key = "EpisodeDirectoryPath", 
                 Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
-                Name = "Movie Download Directory"
+                Name = "Download directory for tv-shows",
+                Type = "path"
             };
             context.Settings.Add(movieDirectory);
             context.Settings.Add(episodeDirectory);

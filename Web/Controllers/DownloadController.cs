@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Web.Models;
 using Web.Models.DTO;
 using Web.Services;
 
@@ -17,10 +18,33 @@ public class DownloadController : ControllerBase
         _logger = logger;
     }
     
+    [HttpGet]
+    public async Task<IEnumerable<DownloadElementResource>> GetAll()
+    {
+        return _downloadService.GetPendingDownloads().Select(ToDownloadElementResource);
+    }
+    
     [HttpGet("pending")]
     public async Task<IEnumerable<DownloadElementResource>> GetPendingDownloads()
     {
-        return _downloadService.PendingDownloads.Select(x => new DownloadElementResource()
+        return _downloadService.GetPendingDownloads().Select(ToDownloadElementResource);
+    }
+
+    [HttpPost("movie/{key}")]
+    public async Task DownloadMovie( string key)
+    {
+        await _downloadService.DownloadMovie(key);
+    }
+    
+    [HttpPost("episode/{key}")]
+    public async Task DownloadEpisode( string key)
+    {
+        await _downloadService.DownloadEpisode(key);
+    }
+
+    private static DownloadElementResource ToDownloadElementResource(DownloadElement x)
+    {
+        return new DownloadElementResource()
         {
             Finished = x.Finished,
             Id = x.Id,
@@ -34,18 +58,6 @@ public class DownloadController : ControllerBase
             FilePath = x.FilePath,
             FinishedSuccessfully = x.FinishedSuccessfully,
             TotalBytes = x.TotalBytes
-        });
-    }
-
-    [HttpPost("movie/{key}")]
-    public async Task DownloadMovie( string key)
-    {
-        await _downloadService.DownloadMovie(key);
-    }
-    
-    [HttpPost("episode/{key}")]
-    public async Task DownloadEpisode( string key)
-    {
-        await _downloadService.DownloadEpisode(key);
+        };
     }
 }

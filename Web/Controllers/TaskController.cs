@@ -26,7 +26,7 @@ public class TaskController : ControllerBase
         var currentSyncTask = _syncService.GetCurrentSyncTask();
         if (currentSyncTask != null)
             busyTasks.Add(currentSyncTask);
-        busyTasks.AddRange(_downloadService.PendingDownloads.Select(x => new BusyTask()
+        busyTasks.AddRange(_downloadService.GetPendingDownloads().Select(x => new BusyTask()
         {
             Id = x.Id,
             Name = x.Name,

@@ -13,6 +13,6 @@
         public long TotalBytes { get; set; }
         public long DownloadedBytes { get; set; }
         public DateTimeOffset Started { get; set; }
-        public DateTimeOffset Finished { get; set; }
+        public DateTimeOffset? Finished { get; set; }
     }
 }

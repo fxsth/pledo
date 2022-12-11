@@ -39,9 +39,9 @@ public class SyncService : ISyncService
                 await unitOfWork.Save();
             }
         }
-        catch
+        catch(Exception e)
         {
-            // ignored
+            _logger.Log(LogLevel.Error, e, "An unexpected error occured while syncing:");
         }
         finally
         {
