@@ -62,11 +62,12 @@ public class SyncService : ISyncService
             var toRemove = serversInDb.ExceptBy(newServers.Select(x => x.Id), server => server.Id);
             _logger.LogInformation("Syncing servers: {0} new ({1})", newServers.Count,
                 string.Join(", ", newServers.Select(x => x.Name)));
-            foreach (var server in toRemove)
-            {
-                _logger.LogWarning("Removing unlisted server {0} from database.", server.Name);
-                await serverRepository.Remove(server);
-            }
+            await serverRepository.Remove(toRemove);
+            // foreach (var server in toRemove)
+            // {
+            //     _logger.LogWarning("Removing unlisted server {0} from database.", server.Name);
+            //     await serverRepository.Remove(server);
+            // }
 
             // await serverRepository.Upsert(newServers);
             return newServers;

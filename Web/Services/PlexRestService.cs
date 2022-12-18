@@ -35,7 +35,7 @@ public class PlexRestService : IPlexRestService
         var serverList = resources.Where(x => x.Provides == "server");
         return serverList.Select(x => new Server()
         {
-            Id = x.Name,
+            Id = x.ClientIdentifier,
             Name = x.Name,
             SourceTitle = x.SourceTitle,
             AccessToken = x.AccessToken,
