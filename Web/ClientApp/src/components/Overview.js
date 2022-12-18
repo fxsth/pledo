@@ -1,4 +1,13 @@
 import React, {Component} from 'react';
+import {
+    Card,
+    CardBody,
+    CardImg,
+    CardSubtitle,
+    CardTitle, 
+    Container,
+    Row
+} from "reactstrap";
 
 export class Overview extends Component {
     static displayName = Overview.name;
@@ -28,14 +37,39 @@ export class Overview extends Component {
         if (this.state.account) {
             return (
                 <div>
-                    <h1>Hello, {this.state.account ? this.state.account.username : "User"}!</h1>
-                    <p>Welcome to pledo, the Plex Downloader</p>
+                    <h2>Hello, {this.state.account ? this.state.account.username : "User"}!</h2>
                     <p>You have access to following servers:</p>
-                    <ul>
-                        {this.state.servers ? this.state.servers.map(server =>
-                            <li><strong>{server.sourceTitle == null ? server.name : server.sourceTitle}</strong> {server.name}</li>
-                        ) : null}
-                    </ul>
+                    <Container>
+                        <Row>
+                            {this.state.servers ? this.state.servers.map(server =>
+                                <Card className="my-2"
+                                      color="secondary"
+                                      inverse
+                                      style={{
+                                          width: '10rem',
+                                          margin: '1rem'
+                                      }}
+                                >
+                                    <CardImg
+                                    style={{
+                                        height: 20,
+                                        background:'#e5a00d'
+                                    }}
+                                    top
+                                    width="100%"
+                                />
+                                    <CardBody>
+                                        <CardTitle tag="h5">
+                                            {server.name}
+                                        </CardTitle>
+                                        <CardSubtitle>
+                                            {server.sourceTitle}
+                                        </CardSubtitle>
+                                    </CardBody>
+                                </Card>
+                            ) : null}
+                        </Row>
+                    </Container>
                 </div>
             );
         } else {
@@ -62,12 +96,6 @@ export class Overview extends Component {
         const response = await fetch('api/account');
         const data = await response.json();
         this.setState({account: data, loading: false});
-    }
-
-    async populateLoginData() {
-        const response = await fetch('api/account/loginuri');
-        const data = await response.text();
-        this.setState({loginuri: data, loading: false});
     }
 
     async populateServerData() {
