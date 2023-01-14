@@ -11,7 +11,6 @@ namespace Web.Services
         private readonly HttpClient _httpClient;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IAsyncPolicy<int> _resilientStreamPolicy;
-
         private readonly ILogger _logger;
 
         public DownloadService(HttpClient httpClient, IServiceScopeFactory scopeFactory, ILogger<DownloadService> logger)
@@ -19,7 +18,7 @@ namespace Web.Services
             _httpClient = httpClient;
             _scopeFactory = scopeFactory;
             _logger = logger;
-            PendingDownloads = new Collection<DownloadElement>();
+            _pendingDownloads = new Collection<DownloadElement>();
 
             _resilientStreamPolicy = Policy<int>.Handle<Exception>(AllButIoExceptions).WaitAndRetryAsync(
                 5,
@@ -32,6 +31,23 @@ namespace Web.Services
         }
 
         private bool _isDownloading;
+        
+        public IReadOnlyCollection<DownloadElement> GetPendingDownloads()
+        {
+            return _pendingDownloads;
+        }
+
+        public IReadOnlyCollection<DownloadElement> GetAll()
+        {
+            List<DownloadElement> returnList = new List<DownloadElement>(_pendingDownloads);
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                returnList.AddRange( unitOfWork.DownloadRepository.GetAll());
+            }
+
+            return returnList;
+        }
 
         public event EventHandler<DownloadElement>? TaskStarted;
         public event EventHandler? AllTasksFinished;
@@ -39,7 +55,7 @@ namespace Web.Services
         public bool IsRunning => _isDownloading;
         public string TaskName => "File Download";
 
-        public Collection<DownloadElement> PendingDownloads { get; }
+        private readonly Collection<DownloadElement> _pendingDownloads;
 
         private async Task<DownloadElement> CreateDownloadElement(string key, ElementType elementType)
         {
@@ -62,7 +78,8 @@ namespace Web.Services
                     ElementType = elementType,
                     FilePath = Path.Combine(downloadDirectory, Path.GetFileName(mediaElement.ServerFilePath)),
                     FileName = Path.GetFileName(mediaElement.ServerFilePath),
-                    TotalBytes = mediaElement.TotalBytes
+                    TotalBytes = mediaElement.TotalBytes,
+                    MediaKey = key
                 };
             }
         }
@@ -125,6 +142,20 @@ namespace Web.Services
             }
         }
 
+        public Task CancelDownload(string mediaKey)
+        {
+            var downloadElement = _pendingDownloads.FirstOrDefault(x=>x.MediaKey == mediaKey);
+            if (downloadElement!=null)
+            {
+                downloadElement.CancellationTokenSource.Cancel();
+                if (downloadElement.Started == null)
+                    _pendingDownloads.Remove(downloadElement);
+                downloadElement.Finished = DateTimeOffset.Now;
+            }
+
+            return Task.CompletedTask;
+        }
+
         private void AddToPendingDownloads(IEnumerable<DownloadElement> toDownload)
         {
             foreach (DownloadElement element in toDownload)
@@ -133,10 +164,10 @@ namespace Web.Services
 
         private void AddToPendingDownloads(DownloadElement toDownload)
         {
-            if (PendingDownloads.All(x => x.Id != toDownload.Id))
+            if (_pendingDownloads.All(x => x.MediaKey != toDownload.MediaKey))
             {
                 _logger.LogInformation("Adding new element to download queue: {0}", toDownload.Name);
-                PendingDownloads.Add(toDownload);
+                _pendingDownloads.Add(toDownload);
                 StartDownloaderIfNotActive();
             }
         }
@@ -152,10 +183,10 @@ namespace Web.Services
 
         private async Task DownloadQueue()
         {
-            while (PendingDownloads.Count > 0)
+            while (_pendingDownloads.Count > 0)
             {
                 _isDownloading = true;
-                DownloadElement downloadElement = PendingDownloads.First();
+                DownloadElement downloadElement = _pendingDownloads.First();
                 TaskStarted?.Invoke(this, downloadElement);
                 _logger.LogInformation("Start download of next element in queue: {0}", downloadElement.Name);
 
@@ -165,7 +196,7 @@ namespace Web.Services
 
                 _logger.LogInformation("Finished download: {0}", downloadElement.Name);
 
-                PendingDownloads.RemoveAt(0);
+                _pendingDownloads.RemoveAt(0);
             }
 
             _logger.LogInformation("No more elements in download queue.");
@@ -185,7 +216,7 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                await unitOfWork.DownloadHistoryRepository.Insert(downloadElement);
+                await unitOfWork.DownloadRepository.Insert(downloadElement);
                 await unitOfWork.Save();
             }
         }

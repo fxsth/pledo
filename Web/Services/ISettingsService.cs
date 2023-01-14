@@ -10,4 +10,5 @@ public interface ISettingsService
     Task<string> GetEpisodeDirectory();
     Task<IEnumerable<SettingsResource>> GetSettings();
     Task UpdateSettings(IEnumerable<SettingsResource> settings);
+    Task<bool> ResetDatabase();
 }

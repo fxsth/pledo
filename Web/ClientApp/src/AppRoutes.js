@@ -1,8 +1,9 @@
 import { Home } from "./components/Home";
 import {Movies} from "./components/Movies";
-import {Tasks} from "./components/Tasks";
+import {SyncButton} from "./components/SyncButton";
 import {TvShows} from "./components/TvShows";
 import {Settings} from "./components/Settings";
+import {Downloads} from "./components/Downloads";
 
 const AppRoutes = [
   {
@@ -11,9 +12,9 @@ const AppRoutes = [
   },{
     path: '/settings',
     element: <Settings/>
-  },,{
-    path: '/tasks',
-    element: <Tasks />
+  },{
+    path: '/downloads',
+    element: <Downloads />
   },{
     path: '/movies',
     element: <Movies/>

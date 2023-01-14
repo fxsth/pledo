@@ -28,4 +28,10 @@ public class SettingController : ControllerBase
     {
         return await _settingsService.GetSettings();
     }
+
+    [HttpDelete]
+    public async Task ResetDatabase()
+    {
+        await _settingsService.ResetDatabase();
+    }
 }
