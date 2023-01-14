@@ -42,7 +42,7 @@ public class DownloadController : ControllerBase
         await _downloadService.DownloadEpisode(key);
     }
 
-    [HttpDelete]
+    [HttpDelete("{key}")]
     public async Task CancelDownload(string key)
     {
         await _downloadService.CancelDownload(key);
@@ -63,7 +63,8 @@ public class DownloadController : ControllerBase
             FileName = x.FileName,
             FilePath = x.FilePath,
             FinishedSuccessfully = x.FinishedSuccessfully,
-            TotalBytes = x.TotalBytes
+            TotalBytes = x.TotalBytes,
+            MediaKey = x.MediaKey
         };
     }
 }

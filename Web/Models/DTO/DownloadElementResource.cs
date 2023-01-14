@@ -12,7 +12,8 @@
         public double Progress { get; set; }
         public long TotalBytes { get; set; }
         public long DownloadedBytes { get; set; }
-        public DateTimeOffset Started { get; set; }
+        public DateTimeOffset? Started { get; set; }
         public DateTimeOffset? Finished { get; set; }
+        public string MediaKey { get; set; }
     }
 }

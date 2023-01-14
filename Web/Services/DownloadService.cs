@@ -142,11 +142,17 @@ namespace Web.Services
             }
         }
 
-        public Task CancelDownload(string key)
+        public Task CancelDownload(string mediaKey)
         {
-            var downloadElement = _pendingDownloads.First();
-            if(downloadElement.MediaKey == key)
+            var downloadElement = _pendingDownloads.FirstOrDefault(x=>x.MediaKey == mediaKey);
+            if (downloadElement!=null)
+            {
                 downloadElement.CancellationTokenSource.Cancel();
+                if (downloadElement.Started == null)
+                    _pendingDownloads.Remove(downloadElement);
+                downloadElement.Finished = DateTimeOffset.Now;
+            }
+
             return Task.CompletedTask;
         }
 
@@ -158,7 +164,7 @@ namespace Web.Services
 
         private void AddToPendingDownloads(DownloadElement toDownload)
         {
-            if (_pendingDownloads.All(x => x.Id != toDownload.Id))
+            if (_pendingDownloads.All(x => x.MediaKey != toDownload.MediaKey))
             {
                 _logger.LogInformation("Adding new element to download queue: {0}", toDownload.Name);
                 _pendingDownloads.Add(toDownload);

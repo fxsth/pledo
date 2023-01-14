@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {Badge, Progress, Table} from "reactstrap";
+import {Badge, Button, Progress, Table} from "reactstrap";
 
 export class Downloads extends Component {
     static displayName = Downloads.name;
@@ -30,27 +30,49 @@ export class Downloads extends Component {
                     <th>Name</th>
                     <th>Started at</th>
                     <th>Status</th>
+                    <th>Cancel</th>
                 </tr>
                 </thead>
                 <tbody>
                 {downloads.map(download =>
                     <tr key={download.id}>
                         <td>{download.name}</td>
-                        <td>{(new Date(download.started)).toLocaleString()}</td>
+                        <td>{download.started!= null ? (new Date(download.started)).toLocaleString() : ""}</td>
                         <td>
-                            {download.progress != null ?
+                            {download.started != null ?
                                 download.progress < 1 ?
+                                    download.finished == null ?
                                     (<Progress visible={true} value={download.progress * 100}>
                                             {Math.round(download.progress * 100)}%
                                         </Progress>
-                                    ) : (<Badge color="success" pill>Finished</Badge>) : ("Pending")
+                                    ) : <Badge color="danger" pill>Cancelled</Badge> : (<Badge color="success" pill>Finished</Badge>) : (<Badge color="info" pill>Pending</Badge>)
                             }
+                        </td>
+                        <td>
+                            {(download.progress == null || download.progress<1) && download.finished == null ? 
+                                <Button color="danger" outline size="sm" onClick={() => this.handleClick(download.mediaKey)}>Cancel</Button>
+                                :
+                                ""}
                         </td>
                     </tr>
                 )}
                 </tbody>
             </Table>
         );
+    }
+    
+    handleClick(key){
+        const settings = {
+            method: 'DELETE'
+        };
+        fetch('api/download/' + key, settings)
+            .then(response => {
+                if (response.status >= 200 && response.status < 300) {
+                    console.log("Download cancelled.");
+                } else {
+                    alert('Could not cancel download due to an unknown error.');
+                }
+            })
     }
 
     render() {
@@ -61,7 +83,7 @@ export class Downloads extends Component {
         return (
             <div>
                 <h1 id="tabelLabel">Downloads</h1>
-                <p>Successful, failed, ongoing and pending downloads:</p>
+                <p>Your download history:</p>
                 {contents}
             </div>
         );
