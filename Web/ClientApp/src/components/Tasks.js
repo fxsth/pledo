@@ -16,6 +16,11 @@ export class Tasks extends Component {
         );
     }
 
+    componentWillUnmount()
+    {
+        clearInterval(this.timerID);
+    }
+
     handleClick = () => {
         this.startSync();
     }

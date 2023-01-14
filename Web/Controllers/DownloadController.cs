@@ -21,7 +21,7 @@ public class DownloadController : ControllerBase
     [HttpGet]
     public async Task<IEnumerable<DownloadElementResource>> GetAll()
     {
-        return _downloadService.GetPendingDownloads().Select(ToDownloadElementResource);
+        return _downloadService.GetAll().Select(ToDownloadElementResource);
     }
     
     [HttpGet("pending")]
@@ -49,7 +49,7 @@ public class DownloadController : ControllerBase
             Finished = x.Finished,
             Id = x.Id,
             Name = x.Name,
-            Progress = x.Progress,
+            Progress = (double)x.DownloadedBytes / x.TotalBytes,
             Started = x.Started,
             Uri = x.Uri,
             DownloadedBytes = x.DownloadedBytes,

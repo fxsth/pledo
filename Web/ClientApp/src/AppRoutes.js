@@ -16,7 +16,7 @@ const AppRoutes = [
     path: '/tasks',
     element: <Tasks />
   },{
-    path: '/download',
+    path: '/downloads',
     element: <Downloads />
   },{
     path: '/movies',

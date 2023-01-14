@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {Progress, Table} from "reactstrap";
+import {Badge, Progress, Table} from "reactstrap";
 
 export class Downloads extends Component {
     static displayName = Downloads.name;
@@ -10,10 +10,16 @@ export class Downloads extends Component {
     }
 
     componentDidMount() {
+        this.populateData();
         this.timerID = setInterval(
             () => this.populateData(),
             2000
         );
+    }
+
+    componentWillUnmount()
+    {
+        clearInterval(this.timerID);
     }
 
     renderDownloadTable(downloads) {
@@ -22,6 +28,7 @@ export class Downloads extends Component {
                 <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Started at</th>
                     <th>Status</th>
                 </tr>
                 </thead>
@@ -29,12 +36,14 @@ export class Downloads extends Component {
                 {downloads.map(download =>
                     <tr key={download.id}>
                         <td>{download.name}</td>
+                        <td>{(new Date(download.started)).toLocaleString()}</td>
                         <td>
                             {download.progress != null ?
-                                (<Progress visible={true} value={download.progress * 100}>
-                                        {Math.round(download.progress * 100)}%
-                                    </Progress>
-                                ) : ("Pending")
+                                download.progress < 1 ?
+                                    (<Progress visible={true} value={download.progress * 100}>
+                                            {Math.round(download.progress * 100)}%
+                                        </Progress>
+                                    ) : (<Badge color="success" pill>Finished</Badge>) : ("Pending")
                             }
                         </td>
                     </tr>
@@ -61,6 +70,6 @@ export class Downloads extends Component {
     async populateData() {
         const response = await fetch('api/download');
         const data = await response.json();
-        this.setState({tasks: data, loading: false});
+        this.setState({downloads: data, loading: false});
     }
 }
