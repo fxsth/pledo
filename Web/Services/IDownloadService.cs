@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using Web.Models;
+﻿using Web.Models;
 
 namespace Web.Services;
 
@@ -10,5 +9,6 @@ public interface IDownloadService
     Task DownloadMovie(string key);
     Task DownloadEpisode(string key);
     Task DownloadSeason(string key, int season);
+    Task CancelDownload(string key);
 
 }

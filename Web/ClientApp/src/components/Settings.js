@@ -1,6 +1,6 @@
 import React from "react";
 import {FolderPicker} from "./FolderPicker";
-import {Modal, ModalBody, ModalHeader, Form, FormGroup, Label, Input, InputGroup} from 'reactstrap';
+import {Modal, ModalBody, ModalHeader, Form, FormGroup, Label, Input, InputGroup, Button} from 'reactstrap';
 
 export class Settings extends React.Component {
     constructor(props) {
@@ -48,34 +48,76 @@ export class Settings extends React.Component {
 
     render() {
         return (
-            <Form onSubmit={this.handleSubmit}>
-                {this.state.settings.map(setting =>
-                    <FormGroup>
-                        <Label for={setting.key}>{setting.name}</Label>
-                        <InputGroup>
-                            <Input id={setting.key} name={setting.key} type="text" value={setting.value}/>
-                            <button onClick={() => this.updateShowFolderPickerOfSetting(setting.key, true)}>Select
-                                directory
-                            </button>
-                        </InputGroup>
-                        <Modal isOpen={setting.showFolderPicker} onHide={() => setting.showFolderPicker = false}>
-                            <ModalHeader>Select directory</ModalHeader>
-                            <ModalBody>
-                                <FolderPicker onInputChange={
-                                    (directory) => {
-                                        console.log("Directory set: " + directory)
-                                        this.updateValueOfSetting(setting.key, directory)
-                                        setting.showFolderPicker = false
-                                    }
-                                }/>
-                            </ModalBody>
-                        </Modal>
-                    </FormGroup>
-                )}
-                <Input type="reset" value="Cancel"/>
-                <Input type="submit" value="Save"/>
-            </Form>
+            <div>
+                <Form onSubmit={this.handleSubmit}>
+                    {this.state.settings.map(setting =>
+                        <FormGroup>
+                            <Label for={setting.key}>{setting.name}</Label>
+                            <InputGroup>
+                                <Input id={setting.key} name={setting.key} type="text" value={setting.value}/>
+                                <button onClick={() => this.updateShowFolderPickerOfSetting(setting.key, true)}>Select
+                                    directory
+                                </button>
+                            </InputGroup>
+                            <Modal isOpen={setting.showFolderPicker} onHide={() => setting.showFolderPicker = false}>
+                                <ModalHeader>Select directory</ModalHeader>
+                                <ModalBody>
+                                    <FolderPicker onInputChange={
+                                        (directory) => {
+                                            console.log("Directory set: " + directory)
+                                            this.updateValueOfSetting(setting.key, directory)
+                                            setting.showFolderPicker = false
+                                        }
+                                    }/>
+                                </ModalBody>
+                            </Modal>
+                        </FormGroup>
+                    )}
+                    <Input type="reset" value="Cancel"/>
+                    <Input type="submit" value="Save"/>
+                </Form>
+                <br/>
+                <Button onClick={this.handleClick.bind(this)} color="danger">Reset database completely</Button>
+            </div>
         );
+    }
+
+    handleClick(event) {
+        const settings = {
+            method: 'DELETE'
+        };
+        fetch('api/setting', settings)
+            .then(response => {
+                if (response.status >= 200 && response.status < 300) {
+                    console.log("Reset database complete.");
+                } else {
+                    alert('Could not reset database due to an unknown error.');
+                }
+            })
+
+    }
+
+    async SendDownloadRequest() {
+        const settings = {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            }
+        };
+
+        return fetch('api/download/' + this.props.mediaType + '/' + this.props.mediaKey, settings)
+            .then(response => {
+                if (response.status >= 200 && response.status < 300) {
+                    console.log(response);
+                } else {
+                    alert('Could not add to the download queue');
+                }
+            }).catch(err => console.log(err)).finally(x => {
+                this.setState({
+                    isLoading: false
+                });
+            });
     }
 
     async populateData() {

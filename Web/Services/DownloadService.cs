@@ -43,7 +43,7 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                returnList.AddRange( unitOfWork.DownloadHistoryRepository.GetAll());
+                returnList.AddRange( unitOfWork.DownloadRepository.GetAll());
             }
 
             return returnList;
@@ -78,7 +78,8 @@ namespace Web.Services
                     ElementType = elementType,
                     FilePath = Path.Combine(downloadDirectory, Path.GetFileName(mediaElement.ServerFilePath)),
                     FileName = Path.GetFileName(mediaElement.ServerFilePath),
-                    TotalBytes = mediaElement.TotalBytes
+                    TotalBytes = mediaElement.TotalBytes,
+                    MediaKey = key
                 };
             }
         }
@@ -141,6 +142,14 @@ namespace Web.Services
             }
         }
 
+        public Task CancelDownload(string key)
+        {
+            var downloadElement = _pendingDownloads.First();
+            if(downloadElement.MediaKey == key)
+                downloadElement.CancellationTokenSource.Cancel();
+            return Task.CompletedTask;
+        }
+
         private void AddToPendingDownloads(IEnumerable<DownloadElement> toDownload)
         {
             foreach (DownloadElement element in toDownload)
@@ -201,7 +210,7 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                await unitOfWork.DownloadHistoryRepository.Insert(downloadElement);
+                await unitOfWork.DownloadRepository.Insert(downloadElement);
                 await unitOfWork.Save();
             }
         }

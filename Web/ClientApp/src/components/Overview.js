@@ -8,6 +8,7 @@ import {
     Container,
     Row
 } from "reactstrap";
+import {SyncButton} from "./SyncButton";
 
 export class Overview extends Component {
     static displayName = Overview.name;
@@ -38,6 +39,7 @@ export class Overview extends Component {
             return (
                 <div>
                     <h2>Hello, {this.state.account ? this.state.account.username : "User"}!</h2>
+                    <SyncButton/>
                     <p>You have access to following servers:</p>
                     <Container>
                         <Row>
@@ -79,9 +81,6 @@ export class Overview extends Component {
                     <p>Welcome to pledo, the Plex Downloader</p>
                     <p>To access movies and series, you have to log into your plex account.</p>
                     <div>
-                        <a href={this.state.loginuri} target="_blank" rel="noopener noreferrer">
-                            Login with plex
-                        </a>
                         <hr/>
                         <button onClick={this.openInNewTab.bind(this)}>
                             Login with plex

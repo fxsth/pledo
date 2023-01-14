@@ -23,7 +23,8 @@ namespace Web.Models
         public long DownloadedBytes { get; set; }
         public DateTimeOffset Started { get; set; }
         public DateTimeOffset Finished { get; set; }
-        
+        public string MediaKey { get; set; }
+
         [NotMapped]
         public CancellationTokenSource CancellationTokenSource { get; set; }
     }

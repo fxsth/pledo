@@ -53,7 +53,7 @@ public class SyncService : ISyncService
     {
         AccountRepository accountRepository = unitOfWork.AccountRepository;
         ServerRepository serverRepository = unitOfWork.ServerRepository;
-        _syncTask = new BusyTask() { Name = "Sync servers" };
+        _syncTask = new BusyTask() { Name = "Syncing servers" };
         var account = accountRepository.GetAll().FirstOrDefault();
         if (account != null)
         {
@@ -79,7 +79,7 @@ public class SyncService : ISyncService
     private async Task<IReadOnlyCollection<Server>> SyncConnections(IReadOnlyCollection<Server> servers,
         UnitOfWork unitOfWork)
     {
-        _syncTask = new BusyTask() { Name = "Sync server connections" };
+        _syncTask = new BusyTask() { Name = "Syncing server connections" };
         foreach (var server in servers)
         {
             var uriFromFastestConnection = await _plexService.GetUriFromFastestConnection(server);
@@ -97,7 +97,7 @@ public class SyncService : ISyncService
     private async Task<IReadOnlyCollection<Library>> SyncLibraries(IEnumerable<Server> servers, UnitOfWork unitOfWork)
     {
         var libraryRepository = unitOfWork.LibraryRepository;
-        _syncTask = new BusyTask() { Name = "Sync libraries" };
+        _syncTask = new BusyTask() { Name = "Syncing libraries" };
         var librariesInDb = libraryRepository.GetAll();
         List<Library> librariesFromApi = new List<Library>();
         IEnumerable<Server> serverList = servers.ToList();
@@ -134,7 +134,7 @@ public class SyncService : ISyncService
     private async Task SyncMovies(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
     {
         var movieRepository = unitOfWork.MovieRepository;
-        _syncTask = new BusyTask() { Name = "Sync movies" };
+        _syncTask = new BusyTask() { Name = "Syncing movies" };
         libraries = libraries.Where(x => x.Type == "movie");
         List<Movie> movies = new List<Movie>();
         foreach (var library in libraries)
@@ -151,7 +151,7 @@ public class SyncService : ISyncService
     private async Task SyncTvShows(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
     {
         var tvShowRepository = unitOfWork.TvShowRepository;
-        _syncTask = new BusyTask() { Name = "Sync TV shows" };
+        _syncTask = new BusyTask() { Name = "Syncing TV shows" };
         libraries = libraries.Where(x => x.Type == "show");
         List<TvShow> tvShows = new List<TvShow>();
         foreach (var library in libraries)
@@ -168,7 +168,7 @@ public class SyncService : ISyncService
     private async Task SyncEpisodes(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
     {
         var episodeRepository = unitOfWork.EpisodeRepository;
-        _syncTask = new BusyTask() { Name = "Sync episodes" };
+        _syncTask = new BusyTask() { Name = "Syncing episodes" };
         libraries = libraries.Where(x => x.Type == "show");
         List<Episode> episodes = new List<Episode>();
         foreach (var library in libraries)

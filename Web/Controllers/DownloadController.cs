@@ -42,6 +42,12 @@ public class DownloadController : ControllerBase
         await _downloadService.DownloadEpisode(key);
     }
 
+    [HttpDelete]
+    public async Task CancelDownload(string key)
+    {
+        await _downloadService.CancelDownload(key);
+    }
+
     private static DownloadElementResource ToDownloadElementResource(DownloadElement x)
     {
         return new DownloadElementResource()
