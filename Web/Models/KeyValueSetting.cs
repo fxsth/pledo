@@ -10,6 +10,7 @@ public class KeyValueSetting
     public string Value { get; set; }
     public string? Name { get; set; }
     public string? Description { get; set; }
+    public string Type { get; set; }
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public DateTime? LastModified { get; set; }
 }

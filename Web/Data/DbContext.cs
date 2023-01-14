@@ -13,6 +13,7 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<Episode> Episodes { get; set; }
     public DbSet<BusyTask> Tasks { get; set; }
     public DbSet<KeyValueSetting> Settings { get; set; }
+    public DbSet<DownloadElement> Downloads { get; set; }
     public DbContext(DbContextOptions<DbContext> options)
         : base(options)
     {
