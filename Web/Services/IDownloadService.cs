@@ -9,6 +9,7 @@ public interface IDownloadService
     Task DownloadMovie(string key);
     Task DownloadEpisode(string key);
     Task DownloadSeason(string key, int season);
+    Task DownloadTvShow(string key);
     Task CancelDownload(string key);
 
 }

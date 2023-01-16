@@ -41,6 +41,15 @@ public class DownloadController : ControllerBase
     {
         await _downloadService.DownloadEpisode(key);
     }
+    
+    [HttpPost("tvshow/{key}")]
+    public async Task DownloadTvShow( string key, [FromQuery] int? season = null)
+    {
+        if (season.HasValue)
+            await _downloadService.DownloadSeason(key, season.Value);
+        else
+            await _downloadService.DownloadTvShow(key);
+    }
 
     [HttpDelete("{key}")]
     public async Task CancelDownload(string key)

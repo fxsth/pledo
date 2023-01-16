@@ -130,13 +130,29 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key).FirstOrDefault();
+                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes").FirstOrDefault();
                 if (tvShow == null)
                     throw new InvalidOperationException();
                 var episodes = tvShow.Episodes.Where(x => x.SeasonNumber == season);
                 foreach (Episode episode in episodes)
                 {
-                    var downloadElement = await CreateDownloadElement(episode.Key, ElementType.TvShow);
+                    var downloadElement = await CreateDownloadElement(episode.RatingKey, ElementType.TvShow);
+                    AddToPendingDownloads(downloadElement);
+                }
+            }
+        }
+
+        public async Task DownloadTvShow(string key)
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes").FirstOrDefault();
+                if (tvShow == null)
+                    throw new InvalidOperationException();
+                foreach (Episode episode in tvShow.Episodes)
+                {
+                    var downloadElement = await CreateDownloadElement(episode.RatingKey, ElementType.TvShow);
                     AddToPendingDownloads(downloadElement);
                 }
             }

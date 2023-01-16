@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import Dropdown from "./Dropdown";
 import DownloadButton from "./DownloadButton";
 import CollapsibleTableRow from "./CollapsibleTableRow";
+import {Button, ButtonGroup, ButtonToolbar, Card, CardBody} from "reactstrap";
 
 export class TvShows extends Component {
     static displayName = TvShows.name;
@@ -112,6 +113,31 @@ export class TvShows extends Component {
                 <tbody>
                 {tvShows.map(tvShow =>
                     <CollapsibleTableRow label={tvShow.title}>
+                        <Card>
+                            <CardBody>
+                                Download season or complete tv show 
+                                <ButtonToolbar>
+                                    <ButtonGroup className="me-2">
+                                        {
+                                            tvShow.episodes.map(item => item.seasonNumber)
+                                                .filter((value, index, self) => self.indexOf(value) === index).sort((a,b) => a-b).map(
+                                                    seasonNumber =>
+                                                        <DownloadButton mediaType='tvshow' mediaKey={tvShow.ratingKey} season={seasonNumber}>
+                                                            Season {seasonNumber}
+                                                        </DownloadButton>
+                                            )
+                                            
+                                        }
+                                    </ButtonGroup>
+                                    <ButtonGroup>
+                                        <DownloadButton color="info" mediaType='tvshow' mediaKey={tvShow.ratingKey}>
+                                            Complete TV Show
+                                        </DownloadButton>
+                                    </ButtonGroup>
+                                </ButtonToolbar>
+                            </CardBody>
+                        </Card>
+
                         <table className='table table-striped' aria-labelledby="tabelLabel2">
                             <thead>
                             <tr>
@@ -127,7 +153,7 @@ export class TvShows extends Component {
                                     <td>S{episode.seasonNumber}E{episode.episodeNumber}</td>
                                     <td>{episode.title}</td>
                                     <td>{episode.ratingKey}</td>
-                                    <td><DownloadButton mediaType='episode' mediaKey={episode.ratingKey}/></td>
+                                    <td><DownloadButton mediaType='episode' mediaKey={episode.ratingKey}>Download</DownloadButton></td>
                                 </tr>
                             )}
                             )}

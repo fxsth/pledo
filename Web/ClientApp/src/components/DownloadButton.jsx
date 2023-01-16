@@ -1,4 +1,5 @@
 ﻿import React from 'react';
+import {Button} from "reactstrap";
 
 export default class DownloadButton extends React.Component {
     constructor(props) {
@@ -32,8 +33,13 @@ export default class DownloadButton extends React.Component {
                 'Content-Type': 'application/json',
             }
         };
-
-        return fetch('api/download/' + this.props.mediaType + '/' + this.props.mediaKey, settings)
+        let input = 'api/download/' + this.props.mediaType + '/' + this.props.mediaKey;
+        if (typeof this.props.season !== 'undefined') {
+            input = input + '?' + new URLSearchParams({
+                season: this.props.season
+            })
+        }
+        return fetch(input, settings)
             .then(response => {
                 if (response.status >= 200 && response.status < 300) {
                     console.log(response);
@@ -48,7 +54,7 @@ export default class DownloadButton extends React.Component {
     }
 
     render() {
-        return (<button disabled={this.state.isLoading} onClick={this.handleClick.bind(this)}>Download</button>);
+        return (<Button color={this.props.color} disabled={this.state.isLoading} onClick={this.handleClick.bind(this)}>{this.props.children}</Button>);
     }
 }
 
