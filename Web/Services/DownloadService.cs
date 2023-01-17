@@ -13,6 +13,9 @@ namespace Web.Services
         private readonly IAsyncPolicy<int> _resilientStreamPolicy;
         private readonly ILogger _logger;
 
+        private readonly Collection<DownloadElement> _pendingDownloads;
+        private bool _isDownloading;
+
         public DownloadService(HttpClient httpClient, IServiceScopeFactory scopeFactory, ILogger<DownloadService> logger)
         {
             _httpClient = httpClient;
@@ -30,8 +33,6 @@ namespace Web.Services
                 });
         }
 
-        private bool _isDownloading;
-        
         public IReadOnlyCollection<DownloadElement> GetPendingDownloads()
         {
             return _pendingDownloads;
@@ -48,15 +49,7 @@ namespace Web.Services
 
             return returnList;
         }
-
-        public event EventHandler<DownloadElement>? TaskStarted;
-        public event EventHandler? AllTasksFinished;
-
-        public bool IsRunning => _isDownloading;
-        public string TaskName => "File Download";
-
-        private readonly Collection<DownloadElement> _pendingDownloads;
-
+        
         private async Task<DownloadElement> CreateDownloadElement(string key, ElementType elementType)
         {
             using (var scope = _scopeFactory.CreateScope())
@@ -172,12 +165,6 @@ namespace Web.Services
             return Task.CompletedTask;
         }
 
-        private void AddToPendingDownloads(IEnumerable<DownloadElement> toDownload)
-        {
-            foreach (DownloadElement element in toDownload)
-                AddToPendingDownloads(element);
-        }
-
         private void AddToPendingDownloads(DownloadElement toDownload)
         {
             if (_pendingDownloads.All(x => x.MediaKey != toDownload.MediaKey))
@@ -203,7 +190,6 @@ namespace Web.Services
             {
                 _isDownloading = true;
                 DownloadElement downloadElement = _pendingDownloads.First();
-                TaskStarted?.Invoke(this, downloadElement);
                 _logger.LogInformation("Start download of next element in queue: {0}", downloadElement.Name);
 
                 await Preprocess(downloadElement);
@@ -218,7 +204,6 @@ namespace Web.Services
             _logger.LogInformation("No more elements in download queue.");
 
             _isDownloading = false;
-            AllTasksFinished?.Invoke(this, new EventArgs());
         }
 
         private async Task Preprocess(DownloadElement downloadElement)
@@ -241,7 +226,6 @@ namespace Web.Services
         {
             try
             {
-                // downloadElement.CancellationTokenSource.CancelAfter(60000);
                 Stream response = await _httpClient.GetStreamAsync(downloadElement.Uri,
                     downloadElement.CancellationTokenSource.Token);
 
@@ -268,7 +252,6 @@ namespace Web.Services
             CancellationToken cancellationToken = downloadElement.CancellationTokenSource.Token;
             var buffer = new byte[bufferSize];
             int bytesRead;
-            // DownloadProgress downloadProgress = new DownloadProgress() { Total = source.Length, Downloaded = 0 };
             while ((bytesRead =
                        await policy.ExecuteAsync(() => source.ReadAsync(buffer, 0, buffer.Length, cancellationToken))) >
                    0)
