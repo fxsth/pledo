@@ -11,6 +11,6 @@ Focused on proper functioning rather than good looking design. Features:
 - Browse all media, select and download directly
 - docker support
 
-Use `docker pull ghcr.io/fxsth/pledo:master` to get the docker image of current master version.
+Use `docker pull ghcr.io/fxsth/pledo:latest` to get the docker image of current master version.
 
 ![Download screenshot](images/screenshot-downloads.png)
