@@ -47,6 +47,18 @@ public class SettingsService : ISettingsService
         });
     }
 
+    public async Task ValidateSettings(IEnumerable<SettingsResource> settings)
+    {
+        ValidateDirectorySetting(settings.Single(x => x.Key == MovieDirectoryKey));
+        ValidateDirectorySetting(settings.Single(x => x.Key == EpisodeDirectoryKey));
+    }
+
+    private void ValidateDirectorySetting(SettingsResource setting)
+    {
+        if (!Uri.IsWellFormedUriString(setting.Value, UriKind.Absolute))
+            throw new ArgumentException($"{setting.Name} is not a valid directory.");
+    }
+
     public async Task UpdateSettings(IEnumerable<SettingsResource> settings)
     {
         foreach (var setting in settings)

@@ -36,17 +36,19 @@ export class Settings extends React.Component {
         this.setState({[settings]: settings});
     }
 
-    updateShowFolderPickerOfSetting(key, show) {
-        console.log(`Folderpicker for setting ${key} set to ${show}`)
-        const settings = this.state.settings;
-        for (let i = 0; i < settings.length; i++) {
-            if (settings[i].key === key)
-                settings[i].showFolderPicker = show
-        }
-        this.setState({settings});
+    toggleFolderPickerForSetting(key){
+        const settings = this.state.settings.map(setting=>
+        {
+            if(setting.key===key)
+            {
+                setting.showFolderPicker = !setting.showFolderPicker;                   
+            }
+        })
+        this.setState({[settings]:settings});
     }
 
     render() {
+        console.log("rerender")
         return (
             <div>
                 <Form onSubmit={this.handleSubmit}>
@@ -54,19 +56,24 @@ export class Settings extends React.Component {
                         <FormGroup>
                             <Label for={setting.key}>{setting.name}</Label>
                             <InputGroup>
-                                <Input id={setting.key} name={setting.key} type="text" value={setting.value}/>
-                                <button onClick={() => this.updateShowFolderPickerOfSetting(setting.key, true)}>Select
+                                <Input id={setting.key} name={setting.key} type="text" value={setting.value} onChange={(e)=>this.updateValueOfSetting(setting.key, e.target.value)}/>
+                                <button onClick={() => this.toggleFolderPickerForSetting(setting.key)}>Select
                                     directory
                                 </button>
                             </InputGroup>
-                            <Modal isOpen={setting.showFolderPicker} onHide={() => setting.showFolderPicker = false}>
-                                <ModalHeader>Select directory</ModalHeader>
+                            <Modal isOpen={setting.showFolderPicker}>
+                                <ModalHeader close={
+                                    <Button className="close" onClick={() => this.toggleFolderPickerForSetting(setting.key)} type="button">
+                                        &times;
+                                    </Button>
+                                }>Select directory</ModalHeader>
                                 <ModalBody>
-                                    <FolderPicker onInputChange={
+                                    <FolderPicker currentDirectory={setting.value}
+                                        onInputChange={
                                         (directory) => {
                                             console.log("Directory set: " + directory)
                                             this.updateValueOfSetting(setting.key, directory)
-                                            setting.showFolderPicker = false
+                                            this.toggleFolderPickerForSetting(setting.key)
                                         }
                                     }/>
                                 </ModalBody>

@@ -9,6 +9,7 @@ public interface ISettingsService
     Task<string> GetMovieDirectory();
     Task<string> GetEpisodeDirectory();
     Task<IEnumerable<SettingsResource>> GetSettings();
+    Task ValidateSettings(IEnumerable<SettingsResource> settings);
     Task UpdateSettings(IEnumerable<SettingsResource> settings);
     Task<bool> ResetDatabase();
 }
