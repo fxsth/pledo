@@ -16,7 +16,8 @@ namespace Web.Services
         private readonly Collection<DownloadElement> _pendingDownloads;
         private bool _isDownloading;
 
-        public DownloadService(HttpClient httpClient, IServiceScopeFactory scopeFactory, ILogger<DownloadService> logger)
+        public DownloadService(HttpClient httpClient, IServiceScopeFactory scopeFactory,
+            ILogger<DownloadService> logger)
         {
             _httpClient = httpClient;
             _scopeFactory = scopeFactory;
@@ -44,12 +45,12 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                returnList.AddRange( unitOfWork.DownloadRepository.GetAll());
+                returnList.AddRange(unitOfWork.DownloadRepository.GetAll());
             }
 
             return returnList;
         }
-        
+
         private async Task<DownloadElement> CreateDownloadElement(string key, ElementType elementType)
         {
             using (var scope = _scopeFactory.CreateScope())
@@ -63,18 +64,53 @@ namespace Web.Services
                     ? await settingsService.GetMovieDirectory()
                     : await settingsService.GetEpisodeDirectory();
                 Directory.CreateDirectory(downloadDirectory);
+                string filePath = await GetFilePath(downloadDirectory, mediaElement, settingsService);
                 return new DownloadElement()
                 {
                     Uri = (await GetCompleteDownloadUri(unitOfWork, mediaElement.LibraryId, mediaElement.DownloadUri))
                         .ToString(),
                     Name = mediaElement.Title,
                     ElementType = elementType,
-                    FilePath = Path.Combine(downloadDirectory, Path.GetFileName(mediaElement.ServerFilePath)),
+                    FilePath = filePath,
                     FileName = Path.GetFileName(mediaElement.ServerFilePath),
                     TotalBytes = mediaElement.TotalBytes,
                     MediaKey = key
                 };
             }
+        }
+
+        private async Task<string> GetFilePath(string downloadDirectory, IMediaElement mediaElement,
+            ISettingsService settingsService)
+        {
+            if (mediaElement is Movie movie)
+            {
+                var fileTemplate = await settingsService.GetMovieFileTemplate();
+                switch (fileTemplate)
+                {
+                    case MovieFileTemplate.FilenameFromServer:
+                        return Path.Combine(downloadDirectory, Path.GetFileName(movie.ServerFilePath));
+                    case MovieFileTemplate.MovieDirectoryAndFilenameFromServer:
+                        return Path.Combine(downloadDirectory, movie.Title,
+                            Path.GetFileName(movie.ServerFilePath));
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+            else if(mediaElement is Episode episode)
+            {
+                var fileTemplate = await settingsService.GetEpisodeFileTemplate();
+                switch (fileTemplate)
+                {
+                    case EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer:
+                        return Path.Combine(downloadDirectory, episode.TvShow.Title, $"Season {episode.SeasonNumber}", Path.GetFileName(mediaElement.ServerFilePath));
+                    case EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer:
+                        return Path.Combine(downloadDirectory, episode.TvShow.Title, Path.GetFileName(mediaElement.ServerFilePath));
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            throw new InvalidCastException("Invalid file template");
         }
 
         private async Task<Uri> GetCompleteDownloadUri(UnitOfWork unitOfWork, string libraryId,
@@ -123,7 +159,8 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes").FirstOrDefault();
+                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes")
+                    .FirstOrDefault();
                 if (tvShow == null)
                     throw new InvalidOperationException();
                 var episodes = tvShow.Episodes.Where(x => x.SeasonNumber == season);
@@ -140,7 +177,8 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes").FirstOrDefault();
+                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes")
+                    .FirstOrDefault();
                 if (tvShow == null)
                     throw new InvalidOperationException();
                 foreach (Episode episode in tvShow.Episodes)
@@ -153,8 +191,8 @@ namespace Web.Services
 
         public Task CancelDownload(string mediaKey)
         {
-            var downloadElement = _pendingDownloads.FirstOrDefault(x=>x.MediaKey == mediaKey);
-            if (downloadElement!=null)
+            var downloadElement = _pendingDownloads.FirstOrDefault(x => x.MediaKey == mediaKey);
+            if (downloadElement != null)
             {
                 downloadElement.CancellationTokenSource.Cancel();
                 if (downloadElement.Started == null)

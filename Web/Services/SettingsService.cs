@@ -10,6 +10,8 @@ public class SettingsService : ISettingsService
 {
     private const string MovieDirectoryKey = "MovieDirectoryPath";
     private const string EpisodeDirectoryKey = "EpisodeDirectoryPath";
+    private const string MovieFileTemplateKey = "MovieFileTemplate";
+    private const string EpisodeFileTemplateKey = "EpisodeFileTemplate";
     private readonly UnitOfWork _unitOfWork;
     private readonly DbContext _dbContext;
 
@@ -26,13 +28,33 @@ public class SettingsService : ISettingsService
             throw new InvalidOperationException("The movie directory setting is missing in db.");
         return setting.Value;
     }
-    
+
     public async Task<string> GetEpisodeDirectory()
     {
         var setting = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
         if (setting == null)
             throw new InvalidOperationException("The episode directory setting is missing in db.");
         return setting.Value;
+    }
+
+    public async Task<MovieFileTemplate> GetMovieFileTemplate()
+    {
+        var setting = await _unitOfWork.SettingRepository.GetById(MovieFileTemplateKey);
+        if (setting == null)
+            throw new InvalidOperationException("The movie file template setting is missing in db.");
+        if (Enum.TryParse(setting.Value, out MovieFileTemplate fileTemplate))
+            return fileTemplate;
+        return default;
+    }
+
+    public async Task<EpisodeFileTemplate> GetEpisodeFileTemplate()
+    {
+        var setting = await _unitOfWork.SettingRepository.GetById(EpisodeFileTemplateKey);
+        if (setting == null)
+            throw new InvalidOperationException("The episode file template setting is missing in db.");
+        if (Enum.TryParse(setting.Value, out EpisodeFileTemplate fileTemplate))
+            return fileTemplate;
+        return default;
     }
 
     public async Task<IEnumerable<SettingsResource>> GetSettings()
@@ -62,7 +84,7 @@ public class SettingsService : ISettingsService
     public async Task UpdateSettings(IEnumerable<SettingsResource> settings)
     {
         foreach (var setting in settings)
-        {    
+        {
             var settingFromDb = await _unitOfWork.SettingRepository.GetById(setting.Key);
             if (settingFromDb != null)
             {
@@ -76,7 +98,9 @@ public class SettingsService : ISettingsService
                     Value = setting.Value
                 });
             }
-        }await _unitOfWork.Save();
+        }
+
+        await _unitOfWork.Save();
     }
 
     public async Task<bool> ResetDatabase()
