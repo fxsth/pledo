@@ -136,7 +136,7 @@ namespace Web.Services
             }
             else if (elementType == ElementType.TvShow)
             {
-                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key).FirstOrDefault();
+                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)).FirstOrDefault();
             }
 
             return null;

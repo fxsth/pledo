@@ -60,13 +60,35 @@ public class SettingsService : ISettingsService
     public async Task<IEnumerable<SettingsResource>> GetSettings()
     {
         var settings = _unitOfWork.SettingRepository.GetAll();
-        return settings.Select(x => new SettingsResource()
+        return settings.Select(x =>
         {
-            Key = x.Key,
-            Description = x.Description,
-            Value = x.Value,
-            Name = x.Name ?? ""
+            var settingsResource =  new SettingsResource()
+            {
+                Key = x.Key,
+                Description = x.Description,
+                Value = x.Value,
+                Name = x.Name ?? "",
+                Type = x.Type
+            };
+            AddOptions(settingsResource);
+            return settingsResource;
         });
+    }
+
+    private void AddOptions(SettingsResource settingsResource)
+    {
+        if (settingsResource.Key == EpisodeFileTemplateKey)
+            settingsResource.Options = new[]
+            {
+                new Option(EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer.ToString(), "<Download directory>/<Tv Show>/<Episode.ext>"),
+                new Option(EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer.ToString(), "<Download directory>/<Tv Show>/<Season>/<Episode.ext>")
+            };
+        if (settingsResource.Key == MovieFileTemplateKey)
+            settingsResource.Options = new[]
+            {
+                new Option(MovieFileTemplate.FilenameFromServer.ToString(), "<Download directory>/<Movie.ext>"),
+                new Option(MovieFileTemplate.MovieDirectoryAndFilenameFromServer.ToString(), "<Download directory>/<Movie>/<Movie.ext>")
+            };
     }
 
     public async Task ValidateSettings(IEnumerable<SettingsResource> settings)
@@ -77,8 +99,14 @@ public class SettingsService : ISettingsService
 
     private void ValidateDirectorySetting(SettingsResource setting)
     {
-        if (!Uri.IsWellFormedUriString(setting.Value, UriKind.Absolute))
+        try
+        {
+            Path.GetFullPath(setting.Value);
+        }
+        catch (Exception e)
+        {
             throw new ArgumentException($"{setting.Name} is not a valid directory.");
+        }
     }
 
     public async Task UpdateSettings(IEnumerable<SettingsResource> settings)

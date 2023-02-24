@@ -1,6 +1,8 @@
 import React from "react";
 import {FolderPicker} from "./FolderPicker";
 import {Modal, ModalBody, ModalHeader, Form, FormGroup, Label, Input, InputGroup, Button} from 'reactstrap';
+import FilePathSetting from "./FilePathSetting";
+import DropdownSetting from "./DropdownSetting";
 
 export class Settings extends React.Component {
     constructor(props) {
@@ -36,49 +38,44 @@ export class Settings extends React.Component {
         this.setState({[settings]: settings});
     }
 
-    toggleFolderPickerForSetting(key){
-        const settings = this.state.settings.map(setting=>
-        {
-            if(setting.key===key)
-            {
-                setting.showFolderPicker = !setting.showFolderPicker;                   
-            }
-        })
-        this.setState({[settings]:settings});
+    showSettingBasedOnType(setting) {
+        if (setting.type === "path") {
+            console.log(`Setting: ${setting.key} ${setting.type}`)
+            return
+            <>
+                <FilePathSetting
+                    setting={setting}
+                    callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
+                />
+            </>
+        } else if (setting.type === "enum") {
+            return
+            <DropdownSetting
+                setting={setting}
+                callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
+            />
+        }
     }
 
     render() {
-        console.log("rerender")
         return (
             <div>
                 <Form onSubmit={this.handleSubmit}>
                     {this.state.settings.map(setting =>
-                        <FormGroup>
-                            <Label for={setting.key}>{setting.name}</Label>
-                            <InputGroup>
-                                <Input id={setting.key} name={setting.key} type="text" value={setting.value} onChange={(e)=>this.updateValueOfSetting(setting.key, e.target.value)}/>
-                                <button onClick={() => this.toggleFolderPickerForSetting(setting.key)}>Select
-                                    directory
-                                </button>
-                            </InputGroup>
-                            <Modal isOpen={setting.showFolderPicker}>
-                                <ModalHeader close={
-                                    <Button className="close" onClick={() => this.toggleFolderPickerForSetting(setting.key)} type="button">
-                                        &times;
-                                    </Button>
-                                }>Select directory</ModalHeader>
-                                <ModalBody>
-                                    <FolderPicker currentDirectory={setting.value}
-                                        onInputChange={
-                                        (directory) => {
-                                            console.log("Directory set: " + directory)
-                                            this.updateValueOfSetting(setting.key, directory)
-                                            this.toggleFolderPickerForSetting(setting.key)
-                                        }
-                                    }/>
-                                </ModalBody>
-                            </Modal>
-                        </FormGroup>
+                        <>
+                            {setting.type === "path" &&
+                                <FilePathSetting
+                                    setting={setting}
+                                    callback={(directory) => this.updateValueOfSetting(setting.key, directory)}/>
+                            }
+
+                            {setting.type === "enum" &&
+                                <DropdownSetting
+                                    setting={setting}
+                                    callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
+                                />
+                            }
+                        </>
                     )}
                     <Input type="reset" value="Cancel"/>
                     <Input type="submit" value="Save"/>
