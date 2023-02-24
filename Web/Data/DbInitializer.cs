@@ -6,25 +6,41 @@ public static class DbInitializer
 {
     public static void Initialize(DbContext context)
     {
-        if (!context.Settings.Any())
+        context.AddSettingIfNotExist(new KeyValueSetting()
         {
-            var movieDirectory = new KeyValueSetting()
-            {
-                Key = "MovieDirectoryPath",
-                Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
-                Name = "Download directory for movies",
-                Type = "path"
-            };
-            var episodeDirectory = new KeyValueSetting()
-            {
-                Key = "EpisodeDirectoryPath", 
-                Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
-                Name = "Download directory for tv-shows",
-                Type = "path"
-            };
-            context.Settings.Add(movieDirectory);
-            context.Settings.Add(episodeDirectory);
-            context.SaveChanges();
-        }
+            Key = "MovieDirectoryPath",
+            Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+            Name = "Download directory for movies",
+            Type = "path"
+        });
+        context.AddSettingIfNotExist(new KeyValueSetting()
+        {
+            Key = "EpisodeDirectoryPath",
+            Value = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
+            Name = "Download directory for tv-shows",
+            Type = "path"
+        });
+        context.AddSettingIfNotExist(new KeyValueSetting()
+        {
+            Key = "MovieFileTemplate",
+            Value = MovieFileTemplate.FilenameFromServer.ToString(),
+            Name = "Movie file template",
+            Type = "enum"
+        });
+        context.AddSettingIfNotExist(new KeyValueSetting()
+        {
+            Key = "EpisodeFileTemplate",
+            Value = EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer.ToString(),
+            Name = "Episode file template",
+            Type = "enum"
+        });
+        context.SaveChanges();
+    }
+
+    private static bool AddSettingIfNotExist(this DbContext context, KeyValueSetting setting)
+    {
+        if (context.Settings.Any() && context.Settings.Find(setting.Key) != null) return false;
+        context.Settings.Add(setting);
+        return true;
     }
 }

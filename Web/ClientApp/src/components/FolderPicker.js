@@ -6,15 +6,16 @@ export class FolderPicker extends React.Component {
         super(props);
         this.state = {
             directories: [],
-            currentDirectory: ""
+            currentDirectory: props.currentDirectory
         };
+        console.log("Current directory on start: " + this.state.currentDirectory)
     }
 
     componentDidMount() {
-        this.populateData();
+        this.getSubdirectories(this.state.currentDirectory);
     }
 
-    goBackInPath = (event) => {
+    goBackInPath = () => {
         this.getSubdirectories(this.parentname(this.state.currentDirectory))
     }
 
@@ -34,13 +35,14 @@ export class FolderPicker extends React.Component {
                     <thead>Directory path: {this.state.currentDirectory}</thead>
                     <tbody>
                     <tr
-                        onClick={this.goBackInPath}>..</tr>
-                        {this.state.directories.map((directory) =>
-                            <tr
-                                onClick={(e) => this.loadSubDirectories(directory, e)}>{this.directoryname(directory)}
-                            </tr>
-                        )}
-                    
+                        onClick={this.goBackInPath}>..
+                    </tr>
+                    {this.state.directories.map((directory) =>
+                        <tr
+                            onClick={(e) => this.loadSubDirectories(directory, e)}>{this.directoryname(directory)}
+                        </tr>
+                    )}
+
                     </tbody>
                 </Table>
                 <div>
@@ -55,16 +57,10 @@ export class FolderPicker extends React.Component {
         );
     }
 
-    async populateData() {
-        const response = await fetch('api/directory');
-        const data = await response.json();
-        this.setState({directories: data.subDirectories, currentDirectory: data.currentDirectory});
-    }
-
     async getSubdirectories(currentDirectory) {
-        const response = await fetch('api/directory?' + new URLSearchParams({
+        const response = currentDirectory ? await fetch('api/directory?' + new URLSearchParams({
             path: currentDirectory
-        }));
+        })) : await fetch('api/directory');
         const data = await response.json();
         this.setState({directories: data.subDirectories, currentDirectory: data.currentDirectory});
     }

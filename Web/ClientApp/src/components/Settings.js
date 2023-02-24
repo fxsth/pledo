@@ -1,6 +1,8 @@
 import React from "react";
 import {FolderPicker} from "./FolderPicker";
 import {Modal, ModalBody, ModalHeader, Form, FormGroup, Label, Input, InputGroup, Button} from 'reactstrap';
+import FilePathSetting from "./FilePathSetting";
+import DropdownSetting from "./DropdownSetting";
 
 export class Settings extends React.Component {
     constructor(props) {
@@ -36,14 +38,23 @@ export class Settings extends React.Component {
         this.setState({[settings]: settings});
     }
 
-    updateShowFolderPickerOfSetting(key, show) {
-        console.log(`Folderpicker for setting ${key} set to ${show}`)
-        const settings = this.state.settings;
-        for (let i = 0; i < settings.length; i++) {
-            if (settings[i].key === key)
-                settings[i].showFolderPicker = show
+    showSettingBasedOnType(setting) {
+        if (setting.type === "path") {
+            console.log(`Setting: ${setting.key} ${setting.type}`)
+            return
+            <>
+                <FilePathSetting
+                    setting={setting}
+                    callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
+                />
+            </>
+        } else if (setting.type === "enum") {
+            return
+            <DropdownSetting
+                setting={setting}
+                callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
+            />
         }
-        this.setState({settings});
     }
 
     render() {
@@ -51,27 +62,20 @@ export class Settings extends React.Component {
             <div>
                 <Form onSubmit={this.handleSubmit}>
                     {this.state.settings.map(setting =>
-                        <FormGroup>
-                            <Label for={setting.key}>{setting.name}</Label>
-                            <InputGroup>
-                                <Input id={setting.key} name={setting.key} type="text" value={setting.value}/>
-                                <button onClick={() => this.updateShowFolderPickerOfSetting(setting.key, true)}>Select
-                                    directory
-                                </button>
-                            </InputGroup>
-                            <Modal isOpen={setting.showFolderPicker} onHide={() => setting.showFolderPicker = false}>
-                                <ModalHeader>Select directory</ModalHeader>
-                                <ModalBody>
-                                    <FolderPicker onInputChange={
-                                        (directory) => {
-                                            console.log("Directory set: " + directory)
-                                            this.updateValueOfSetting(setting.key, directory)
-                                            setting.showFolderPicker = false
-                                        }
-                                    }/>
-                                </ModalBody>
-                            </Modal>
-                        </FormGroup>
+                        <>
+                            {setting.type === "path" &&
+                                <FilePathSetting
+                                    setting={setting}
+                                    callback={(directory) => this.updateValueOfSetting(setting.key, directory)}/>
+                            }
+
+                            {setting.type === "enum" &&
+                                <DropdownSetting
+                                    setting={setting}
+                                    callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
+                                />
+                            }
+                        </>
                     )}
                     <Input type="reset" value="Cancel"/>
                     <Input type="submit" value="Save"/>

@@ -20,6 +20,7 @@ public class SettingController : ControllerBase
     [HttpPost]
     public async Task UpdateSettings([FromBody] IEnumerable<SettingsResource> settings)
     {
+        await _settingsService.ValidateSettings(settings);
         await _settingsService.UpdateSettings(settings);
     }
     
