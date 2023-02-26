@@ -49,7 +49,14 @@ export class SyncButton extends Component {
 
         if (!data.some(task => task.type === 0)) {
             this.stopSyncPolling()
+            this.whenSyncFinished()
         }
+    }
+    
+    whenSyncFinished()
+    {
+        if(this.props.whenSyncFinished)
+            this.props.whenSyncFinished();
     }
 
     async startSync() {

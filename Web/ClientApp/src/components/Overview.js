@@ -39,7 +39,7 @@ export class Overview extends Component {
             return (
                 <div>
                     <h2>Hello, {this.state.account ? this.state.account.username : "User"}!</h2>
-                    <SyncButton/>
+                    <SyncButton whenSyncFinished={()=>this.populateServerData()}/>
                     <p>You have access to following servers:</p>
                     <Container>
                         <Row>

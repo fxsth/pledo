@@ -12,7 +12,7 @@ function FilePathSetting(props) {
             <InputGroup>
                 <Input id={setting.key} name={setting.key} type="text" value={setting.value}
                        onChange={(e) => {setting.value = e.target.value; setSetting(setting);}}/>
-                <button onClick={() => setShowFolderPicker(!showFolderPicker)}>Select
+                <button type="button" onClick={() => setShowFolderPicker(!showFolderPicker)}>Select
                     directory
                 </button>
             </InputGroup>

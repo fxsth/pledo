@@ -38,25 +38,6 @@ export class Settings extends React.Component {
         this.setState({[settings]: settings});
     }
 
-    showSettingBasedOnType(setting) {
-        if (setting.type === "path") {
-            console.log(`Setting: ${setting.key} ${setting.type}`)
-            return
-            <>
-                <FilePathSetting
-                    setting={setting}
-                    callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
-                />
-            </>
-        } else if (setting.type === "enum") {
-            return
-            <DropdownSetting
-                setting={setting}
-                callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
-            />
-        }
-    }
-
     render() {
         return (
             <div>
