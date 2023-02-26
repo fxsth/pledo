@@ -46,7 +46,7 @@ export class FolderPicker extends React.Component {
                     </tbody>
                 </Table>
                 <div>
-                    <button onClick={() => {
+                    <button type="button" onClick={() => {
                         if (this.props.onInputChange) {
                             this.props.onInputChange(this.state.currentDirectory);
                         }
