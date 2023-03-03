@@ -9,8 +9,9 @@ Focused on proper functioning rather than good looking design. Features:
 - Log in by plex.tv, no need for typing in password into this app
 - Sync all media metadata of all accessible servers, backed by local db
 - Browse all media, select and download directly
-- docker support
+- Download seasons or whole tv shows with one click
+- Docker image for amd64 and arm64. Or run the windows executable .
 
-Use `docker pull ghcr.io/fxsth/pledo:master` to get the docker image of current master version.
+Use `docker pull ghcr.io/fxsth/pledo:latest` to get the docker image of latest release.
 
 ![Download screenshot](images/screenshot-downloads.png)
