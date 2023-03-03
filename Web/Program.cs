@@ -16,6 +16,9 @@ builder.Services
     .AddScoped<IPlexRestService, PlexRestService>()
     .AddSingleton<HttpClient>()
     .AddSingleton<IDownloadService, DownloadService>();
+
+builder.AddLogFilter();
+
 builder.Services.AddControllers();
 builder.Services.AddDbContext<DbContext>(o =>
     {
@@ -28,7 +31,6 @@ builder.Services.AddDbContext<DbContext>(o =>
 #endif
     }
 );
-
 builder.Services.AddSwaggerGen();
 builder.Services.Configure<RouteOptions>(options => { options.LowercaseUrls = true; });
 
@@ -41,8 +43,10 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+#if DEBUG
 app.UseSwagger();
 app.UseSwaggerUI();
+#endif
 
 using (var scope = app.Services.CreateScope())
 {

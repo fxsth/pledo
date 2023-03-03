@@ -96,15 +96,17 @@ namespace Web.Services
                         throw new ArgumentOutOfRangeException();
                 }
             }
-            else if(mediaElement is Episode episode)
+            else if (mediaElement is Episode episode)
             {
                 var fileTemplate = await settingsService.GetEpisodeFileTemplate();
                 switch (fileTemplate)
                 {
                     case EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, episode.TvShow.Title, $"Season {episode.SeasonNumber}", Path.GetFileName(mediaElement.ServerFilePath));
+                        return Path.Combine(downloadDirectory, episode.TvShow.Title, $"Season {episode.SeasonNumber}",
+                            Path.GetFileName(mediaElement.ServerFilePath));
                     case EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, episode.TvShow.Title, Path.GetFileName(mediaElement.ServerFilePath));
+                        return Path.Combine(downloadDirectory, episode.TvShow.Title,
+                            Path.GetFileName(mediaElement.ServerFilePath));
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -136,7 +138,8 @@ namespace Web.Services
             }
             else if (elementType == ElementType.TvShow)
             {
-                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)).FirstOrDefault();
+                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow))
+                    .FirstOrDefault();
             }
 
             return null;
@@ -296,8 +299,10 @@ namespace Web.Services
             {
                 await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
+#if DEBUG
                 Console.WriteLine(
                     $"Download progress: {downloadElement.DownloadedBytes * 100 / downloadElement.TotalBytes}% - {downloadElement.DownloadedBytes}/{downloadElement.TotalBytes}");
+#endif
                 downloadElement.DownloadedBytes += bytesRead;
             }
         }
