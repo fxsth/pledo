@@ -261,6 +261,12 @@ namespace Web.Services
                 await unitOfWork.DownloadRepository.Insert(downloadElement);
                 await unitOfWork.Save();
             }
+
+            if (downloadElement.CancellationTokenSource.IsCancellationRequested)
+            {
+                if(File.Exists(downloadElement.FilePath))
+                    File.Delete(downloadElement.FilePath);
+            }
         }
 
         private async Task DownloadFile(DownloadElement downloadElement)
