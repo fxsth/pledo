@@ -111,23 +111,34 @@ export class Movies extends Component {
                 <thead>
                 <tr>
                     <th>Title</th>
-                    <th>Key</th>
-                    <th>Rating Key</th>
-                    <th>Download Url</th>
+                    <th>Year</th>
+                    <th>Video Codec</th>
+                    <th>Resolution</th>
+                    <th>Size</th>
+                    <th>Download</th>
                 </tr>
                 </thead>
                 <tbody>
                 {movies.map(movie =>
                     <tr key={movie.title}>
                         <td>{movie.title}</td>
-                        <td>{movie.key}</td>
-                        <td>{movie.ratingKey}</td>
+                        <td>{movie.year}</td>
+                        <td>{movie.videoCodec}</td>
+                        <td>{movie.videoResolution}</td>
+                        <td>{this.humanizeByteSize(movie.totalBytes)}</td>
                         <td><DownloadButton mediaType='movie' mediaKey={movie.ratingKey}>Download</DownloadButton></td>
                     </tr>
                 )}
                 </tbody>
             </Table>
         );
+    }
+
+    static humanizeByteSize(size) {
+        if(!size)
+            return "--";
+        const i = size === 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
+        return (size / Math.pow(1024, i)).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
     }
 
     async populateServersData() {
