@@ -17,8 +17,7 @@ export class Downloads extends Component {
         );
     }
 
-    componentWillUnmount()
-    {
+    componentWillUnmount() {
         clearInterval(this.timerID);
     }
 
@@ -29,6 +28,7 @@ export class Downloads extends Component {
                 <tr>
                     <th>Name</th>
                     <th>Started at</th>
+                    <th>Size</th>
                     <th>Status</th>
                     <th>Cancel</th>
                 </tr>
@@ -37,20 +37,13 @@ export class Downloads extends Component {
                 {downloads.map(download =>
                     <tr key={download.id}>
                         <td>{download.name}</td>
-                        <td>{download.started!= null ? (new Date(download.started)).toLocaleString() : ""}</td>
+                        <td>{download.started != null ? (new Date(download.started)).toLocaleString() : ""}</td>
+                        <td>{this.renderProgress(download)}</td>
+                        <td>{this.renderStatus(download)}</td>
                         <td>
-                            {download.started != null ?
-                                download.progress < 1 ?
-                                    download.finished == null ?
-                                    (<Progress visible={true} value={download.progress * 100}>
-                                            {Math.round(download.progress * 100)}%
-                                        </Progress>
-                                    ) : <Badge color="danger" pill>Cancelled</Badge> : (<Badge color="success" pill>Finished</Badge>) : (<Badge color="info" pill>Pending</Badge>)
-                            }
-                        </td>
-                        <td>
-                            {(download.progress == null || download.progress<1) && download.finished == null ? 
-                                <Button color="danger" outline size="sm" onClick={() => this.handleClick(download.mediaKey)}>Cancel</Button>
+                            {(download.progress == null || download.progress < 1) && download.finished == null ?
+                                <Button color="danger" outline size="sm"
+                                        onClick={() => this.handleClick(download.mediaKey)}>Cancel</Button>
                                 :
                                 ""}
                         </td>
@@ -60,8 +53,36 @@ export class Downloads extends Component {
             </Table>
         );
     }
-    
-    handleClick(key){
+
+    renderProgress(download) {
+        const downloaded = this.humanizeByteSize(download.downloadedBytes);
+        const total = this.humanizeByteSize(download.totalBytes);
+        if (!download.finished) {
+            return `${downloaded} / ${total}`
+        } else if (download.finishedSuccessfully)
+            return total;
+    }
+
+    renderStatus(download) {
+        if (download.started && !download.finished)
+            return <Progress visible={true} value={download.progress * 100}>
+                {Math.round(download.progress * 100)}%
+            </Progress>;
+        else if (download.finishedSuccessfully)
+            return <Badge color="success" pill>Finished</Badge>;
+        else if (download.finished)
+            return <Badge color="danger" pill>Cancelled</Badge>
+        else
+            return <Badge color="info" pill>Pending</Badge>;
+    }
+    humanizeByteSize(size) {
+        if (!size)
+            return "--";
+        const i = size === 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
+        return (size / Math.pow(1024, i)).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
+    }
+
+    handleClick(key) {
         const settings = {
             method: 'DELETE'
         };

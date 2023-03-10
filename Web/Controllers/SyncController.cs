@@ -1,6 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Web.Models;
-using Web.Models.DTO;
 using Web.Services;
 
 namespace Web.Controllers;

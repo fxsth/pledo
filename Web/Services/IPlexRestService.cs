@@ -13,5 +13,7 @@ public interface IPlexRestService
     Task<IEnumerable<Movie>> RetrieveMovies(Library library);
     Task<IEnumerable<TvShow>> RetrieveTvShows(Library library);
     Task<IEnumerable<Episode>> RetrieveEpisodes(Library library);
+    Task<IEnumerable<Playlist>> RetrievePlaylists(Server library);
+
     Task<string> GetUriFromFastestConnection(Server server);
 }

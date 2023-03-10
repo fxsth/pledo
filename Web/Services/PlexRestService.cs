@@ -151,6 +151,28 @@ public class PlexRestService : IPlexRestService
         return tvShows;
     }
 
+    public async Task<IEnumerable<Playlist>> RetrievePlaylists(Server server)
+    {
+        var playlistContainer = await _plexServerClient.GetPlaylists(server.AccessToken, server.LastKnownUri);
+        if (playlistContainer.Metadata == null)
+            return Enumerable.Empty<Playlist>();
+        List<Playlist> playlistList = new List<Playlist>();
+        foreach (var playlistMetadata in playlistContainer.Metadata)
+        {
+            var playlistItems =
+                await _plexServerClient.GetPlaylistItems(server.AccessToken, server.LastKnownUri, playlistMetadata);
+            playlistList.Add(new Playlist()
+            {
+                Id = playlistMetadata.RatingKey,
+                Name = playlistMetadata.Title,
+                ServerId = server.Id,
+                Items = playlistItems.Media.Select(x => x.RatingKey).ToList()
+            });
+        }
+        return playlistList;
+
+    }
+
     private async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library, int offset, int limit)
     {
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,

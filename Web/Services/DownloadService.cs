@@ -175,6 +175,32 @@ namespace Web.Services
             }
         }
 
+        public async Task DownloadPlaylist(string key)
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                Playlist? playlist = await unitOfWork.PlaylistRepository.GetById(key);
+                if (playlist == null)
+                    throw new InvalidOperationException();
+
+                IEnumerable<Movie> movies = unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey));
+                IEnumerable<Episode> episodes = unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey));
+
+                foreach (Movie movie in movies)
+                {
+                    var downloadElement = await CreateDownloadElement(movie.RatingKey, ElementType.Movie);
+                    AddToPendingDownloads(downloadElement);
+                }
+
+                foreach (Episode episode in episodes)
+                {
+                    var downloadElement = await CreateDownloadElement(episode.RatingKey, ElementType.TvShow);
+                    AddToPendingDownloads(downloadElement);
+                }
+            }
+        }
+
         public async Task DownloadTvShow(string key)
         {
             using (var scope = _scopeFactory.CreateScope())
@@ -262,9 +288,9 @@ namespace Web.Services
                 await unitOfWork.Save();
             }
 
-            if (downloadElement.CancellationTokenSource.IsCancellationRequested)
+            if (!downloadElement.FinishedSuccessfully)
             {
-                if(File.Exists(downloadElement.FilePath))
+                if (File.Exists(downloadElement.FilePath))
                     File.Delete(downloadElement.FilePath);
             }
         }
@@ -315,7 +341,7 @@ namespace Web.Services
 
         private static bool AllButIoExceptions(Exception exception)
         {
-            if (exception is IOException ioEx)
+            if (exception is IOException || exception is TaskCanceledException)
             {
                 return false;
             }
