@@ -50,6 +50,12 @@ public class DownloadController : ControllerBase
         else
             await _downloadService.DownloadTvShow(key);
     }
+    
+    [HttpPost("playlist/{key}")]
+    public async Task DownloadPlaylist( string key)
+    {
+        await _downloadService.DownloadPlaylist(key);
+    }
 
     [HttpDelete("{key}")]
     public async Task CancelDownload(string key)

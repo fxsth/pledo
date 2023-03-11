@@ -4,14 +4,14 @@ import {Modal, ModalBody, ModalHeader, FormGroup, Label, Input, InputGroup, Butt
 
 function FilePathSetting(props) {
     const [showFolderPicker, setShowFolderPicker] = useState(false);
-    const [setting, setSetting] = useState(props.setting);
+    const [setting, setSetting] = useState(props.setting.value);
     let callback = props.callback;
     return (
         <FormGroup>
-            <Label for={setting.key}>{setting.name}</Label>
+            <Label for={props.setting.key}>{props.setting.name}</Label>
             <InputGroup>
-                <Input id={setting.key} name={setting.key} type="text" value={setting.value}
-                       onChange={(e) => {setting.value = e.target.value; setSetting(setting);}}/>
+                <Input id={props.setting.key} name={props.setting.key} type="text" value={setting}
+                       onChange={(e) => setSetting(e.target.value)}/>
                 <button type="button" onClick={() => setShowFolderPicker(!showFolderPicker)}>Select
                     directory
                 </button>
@@ -25,11 +25,12 @@ function FilePathSetting(props) {
                     </Button>
                 }>Select directory</ModalHeader>
                 <ModalBody>
-                    <FolderPicker currentDirectory={setting.value}
+                    <FolderPicker currentDirectory={setting}
                                   onInputChange={
                                       (directory) => {
                                           console.log("Directory set: " + directory)
                                           callback(directory);
+                                          setSetting(directory);
                                           setShowFolderPicker(!showFolderPicker)
                                       }
                                   }/>

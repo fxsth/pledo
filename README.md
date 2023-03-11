@@ -9,8 +9,27 @@ Focused on proper functioning rather than good looking design. Features:
 - Log in by plex.tv, no need for typing in password into this app
 - Sync all media metadata of all accessible servers, backed by local db
 - Browse all media, select and download directly
-- docker support
+- Download
+  - movies
+  - tv shows, seasons or singe episodes
+  - playlists
+- Docker image for amd64 and arm64. Or run the windows executable .
 
-Use `docker pull ghcr.io/fxsth/pledo:latest` to get the docker image of current master version.
+Use `docker pull ghcr.io/fxsth/pledo:latest` to get the docker image of latest release.
 
+Use `docker pull ghcr.io/fxsth/pledo:master` to get the docker image of current master version.
+
+services:
+  pledo:
+    image: ghcr.io/fxsth/pledo:latest
+    container_name: plex-downloader
+    volumes:
+      - /media/Movies:/movies
+      - /media/Tv-Shows:/tvshows
+    ports:
+      - 23456:80
+    restart: unless-stopped
+```
+
+---
 ![Download screenshot](images/screenshot-downloads.png)

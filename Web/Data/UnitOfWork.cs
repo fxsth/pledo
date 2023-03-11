@@ -17,6 +17,7 @@ public class UnitOfWork : IDisposable
     private EpisodeRepository? _episodeRepository;
     private SettingRepository? _settingRepository;
     private DownloadRepository? _downloadHistoryRepository;
+    private PlaylistRepository? _playlistRepository;
 
     public AccountRepository AccountRepository => _accountRepository ??= new AccountRepository(_dbContext);
     public ServerRepository ServerRepository => _serverRepository ??= new ServerRepository(_dbContext);
@@ -27,6 +28,7 @@ public class UnitOfWork : IDisposable
     public SettingRepository SettingRepository => _settingRepository ??= new SettingRepository(_dbContext);
     public DownloadRepository DownloadRepository =>
         _downloadHistoryRepository ??= new DownloadRepository(_dbContext);
+    public PlaylistRepository PlaylistRepository => _playlistRepository ??= new PlaylistRepository(_dbContext);
 
     public async Task Save()
     {

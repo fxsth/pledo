@@ -143,8 +143,11 @@ export class TvShows extends Component {
                             <tr>
                                 <th>Season & Episode</th>
                                 <th>Episode Title</th>
-                                <th>Rating Key</th>
-                                <th>Download Url</th>
+                                <th>Year</th>
+                                <th>Video Codec</th>
+                                <th>Resolution</th>
+                                <th>Size</th>
+                                <th>Download</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -152,10 +155,12 @@ export class TvShows extends Component {
                                 <tr>
                                     <td>S{episode.seasonNumber}E{episode.episodeNumber}</td>
                                     <td>{episode.title}</td>
-                                    <td>{episode.ratingKey}</td>
+                                    <td>{episode.year}</td>
+                                    <td>{episode.videoCodec}</td>
+                                    <td>{episode.videoResolution}</td>
+                                    <td>{this.humanizeByteSize(episode.totalBytes)}</td>
                                     <td><DownloadButton mediaType='episode' mediaKey={episode.ratingKey}>Download</DownloadButton></td>
                                 </tr>
-                            )}
                             )}
                             </tbody>
                         </table>
@@ -164,6 +169,13 @@ export class TvShows extends Component {
                 </tbody>
             </table>
         );
+    }
+
+    static humanizeByteSize(size) {
+        if(!size)
+            return "--";
+        const i = size === 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
+        return (size / Math.pow(1024, i)).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
     }
 
     async populateServersData() {

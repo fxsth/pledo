@@ -15,6 +15,7 @@ const context =  [
   "/api/sync",
   "/api/setting",
   "/api/directory",
+  "/api/playlist",
   "/swagger",
 ];
 

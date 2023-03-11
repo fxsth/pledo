@@ -96,15 +96,17 @@ namespace Web.Services
                         throw new ArgumentOutOfRangeException();
                 }
             }
-            else if(mediaElement is Episode episode)
+            else if (mediaElement is Episode episode)
             {
                 var fileTemplate = await settingsService.GetEpisodeFileTemplate();
                 switch (fileTemplate)
                 {
                     case EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, episode.TvShow.Title, $"Season {episode.SeasonNumber}", Path.GetFileName(mediaElement.ServerFilePath));
+                        return Path.Combine(downloadDirectory, episode.TvShow.Title, $"Season {episode.SeasonNumber}",
+                            Path.GetFileName(mediaElement.ServerFilePath));
                     case EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, episode.TvShow.Title, Path.GetFileName(mediaElement.ServerFilePath));
+                        return Path.Combine(downloadDirectory, episode.TvShow.Title,
+                            Path.GetFileName(mediaElement.ServerFilePath));
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -136,7 +138,8 @@ namespace Web.Services
             }
             else if (elementType == ElementType.TvShow)
             {
-                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)).FirstOrDefault();
+                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow))
+                    .FirstOrDefault();
             }
 
             return null;
@@ -164,6 +167,32 @@ namespace Web.Services
                 if (tvShow == null)
                     throw new InvalidOperationException();
                 var episodes = tvShow.Episodes.Where(x => x.SeasonNumber == season);
+                foreach (Episode episode in episodes)
+                {
+                    var downloadElement = await CreateDownloadElement(episode.RatingKey, ElementType.TvShow);
+                    AddToPendingDownloads(downloadElement);
+                }
+            }
+        }
+
+        public async Task DownloadPlaylist(string key)
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                Playlist? playlist = await unitOfWork.PlaylistRepository.GetById(key);
+                if (playlist == null)
+                    throw new InvalidOperationException();
+
+                IEnumerable<Movie> movies = unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey));
+                IEnumerable<Episode> episodes = unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey));
+
+                foreach (Movie movie in movies)
+                {
+                    var downloadElement = await CreateDownloadElement(movie.RatingKey, ElementType.Movie);
+                    AddToPendingDownloads(downloadElement);
+                }
+
                 foreach (Episode episode in episodes)
                 {
                     var downloadElement = await CreateDownloadElement(episode.RatingKey, ElementType.TvShow);
@@ -258,6 +287,12 @@ namespace Web.Services
                 await unitOfWork.DownloadRepository.Insert(downloadElement);
                 await unitOfWork.Save();
             }
+
+            if (!downloadElement.FinishedSuccessfully)
+            {
+                if (File.Exists(downloadElement.FilePath))
+                    File.Delete(downloadElement.FilePath);
+            }
         }
 
         private async Task DownloadFile(DownloadElement downloadElement)
@@ -296,15 +331,17 @@ namespace Web.Services
             {
                 await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
+#if DEBUG
                 Console.WriteLine(
                     $"Download progress: {downloadElement.DownloadedBytes * 100 / downloadElement.TotalBytes}% - {downloadElement.DownloadedBytes}/{downloadElement.TotalBytes}");
+#endif
                 downloadElement.DownloadedBytes += bytesRead;
             }
         }
 
         private static bool AllButIoExceptions(Exception exception)
         {
-            if (exception is IOException ioEx)
+            if (exception is IOException || exception is TaskCanceledException)
             {
                 return false;
             }

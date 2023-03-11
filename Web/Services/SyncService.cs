@@ -36,6 +36,7 @@ public class SyncService : ISyncService
                 await SyncMovies(libraries, unitOfWork);
                 await SyncTvShows(libraries, unitOfWork);
                 await SyncEpisodes(libraries, unitOfWork);
+                await SyncPlaylists(servers, unitOfWork);
                 await unitOfWork.Save();
             }
         }
@@ -47,6 +48,18 @@ public class SyncService : ISyncService
         {
             _syncTask = null;
         }
+    }
+
+    private async Task SyncPlaylists(IReadOnlyCollection<Server> servers, UnitOfWork unitOfWork)
+    {
+        _syncTask = new BusyTask() { Name = "Syncing playlists" };
+        List<Playlist> playlists = new List<Playlist>();
+        foreach (var server in servers)
+        {
+            playlists.AddRange(await _plexService.RetrievePlaylists(server));
+        }
+
+        await unitOfWork.PlaylistRepository.Upsert(playlists);
     }
 
     private async Task<IReadOnlyCollection<Server>> SyncServers(UnitOfWork unitOfWork)

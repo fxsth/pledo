@@ -42,11 +42,18 @@
     "typescript": "^4.6.3"
   },
   "overrides": {
-    "autoprefixer": "10.4.5"
+    "autoprefixer": "10.4.5",
+    "nth-check": "^2.0.1",
+    "terser": "^5.14.2",
+    "minimatch": "^3.0.5",
+    "dns-packet": "^5.4.0"
   },
   "resolutions": {
     "css-what": "^5.0.1",
-    "nth-check": "^3.0.1"
+    "nth-check": "^2.0.1",
+    "terser": "^5.14.2",
+    "minimatch": "^3.0.5",
+    "dns-packet": "^5.4.0"
   },
   "scripts": {
     "prestart": "node aspnetcore-https && node aspnetcore-react",
