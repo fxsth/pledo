@@ -17,7 +17,9 @@ Focused on proper functioning rather than good looking design. Features:
 
 Use `docker pull ghcr.io/fxsth/pledo:latest` to get the docker image of latest release.
 
-Use `docker pull ghcr.io/fxsth/pledo:master` to get the docker image of current master version.
+#### Docker Compose Example
+```yaml
+version: "3"
 
 services:
   pledo:
