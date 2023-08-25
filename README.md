@@ -26,6 +26,7 @@ services:
     image: ghcr.io/fxsth/pledo:latest
     container_name: plex-downloader
     volumes:
+      - /config/pledo:/config
       - /media/Movies:/movies
       - /media/Tv-Shows:/tvshows
     ports:

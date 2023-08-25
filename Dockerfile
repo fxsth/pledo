@@ -24,4 +24,7 @@ RUN dotnet publish "Web.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+VOLUME /config
+
 ENTRYPOINT ["dotnet", "pledo.dll"]
