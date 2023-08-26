@@ -36,8 +36,8 @@ public static class PreferencesProvider
     {
         try
         {
-            if (Directory.Exists("config"))
-                return "/config/";
+            if (Directory.Exists("/config"))
+                return "/config";
             
             string dataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 ".pledo");

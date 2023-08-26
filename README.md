@@ -33,6 +33,7 @@ services:
       - 23456:80
     restart: unless-stopped
 ```
+Directory /config is used for storing database and local configuration. If not available, it will default to SpecialFolder.LocalApplicationData/.pledo
 
 ---
 ![Download screenshot](images/screenshot-downloads.png)
