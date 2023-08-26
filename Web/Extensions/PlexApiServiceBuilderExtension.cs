@@ -1,4 +1,7 @@
-﻿using Plex.Api.Factories;
+﻿using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using Plex.Api.Factories;
 using Plex.Library.Factories;
 using Plex.ServerApi;
 using Plex.ServerApi.Api;
@@ -12,13 +15,14 @@ public static class PlexApiServiceBuilderExtension
 {
     public static IServiceCollection AddPlexServices(this IServiceCollection services)
     {
+        FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
         ClientOptions apiOptions = new ClientOptions
         {
             Product = "pledo",
-            DeviceName = "Asp.net app",
-            ClientId = "ff0106f8-6106-4983-8099-b441ce5dbf2c",
-            Platform = "Windows",
-            Version = "v1"
+            DeviceName = Environment.MachineName,
+            ClientId = PreferencesProvider.GetClientId(),
+            Platform = RuntimeInformation.OSDescription,
+            Version = fileVersionInfo.FileVersion
         };
 
         services
