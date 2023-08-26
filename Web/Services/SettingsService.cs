@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Web.Constants;
 using Web.Data;
 using Web.Models;
 using Web.Models.DTO;
@@ -8,10 +9,6 @@ namespace Web.Services;
 
 public class SettingsService : ISettingsService
 {
-    private const string MovieDirectoryKey = "MovieDirectoryPath";
-    private const string EpisodeDirectoryKey = "EpisodeDirectoryPath";
-    private const string MovieFileTemplateKey = "MovieFileTemplate";
-    private const string EpisodeFileTemplateKey = "EpisodeFileTemplate";
     private readonly UnitOfWork _unitOfWork;
     private readonly DbContext _dbContext;
 
@@ -23,7 +20,7 @@ public class SettingsService : ISettingsService
 
     public async Task<string> GetMovieDirectory()
     {
-        var setting = await _unitOfWork.SettingRepository.GetById(MovieDirectoryKey);
+        var setting = await _unitOfWork.SettingRepository.GetById(SettingsConstants.MovieDirectoryKey);
         if (setting == null)
             throw new InvalidOperationException("The movie directory setting is missing in db.");
         return setting.Value;
@@ -31,7 +28,7 @@ public class SettingsService : ISettingsService
 
     public async Task<string> GetEpisodeDirectory()
     {
-        var setting = await _unitOfWork.SettingRepository.GetById(EpisodeDirectoryKey);
+        var setting = await _unitOfWork.SettingRepository.GetById(SettingsConstants.EpisodeDirectoryKey);
         if (setting == null)
             throw new InvalidOperationException("The episode directory setting is missing in db.");
         return setting.Value;
@@ -39,7 +36,7 @@ public class SettingsService : ISettingsService
 
     public async Task<MovieFileTemplate> GetMovieFileTemplate()
     {
-        var setting = await _unitOfWork.SettingRepository.GetById(MovieFileTemplateKey);
+        var setting = await _unitOfWork.SettingRepository.GetById(SettingsConstants.MovieFileTemplateKey);
         if (setting == null)
             throw new InvalidOperationException("The movie file template setting is missing in db.");
         if (Enum.TryParse(setting.Value, out MovieFileTemplate fileTemplate))
@@ -49,7 +46,7 @@ public class SettingsService : ISettingsService
 
     public async Task<EpisodeFileTemplate> GetEpisodeFileTemplate()
     {
-        var setting = await _unitOfWork.SettingRepository.GetById(EpisodeFileTemplateKey);
+        var setting = await _unitOfWork.SettingRepository.GetById(SettingsConstants.EpisodeFileTemplateKey);
         if (setting == null)
             throw new InvalidOperationException("The episode file template setting is missing in db.");
         if (Enum.TryParse(setting.Value, out EpisodeFileTemplate fileTemplate))
@@ -57,12 +54,12 @@ public class SettingsService : ISettingsService
         return default;
     }
 
-    public async Task<IEnumerable<SettingsResource>> GetSettings()
+    public Task<IEnumerable<SettingsResource>> GetSettings()
     {
         var settings = _unitOfWork.SettingRepository.GetAll();
-        return settings.Select(x =>
+        return Task.FromResult(settings.Select(x =>
         {
-            var settingsResource =  new SettingsResource()
+            var settingsResource = new SettingsResource()
             {
                 Key = x.Key,
                 Description = x.Description,
@@ -72,29 +69,33 @@ public class SettingsService : ISettingsService
             };
             AddOptions(settingsResource);
             return settingsResource;
-        });
+        }));
     }
 
     private void AddOptions(SettingsResource settingsResource)
     {
-        if (settingsResource.Key == EpisodeFileTemplateKey)
+        if (settingsResource.Key == SettingsConstants.EpisodeFileTemplateKey)
             settingsResource.Options = new[]
             {
-                new Option(EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer.ToString(), "<Download directory>/<Tv Show>/<Episode.ext>"),
-                new Option(EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer.ToString(), "<Download directory>/<Tv Show>/<Season>/<Episode.ext>")
+                new Option(EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer.ToString(),
+                    "<Download directory>/<Tv Show>/<Episode.ext>"),
+                new Option(EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer.ToString(),
+                    "<Download directory>/<Tv Show>/<Season>/<Episode.ext>")
             };
-        if (settingsResource.Key == MovieFileTemplateKey)
+        if (settingsResource.Key == SettingsConstants.MovieFileTemplateKey)
             settingsResource.Options = new[]
             {
                 new Option(MovieFileTemplate.FilenameFromServer.ToString(), "<Download directory>/<Movie.ext>"),
-                new Option(MovieFileTemplate.MovieDirectoryAndFilenameFromServer.ToString(), "<Download directory>/<Movie>/<Movie.ext>")
+                new Option(MovieFileTemplate.MovieDirectoryAndFilenameFromServer.ToString(),
+                    "<Download directory>/<Movie>/<Movie.ext>")
             };
     }
 
-    public async Task ValidateSettings(IEnumerable<SettingsResource> settings)
+    public Task ValidateSettings(IReadOnlyCollection<SettingsResource> settings)
     {
-        ValidateDirectorySetting(settings.Single(x => x.Key == MovieDirectoryKey));
-        ValidateDirectorySetting(settings.Single(x => x.Key == EpisodeDirectoryKey));
+        ValidateDirectorySetting(settings.Single(x => x.Key == SettingsConstants.MovieDirectoryKey));
+        ValidateDirectorySetting(settings.Single(x => x.Key == SettingsConstants.EpisodeDirectoryKey));
+        return Task.CompletedTask;
     }
 
     private void ValidateDirectorySetting(SettingsResource setting)
@@ -103,29 +104,21 @@ public class SettingsService : ISettingsService
         {
             Path.GetFullPath(setting.Value);
         }
-        catch (Exception e)
+        catch (Exception)
         {
             throw new ArgumentException($"{setting.Name} is not a valid directory.");
         }
     }
 
-    public async Task UpdateSettings(IEnumerable<SettingsResource> settings)
+    public async Task UpdateSettings(IReadOnlyCollection<SettingsResource> settings)
     {
         foreach (var setting in settings)
         {
             var settingFromDb = await _unitOfWork.SettingRepository.GetById(setting.Key);
-            if (settingFromDb != null)
-            {
-                settingFromDb.Value = setting.Value;
-            }
-            else
-            {
-                await _unitOfWork.SettingRepository.Insert(new KeyValueSetting()
-                {
-                    Key = setting.Key,
-                    Value = setting.Value
-                });
-            }
+            if (settingFromDb == null)
+                continue;
+
+            settingFromDb.Value = setting.Value;
         }
 
         await _unitOfWork.Save();

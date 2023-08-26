@@ -10,7 +10,7 @@ public interface ISettingsService
     Task<MovieFileTemplate> GetMovieFileTemplate();
     Task<EpisodeFileTemplate> GetEpisodeFileTemplate();
     Task<IEnumerable<SettingsResource>> GetSettings();
-    Task ValidateSettings(IEnumerable<SettingsResource> settings);
-    Task UpdateSettings(IEnumerable<SettingsResource> settings);
+    Task ValidateSettings(IReadOnlyCollection<SettingsResource> settings);
+    Task UpdateSettings(IReadOnlyCollection<SettingsResource> settings);
     Task<bool> ResetDatabase();
 }

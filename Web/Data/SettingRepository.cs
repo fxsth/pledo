@@ -2,7 +2,7 @@
 
 namespace Web.Data;
 
-public class SettingRepository : RepositoryBase<KeyValueSetting>
+public class SettingRepository : RepositoryBase<Setting>
 {
     public SettingRepository(DbContext dbContext) : base(dbContext)
     {

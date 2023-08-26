@@ -13,7 +13,7 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<TvShow> TvShows { get; set; }
     public DbSet<Episode> Episodes { get; set; }
     public DbSet<BusyTask> Tasks { get; set; }
-    public DbSet<KeyValueSetting> Settings { get; set; }
+    public DbSet<Setting> Settings { get; set; }
     public DbSet<DownloadElement> Downloads { get; set; }
     public DbSet<Playlist> Playlists { get; set; }
 

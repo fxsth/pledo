@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Web.Models;
 
-public class KeyValueSetting
+public class Setting
 {
     [Key]
     public string Key { get; set; }
@@ -11,6 +11,7 @@ public class KeyValueSetting
     public string? Name { get; set; }
     public string? Description { get; set; }
     public string Type { get; set; }
+    public bool IsHidden { get; set; }
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public DateTime? LastModified { get; set; }
 }

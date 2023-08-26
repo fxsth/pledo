@@ -24,7 +24,12 @@ builder.Services.AddDbContext<DbContext>(o =>
     {
         // o.UseSqlServer(builder.Configuration.GetConnectionString("LocalDbDatabase"));
         // o.UseInMemoryDatabase(builder.Configuration.GetConnectionString("Database"));
-        o.UseSqlite(builder.Configuration.GetConnectionString("SqliteDatabase"));
+        var connectionString = builder.Configuration.GetConnectionString("SqliteDatabase");
+        string dataDirectory = PreferencesProvider.GetDataDirectory();
+        if(dataDirectory.Any() && !dataDirectory.EndsWith(@"\"))
+            dataDirectory += @"\";
+        connectionString = connectionString.Replace("|DataDirectory|", dataDirectory);
+        o.UseSqlite(connectionString);
 #if DEBUG
         o.EnableDetailedErrors();
         o.EnableSensitiveDataLogging();

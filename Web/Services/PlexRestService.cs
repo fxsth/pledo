@@ -161,6 +161,8 @@ public class PlexRestService : IPlexRestService
         {
             var playlistItems =
                 await _plexServerClient.GetPlaylistItems(server.AccessToken, server.LastKnownUri, playlistMetadata);
+            if(playlistItems?.Media == null)
+                continue;
             playlistList.Add(new Playlist()
             {
                 Id = playlistMetadata.RatingKey,
