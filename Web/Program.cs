@@ -26,8 +26,8 @@ builder.Services.AddDbContext<DbContext>(o =>
         // o.UseInMemoryDatabase(builder.Configuration.GetConnectionString("Database"));
         var connectionString = builder.Configuration.GetConnectionString("SqliteDatabase");
         string dataDirectory = PreferencesProvider.GetDataDirectory();
-        if(dataDirectory.Any() && !dataDirectory.EndsWith(@"\"))
-            dataDirectory += @"\";
+        if(dataDirectory.Any() && !dataDirectory.EndsWith(Path.DirectorySeparatorChar))
+            dataDirectory += Path.DirectorySeparatorChar;
         connectionString = connectionString.Replace("|DataDirectory|", dataDirectory);
         o.UseSqlite(connectionString);
 #if DEBUG
