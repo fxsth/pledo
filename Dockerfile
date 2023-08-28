@@ -6,7 +6,7 @@ RUN apk add --update npm
 
 WORKDIR /src
 COPY ["Web/Web.csproj", "Web/"]
-RUN dotnet restore "Web/Web.csproj" --use-current-runtime /p:PublishReadyToRun=true
+RUN dotnet restore "Web/Web.csproj" --use-current-runtime
 WORKDIR "/src/Web"
 COPY ./Web .
 
