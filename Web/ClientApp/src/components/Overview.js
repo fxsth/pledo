@@ -4,9 +4,9 @@ import {
     CardBody,
     CardImg,
     CardSubtitle,
-    CardTitle, 
+    CardTitle,
     Container,
-    Row
+    Row, Spinner
 } from "reactstrap";
 import {SyncButton} from "./SyncButton";
 
@@ -18,28 +18,62 @@ export class Overview extends Component {
         this.state = {
             account: null,
             servers: null,
+            loginPending: false,
+            popup: null,
+            syncing: false
         };
     }
 
     componentDidMount() {
-        this.populateAccountData();
-        this.populateServerData();
+        this.populateAccountData()
+        this.populateServerData()
     }
 
     openInNewTab = async (event) => {
         const response = await fetch('api/account/loginuri');
         const data = await response.text();
         console.log('Login uri: ' + data);
-        window.open(data, '_blank', 'noopener,noreferrer');
+        this.setState({loginPending: true})
+        const popupWindow = window.open(data, '_blank');
+        this.setState({popup: popupWindow})
+        clearInterval(this.timerID);
+        this.startAccountPolling()
     };
 
-    render() {
+    startAccountPolling() {
+        this.timerID = setInterval(
+            () => {
+                if (!this.state.account)
+                    this.populateAccountData().then(data => {
+                        if (data) {
+                            this.state.popup?.close()
+                        }
+                    })
+                else if (this.state.loginPending && !this.state.syncing)
+                    this.syncConnections()
+                else
+                    this.populateServerData().then((data) => {
+                        if (data) {
+                            clearInterval(this.timerID);
+                            this.setState({loginPending: false, syncing: false})
+                        }
+                    })
 
-        if (this.state.account) {
+            },
+            3000
+        );
+    }
+
+    render() {
+        if (this.state.account || this.state.loginPending) {
             return (
                 <div>
                     <h2>Hello, {this.state.account ? this.state.account.username : "User"}!</h2>
-                    <SyncButton whenSyncFinished={()=>this.populateServerData()}/>
+                    {this.state.loginPending || this.state.syncing ? <Spinner size="sm">Loading...</Spinner> :
+                        <SyncButton whenSyncFinished={() => {
+                            console.log("Sync finished")
+                            this.populateServerData()
+                        }}/>}
                     <p>You have access to following servers:</p>
                     <Container>
                         <Row>
@@ -53,13 +87,15 @@ export class Overview extends Component {
                                       }}
                                 >
                                     <CardImg
-                                    style={{
-                                        height: 20,
-                                        background:'#e5a00d'
-                                    }}
-                                    top
-                                    width="100%"
-                                />
+                                        style={{
+                                            height: 20,
+                                            background: server.isOnline ? 
+                                                '#19d37b' :
+                                                '#ff413c'
+                                        }}
+                                        top
+                                        width="100%"
+                                    />
                                     <CardBody>
                                         <CardTitle tag="h5">
                                             {server.name}
@@ -94,12 +130,31 @@ export class Overview extends Component {
     async populateAccountData() {
         const response = await fetch('api/account');
         const data = await response.json();
-        this.setState({account: data, loading: false});
+        if (data)
+            this.setState({account: data});
+        return data
     }
 
     async populateServerData() {
         const response = await fetch('api/server');
         const data = await response.json();
-        this.setState({servers: data, loading: false});
+        if (data)
+            this.setState({servers: data});
+        return data
+    }
+
+    async syncConnections() {
+        if (!this.state.syncing) {
+            this.setState({syncing: true});
+            fetch('api/sync?syncType=1', {method: 'POST'})
+                .then(response => {
+                    if (response.status >= 200 && response.status < 300) {
+                        console.log(response);
+                    } else {
+                        // alert('There was a problem with syncing. Please try again.');
+                    }
+                }).catch(err => console.log(err));
+            // this.startSyncPolling();
+        }
     }
 }

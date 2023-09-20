@@ -6,4 +6,5 @@ public interface ISyncService
 {
     BusyTask? GetCurrentSyncTask();
     Task SyncAll();
+    Task SyncConnections();
 }
