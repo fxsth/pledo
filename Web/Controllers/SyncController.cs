@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Web.Models;
 using Web.Services;
 
 namespace Web.Controllers;
@@ -17,11 +18,25 @@ public class SyncController : ControllerBase
     }
 
     [HttpPost]
-    public async Task Sync()
+    public async Task Sync(SyncType syncType)
     {
         if (_syncService.GetCurrentSyncTask() != null)
+        {
             Conflict("Sync is already ongoing");
-        else
-            await _syncService.SyncAll();
+        }
+
+        switch (syncType)
+        {
+            case SyncType.Full:
+                await _syncService.SyncAll();
+                break;
+            case SyncType.Connection:
+                await _syncService.SyncConnections();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(syncType), syncType, null);
+        }
+
+        
     }
 }

@@ -4,7 +4,6 @@ using Plex.ServerApi.PlexModels.OAuth;
 using Web.Data;
 using Web.Models;
 using Web.Models.DTO;
-using Library = Web.Models.Library;
 
 namespace Web.Services;
 
@@ -23,9 +22,14 @@ public class LoginService : ILoginService
         _unitOfWork = unitOfWork;
     }
 
+    private bool IsLoginPending()
+    {
+        return _oAuthPin != null;
+    }
+
     public async Task<Account?> GetPlexAccount()
     {
-        if (_oAuthPin != null)
+        if (IsLoginPending())
         {
             OAuthPin? authTokenFromOAuthPinAsync = await _plexAccountClient.GetAuthTokenFromOAuthPinAsync(_oAuthPin.Id.ToString());
             var account = await _plexAccountClient.GetPlexAccountAsync(authTokenFromOAuthPinAsync.AuthToken);

@@ -11,13 +11,13 @@ Focused on proper functioning rather than good looking design. Features:
 - Browse all media, select and download directly
 - Download
   - movies
-  - tv shows, seasons or singe episodes
+  - tv shows, seasons or single episodes
   - playlists
 - Docker image for amd64 and arm64. Or run the windows executable .
 
 Use `docker pull ghcr.io/fxsth/pledo:latest` to get the docker image of latest release.
 
-#### Docker Compose Example
+### Docker Compose Example
 ```yaml
 version: "3"
 
@@ -36,4 +36,8 @@ services:
 Directory /config is used for storing database and local configuration. If not available, it will default to SpecialFolder.LocalApplicationData/.pledo
 
 ---
+### Download multiple episodes with one click
+![TV shows screenshot](images/screenshot-tvshows.png)
+
+### Download history
 ![Download screenshot](images/screenshot-downloads.png)

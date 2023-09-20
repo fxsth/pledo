@@ -44,6 +44,7 @@ public class ServerRepository : RepositoryBase<Server>
                 serverToUpdate.AccessToken = serverFromApi.AccessToken;
                 serverToUpdate.LastKnownUri = serverFromApi.LastKnownUri;
                 serverToUpdate.LastModified = DateTimeOffset.Now;
+                serverToUpdate.IsOnline = serverFromApi.IsOnline;
                 DbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
             }
         

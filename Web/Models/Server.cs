@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Web.Models;
 
@@ -14,8 +15,12 @@ public class Server
     [InverseProperty("Server")]
     public ICollection<ServerConnection> Connections { get; set; }
     public string? LastKnownUri { get; set; }
-    public string AccessToken { get; set; }
     
+    public bool IsOnline { get; set; }
+    
+    [JsonIgnore]
+    public string? AccessToken { get; set; }
+
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public DateTimeOffset? LastModified { get; set; }
 }
