@@ -32,11 +32,35 @@ public class SyncService : ISyncService
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
                 IReadOnlyCollection<Server> syncServers = await SyncServers(unitOfWork);
                 IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
-                IReadOnlyCollection<Library> libraries = await SyncLibraries(servers, unitOfWork);
+                IReadOnlyCollection<Server> onlineServers = servers.Where(x => x.IsOnline).ToList();
+                IReadOnlyCollection<Library> libraries = await SyncLibraries(onlineServers, unitOfWork);
                 await SyncMovies(libraries, unitOfWork);
                 await SyncTvShows(libraries, unitOfWork);
                 await SyncEpisodes(libraries, unitOfWork);
-                await SyncPlaylists(servers, unitOfWork);
+                await SyncPlaylists(onlineServers, unitOfWork);
+                await unitOfWork.Save();
+            }
+        }
+        catch(Exception e)
+        {
+            _logger.Log(LogLevel.Error, e, "An unexpected error occured while syncing:");
+        }
+        finally
+        {
+            _syncTask = null;
+        }
+    }
+
+    public async Task SyncConnections()
+    {
+        try
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
+                UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                IReadOnlyCollection<Server> syncServers = await SyncServers(unitOfWork);
+                IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
                 await unitOfWork.Save();
             }
         }
@@ -100,6 +124,7 @@ public class SyncService : ISyncService
                 server.Name);
             server.LastKnownUri = uriFromFastestConnection;
             server.LastModified = DateTimeOffset.Now;
+            server.IsOnline = !string.IsNullOrEmpty(uriFromFastestConnection);
         }
 
         ServerRepository serverRepository = unitOfWork.ServerRepository;

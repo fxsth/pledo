@@ -240,7 +240,7 @@ public class PlexRestService : IPlexRestService
         if (resourceConnections?.Any() != true)
             throw new ArgumentException("No resource connections specified.");
         List<Task> tasks = new List<Task>();
-        string uri = "";
+        string? uri = null;
         try
         {
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(3));
@@ -259,10 +259,11 @@ public class PlexRestService : IPlexRestService
                         {
                             if (string.IsNullOrEmpty(uri))
                             {
-                                uri = t.Result.RequestMessage.RequestUri?.ToString().Split('?')[0];
+                                uri = t.Result.RequestMessage?.RequestUri?.ToString().Split('?')[0];
                             }
 
-                            cancellationTokenSource.Cancel();
+                            if(!string.IsNullOrEmpty(uri))
+                                cancellationTokenSource.Cancel();
                         }
                     }, cancellationTokenSource.Token));
                 }
