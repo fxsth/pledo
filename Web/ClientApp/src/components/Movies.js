@@ -119,15 +119,17 @@ export class Movies extends Component {
                 </tr>
                 </thead>
                 <tbody>
-                {movies.map(movie =>
-                    <tr key={movie.title}>
-                        <td>{movie.title}</td>
-                        <td>{movie.year}</td>
-                        <td>{movie.videoCodec}</td>
-                        <td>{movie.videoResolution}</td>
-                        <td>{this.humanizeByteSize(movie.totalBytes)}</td>
-                        <td><DownloadButton mediaType='movie' mediaKey={movie.ratingKey}>Download</DownloadButton></td>
-                    </tr>
+                {movies.map(movie => 
+                    movie.mediaFiles.map(mediaFile =>
+                        <tr key={mediaFile.downloadUri}>
+                            <td>{movie.title}</td>
+                            <td>{movie.year}</td>
+                            <td>{mediaFile.videoCodec}</td>
+                            <td>{mediaFile.videoResolution}</td>
+                            <td>{this.humanizeByteSize(mediaFile.totalBytes)}</td>
+                            <td><DownloadButton mediaType='movie' mediaKey={movie.ratingKey}>Download</DownloadButton></td>
+                        </tr>)
+                    
                 )}
                 </tbody>
             </Table>

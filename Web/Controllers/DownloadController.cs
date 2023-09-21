@@ -31,15 +31,15 @@ public class DownloadController : ControllerBase
     }
 
     [HttpPost("movie/{key}")]
-    public async Task DownloadMovie( string key)
+    public async Task DownloadMovie( string key, [FromQuery] string mediaFileKey)
     {
-        await _downloadService.DownloadMovie(key);
+        await _downloadService.DownloadMovie(key, mediaFileKey);
     }
     
     [HttpPost("episode/{key}")]
-    public async Task DownloadEpisode( string key)
+    public async Task DownloadEpisode( string key, [FromQuery] string mediaFileKey)
     {
-        await _downloadService.DownloadEpisode(key);
+        await _downloadService.DownloadEpisode(key, mediaFileKey);
     }
     
     [HttpPost("tvshow/{key}")]

@@ -3,6 +3,7 @@ import {FolderPicker} from "./FolderPicker";
 import {Modal, ModalBody, ModalHeader, Form, FormGroup, Label, Input, InputGroup, Button} from 'reactstrap';
 import FilePathSetting from "./FilePathSetting";
 import DropdownSetting from "./DropdownSetting";
+import StringSetting from "./StringSetting";
 
 export class Settings extends React.Component {
     constructor(props) {
@@ -54,6 +55,13 @@ export class Settings extends React.Component {
                                 <DropdownSetting
                                     setting={setting}
                                     callback={(directory) => this.updateValueOfSetting(setting.key, directory)}
+                                />
+                            }
+
+                            {setting.type === "string" &&
+                                <StringSetting
+                                    setting={setting}
+                                    callback={(value) => this.updateValueOfSetting(setting.key, value)}
                                 />
                             }
                         </>

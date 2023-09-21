@@ -51,7 +51,7 @@ namespace Web.Services
             return returnList;
         }
 
-        private async Task<DownloadElement> CreateDownloadElement(string key, ElementType elementType)
+        private async Task<DownloadElement> CreateDownloadElement(string key, string mediaFileKey, ElementType elementType)
         {
             using (var scope = _scopeFactory.CreateScope())
             {
@@ -60,26 +60,32 @@ namespace Web.Services
                 IMediaElement? mediaElement = await GetMediaElement(unitOfWork, elementType, key);
                 if (mediaElement == null)
                     throw new ArgumentException();
+                MediaFile? mediaFile = mediaElement.MediaFiles.FirstOrDefault(x => x.DownloadUri == mediaFileKey);
+                if (mediaElement == null)
+                {
+                    _logger.LogError("Could not prepare download of {0} due to missing media file.", mediaElement!.Title);
+                    throw new ArgumentException();
+                }
                 var downloadDirectory = elementType == ElementType.Movie
                     ? await settingsService.GetMovieDirectory()
                     : await settingsService.GetEpisodeDirectory();
                 Directory.CreateDirectory(downloadDirectory);
-                string filePath = await GetFilePath(downloadDirectory, mediaElement, settingsService);
+                string filePath = await GetFilePath(downloadDirectory, mediaFile!.ServerFilePath, mediaElement, settingsService);
                 return new DownloadElement()
                 {
-                    Uri = (await GetCompleteDownloadUri(unitOfWork, mediaElement.LibraryId, mediaElement.DownloadUri))
+                    Uri = (await GetCompleteDownloadUri(unitOfWork, mediaElement.LibraryId, mediaFile.DownloadUri))
                         .ToString(),
                     Name = mediaElement.Title,
                     ElementType = elementType,
                     FilePath = filePath,
-                    FileName = Path.GetFileName(mediaElement.ServerFilePath),
-                    TotalBytes = mediaElement.TotalBytes,
+                    FileName = Path.GetFileName(mediaFile.ServerFilePath),
+                    TotalBytes = mediaFile.TotalBytes,
                     MediaKey = key
                 };
             }
         }
 
-        private async Task<string> GetFilePath(string downloadDirectory, IMediaElement mediaElement,
+        private async Task<string> GetFilePath(string downloadDirectory, string serverFilePath, IMediaElement mediaElement,
             ISettingsService settingsService)
         {
             if (mediaElement is Movie movie)
@@ -88,10 +94,10 @@ namespace Web.Services
                 switch (fileTemplate)
                 {
                     case MovieFileTemplate.FilenameFromServer:
-                        return Path.Combine(downloadDirectory, Path.GetFileName(movie.ServerFilePath));
+                        return Path.Combine(downloadDirectory, Path.GetFileName(serverFilePath));
                     case MovieFileTemplate.MovieDirectoryAndFilenameFromServer:
                         return Path.Combine(downloadDirectory, movie.Title,
-                            Path.GetFileName(movie.ServerFilePath));
+                            Path.GetFileName(serverFilePath));
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -103,10 +109,10 @@ namespace Web.Services
                 {
                     case EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer:
                         return Path.Combine(downloadDirectory, episode.TvShow.Title, $"Season {episode.SeasonNumber}",
-                            Path.GetFileName(mediaElement.ServerFilePath));
+                            Path.GetFileName(serverFilePath));
                     case EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer:
                         return Path.Combine(downloadDirectory, episode.TvShow.Title,
-                            Path.GetFileName(mediaElement.ServerFilePath));
+                            Path.GetFileName(serverFilePath));
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -134,26 +140,26 @@ namespace Web.Services
         {
             if (elementType == ElementType.Movie)
             {
-                return unitOfWork.MovieRepository.Get(x => x.RatingKey == key).FirstOrDefault();
+                return unitOfWork.MovieRepository.Get(x => x.RatingKey == key, includeProperties: nameof(Movie.MediaFiles)).FirstOrDefault();
             }
             else if (elementType == ElementType.TvShow)
             {
-                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow))
+                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)+","+nameof(Episode.MediaFiles))
                     .FirstOrDefault();
             }
 
             return null;
         }
 
-        public async Task DownloadMovie(string key)
+        public async Task DownloadMovie(string key, string mediaFileKey)
         {
-            var downloadElement = await CreateDownloadElement(key, ElementType.Movie);
+            var downloadElement = await CreateDownloadElement(key, mediaFileKey, ElementType.Movie);
             AddToPendingDownloads(downloadElement);
         }
 
-        public async Task DownloadEpisode(string key)
+        public async Task DownloadEpisode(string key, string mediaFileKey)
         {
-            var downloadElement = await CreateDownloadElement(key, ElementType.TvShow);
+            var downloadElement = await CreateDownloadElement(key, mediaFileKey, ElementType.TvShow);
             AddToPendingDownloads(downloadElement);
         }
 
@@ -167,9 +173,11 @@ namespace Web.Services
                 if (tvShow == null)
                     throw new InvalidOperationException();
                 var episodes = tvShow.Episodes.Where(x => x.SeasonNumber == season);
+                var settingsService = scope.ServiceProvider.GetRequiredService<SettingsService>();
                 foreach (Episode episode in episodes)
                 {
-                    var downloadElement = await CreateDownloadElement(episode.RatingKey, ElementType.TvShow);
+                    var mediaFile = await SelectMediaFile(episode.MediaFiles, settingsService);
+                    var downloadElement = await CreateDownloadElement(episode.RatingKey, mediaFile.DownloadUri, ElementType.TvShow);
                     AddToPendingDownloads(downloadElement);
                 }
             }
@@ -186,16 +194,19 @@ namespace Web.Services
 
                 IEnumerable<Movie> movies = unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey));
                 IEnumerable<Episode> episodes = unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey));
-
+                
+                var settingsService = scope.ServiceProvider.GetRequiredService<SettingsService>();
                 foreach (Movie movie in movies)
                 {
-                    var downloadElement = await CreateDownloadElement(movie.RatingKey, ElementType.Movie);
+                    var mediaFile = await SelectMediaFile(movie.MediaFiles, settingsService);
+                    var downloadElement = await CreateDownloadElement(movie.RatingKey, mediaFile.DownloadUri, ElementType.Movie);
                     AddToPendingDownloads(downloadElement);
                 }
 
                 foreach (Episode episode in episodes)
                 {
-                    var downloadElement = await CreateDownloadElement(episode.RatingKey, ElementType.TvShow);
+                    var mediaFile = await SelectMediaFile(episode.MediaFiles, settingsService);
+                    var downloadElement = await CreateDownloadElement(episode.RatingKey, mediaFile.DownloadUri, ElementType.TvShow);
                     AddToPendingDownloads(downloadElement);
                 }
             }
@@ -210,9 +221,12 @@ namespace Web.Services
                     .FirstOrDefault();
                 if (tvShow == null)
                     throw new InvalidOperationException();
+                var settingsService = scope.ServiceProvider.GetRequiredService<SettingsService>();
                 foreach (Episode episode in tvShow.Episodes)
                 {
-                    var downloadElement = await CreateDownloadElement(episode.RatingKey, ElementType.TvShow);
+                    
+                    var mediaFile = await SelectMediaFile(episode.MediaFiles, settingsService);
+                    var downloadElement = await CreateDownloadElement(episode.RatingKey, mediaFile.DownloadUri,ElementType.TvShow);
                     AddToPendingDownloads(downloadElement);
                 }
             }
@@ -249,6 +263,30 @@ namespace Web.Services
                 _isDownloading = true;
                 Task.Run(async () => await DownloadQueue());
             }
+        }
+
+        private async Task<MediaFile> SelectMediaFile(IEnumerable<MediaFile> mediaFiles, SettingsService settingsService)
+        {
+            var preferredResolution = await settingsService.GetPreferredResolution();
+            var preferredVideoCodec = await settingsService.GetPreferredVideoCodec();
+            List<MediaFile> selection = new List<MediaFile>(mediaFiles);
+            if (!string.IsNullOrWhiteSpace(preferredResolution))
+            {
+                var innerSelection = selection.Where(x =>
+                    string.Equals(x.VideoResolution, preferredResolution, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (innerSelection.Any())
+                    selection = innerSelection;
+            }
+
+            if (!string.IsNullOrWhiteSpace(preferredVideoCodec))
+            {
+                var innerSelection = selection.Where(x =>
+                    string.Equals(x.VideoCodec, preferredVideoCodec, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (innerSelection.Any())
+                    selection = innerSelection;
+            }
+
+            return selection.FirstOrDefault();
         }
 
         private async Task DownloadQueue()

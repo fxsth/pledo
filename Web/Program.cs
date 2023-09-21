@@ -17,7 +17,7 @@ builder.Services
     .AddSingleton<HttpClient>()
     .AddSingleton<IDownloadService, DownloadService>();
 
-builder.AddLogFilter();
+builder.Logging.AddConsole();
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<DbContext>(o =>
@@ -31,8 +31,8 @@ builder.Services.AddDbContext<DbContext>(o =>
         connectionString = connectionString.Replace("|DataDirectory|", dataDirectory);
         o.UseSqlite(connectionString);
 #if DEBUG
-        o.EnableDetailedErrors();
-        o.EnableSensitiveDataLogging();
+        // o.EnableDetailedErrors();
+        // o.EnableSensitiveDataLogging();
 #endif
     }
 );

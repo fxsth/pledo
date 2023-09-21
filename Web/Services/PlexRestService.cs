@@ -92,29 +92,6 @@ public class PlexRestService : IPlexRestService
         return movies.First();
     }
 
-    public async Task<Episode?> RetrieveEpisodeByKey(Library library, string episodeRatingKey)
-    {
-        var mediaContainer =
-            await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, episodeRatingKey);
-        if (mediaContainer.Media == null)
-            return null;
-        IEnumerable<Episode> episodes = mediaContainer.Media
-            .Select(x => new Episode()
-            {
-                Title = x.Title,
-                Key = x.Key,
-                RatingKey = x.RatingKey,
-                ServerFilePath = x.Media.First().Part.First().File,
-                DownloadUri = x.Media.First().Part.First().Key,
-                LibraryId = library.Id,
-                ServerId = library.Server.Id,
-                TotalBytes = x.Media.First().Part.First().Size
-            }).ToList();
-        if (episodes.Count() > 1)
-            throw new InvalidDataException();
-        return episodes.First();
-    }
-
     public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
     {
         List<Movie> movies = new List<Movie>();
@@ -296,37 +273,29 @@ public class PlexRestService : IPlexRestService
                 logger.LogWarning("Movie {0} will be skipped, because it does not contain any file.", x.Title);
                 break;
             }
-            if (x.Media.Count != 1 || x.Media.First().Part.Count != 1)
+            if (x.Media.Count > 1 || x.Media.First().Part.Count > 1)
             {
-                logger.LogWarning("Movie {0} contains more than one file, this program does not support more that.", x.Title);
+                logger.LogTrace("Movie {0} contains more than one file.", x.Title);
             }
 
-            Medium medium = x.Media.First();
-            MediaPart part = medium.Part.First();
+            List<MediaFile> mediaFiles = new List<MediaFile>();
+            foreach (var medium in x.Media)
+            {
+                foreach (var part in medium.Part) 
+                {
+                    mediaFiles.Add(Map(medium, part, library, x));
+                }
+            }
+            
             yield return new Movie()
             {
                 Title = x.Title,
                 Key = x.Key,
                 RatingKey = x.RatingKey,
-                ServerFilePath = part.File,
-                DownloadUri = part.Key,
                 LibraryId = library.Id,
                 ServerId = library.Server.Id,
                 Year = x.Year,
-                TotalBytes = part.Size,
-                Bitrate = medium.Bitrate,
-                Container = medium.Container,
-                Duration = medium.Duration,
-                Height = medium.Height,
-                Width = medium.Width,
-                AspectRatio = medium.AspectRatio,
-                AudioChannels = medium.AudioChannels,
-                AudioCodec = medium.AudioCodec,
-                AudioProfile = medium.AudioProfile,
-                VideoCodec = medium.VideoCodec,
-                VideoProfile = medium.VideoProfile,
-                VideoResolution = medium.VideoResolution,
-                VideoFrameRate = medium.VideoFrameRate
+                MediaFiles = mediaFiles
             };
         }
     }
@@ -340,13 +309,20 @@ public class PlexRestService : IPlexRestService
                 logger.LogWarning("Episode {0} will be skipped, because file is missing.", x.Title);
                 break;
             }
-            if (x.Media.Count != 1 || x.Media.First().Part.Count != 1)
+            if (x.Media.Count > 1 || x.Media.First().Part.Count > 1)
             {
-                logger.LogWarning("Movie {0} contains more than one file, this program does not support more than one file", x.Title);
+                logger.LogTrace("Episode {0} contains more than one file, this program does not support more than one file", x.Title);
             }
 
-            Medium medium = x.Media.First();
-            MediaPart part = medium.Part.First();
+            List<MediaFile> mediaFiles = new List<MediaFile>();
+            foreach (var medium in x.Media)
+            {
+                foreach (var part in medium.Part) 
+                {
+                    mediaFiles.Add(Map(medium, part, library, x));
+                }
+            }
+            
             yield return new Episode()
             {
                 Title = x.Title,
@@ -355,26 +331,38 @@ public class PlexRestService : IPlexRestService
                 LibraryId = library.Id,
                 ServerId = library.ServerId,
                 Year = x.Year,
-                DownloadUri = part.Key,
-                ServerFilePath = part.File,
+                MediaFiles = mediaFiles,
                 EpisodeNumber = x.Index,
                 SeasonNumber = x.ParentIndex,
                 TvShowId = x.GrandparentRatingKey,
-                TotalBytes = part.Size,
-                Bitrate = medium.Bitrate,
-                Container = medium.Container,
-                Duration = medium.Duration,
-                Height = medium.Height,
-                Width = medium.Width,
-                AspectRatio = medium.AspectRatio,
-                AudioChannels = medium.AudioChannels,
-                AudioCodec = medium.AudioCodec,
-                AudioProfile = medium.AudioProfile,
-                VideoCodec = medium.VideoCodec,
-                VideoProfile = medium.VideoProfile,
-                VideoResolution = medium.VideoResolution,
-                VideoFrameRate = medium.VideoFrameRate
             };
         }
+    }
+
+    private static MediaFile Map(Medium medium, MediaPart part, Library library, Metadata x)
+    {
+        return new MediaFile()
+        {
+            Key = x.Key,
+            RatingKey = x.RatingKey,
+            ServerFilePath = part.File,
+            DownloadUri = part.Key,
+            LibraryId = library.Id,
+            ServerId = library.Server.Id,
+            TotalBytes = part.Size,
+            Bitrate = medium.Bitrate,
+            Container = medium.Container,
+            Duration = medium.Duration,
+            Height = medium.Height,
+            Width = medium.Width,
+            AspectRatio = medium.AspectRatio,
+            AudioChannels = medium.AudioChannels,
+            AudioCodec = medium.AudioCodec,
+            AudioProfile = medium.AudioProfile,
+            VideoCodec = medium.VideoCodec,
+            VideoProfile = medium.VideoProfile,
+            VideoResolution = medium.VideoResolution,
+            VideoFrameRate = medium.VideoFrameRate
+        };
     }
 }

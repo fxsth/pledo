@@ -36,6 +36,22 @@ public static class DbInitializer
             Name = "Episode file template",
             Type = "enum"
         });
+        context.AddSettingIfNotExist(new Setting()
+        {
+            Key = SettingsConstants.PreferredResolutionKey,
+            Value = "",
+            Name = "Preferred resolution",
+            Description = "If there are multiple file versions, select version with preferred resolution.",
+            Type = "string"
+        });
+        context.AddSettingIfNotExist(new Setting()
+        {
+            Key = SettingsConstants.PreferredVideoCodec,
+            Value = "",
+            Name = "Preferred video codec",
+            Description = "If there are multiple file versions, select version with preferred video codec.",
+            Type = "string"
+        });
         context.SaveChanges();
     }
 

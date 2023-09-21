@@ -54,6 +54,18 @@ public class SettingsService : ISettingsService
         return default;
     }
 
+    public async Task<string?> GetPreferredResolution()
+    {
+        var setting = await _unitOfWork.SettingRepository.GetById(SettingsConstants.PreferredResolutionKey);
+        return setting?.Value;
+    }
+
+    public async Task<string?> GetPreferredVideoCodec()
+    {
+        var setting = await _unitOfWork.SettingRepository.GetById(SettingsConstants.PreferredVideoCodec);
+        return setting?.Value;
+    }
+
     public Task<IEnumerable<SettingsResource>> GetSettings()
     {
         var settings = _unitOfWork.SettingRepository.GetAll();

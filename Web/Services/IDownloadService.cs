@@ -6,8 +6,8 @@ public interface IDownloadService
 {
     IReadOnlyCollection<DownloadElement> GetPendingDownloads();
     IReadOnlyCollection<DownloadElement> GetAll();
-    Task DownloadMovie(string key);
-    Task DownloadEpisode(string key);
+    Task DownloadMovie(string key, string mediaFileKey);
+    Task DownloadEpisode(string key, string mediaFileKey);
     Task DownloadSeason(string key, int season);
     Task DownloadTvShow(string key);
     Task DownloadPlaylist(string key);
