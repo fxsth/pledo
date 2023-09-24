@@ -51,7 +51,7 @@ namespace Web.Services
             return returnList;
         }
 
-        private async Task<DownloadElement> CreateDownloadElement(string key, string mediaFileKey, ElementType elementType)
+        private async Task<DownloadElement> CreateDownloadElement(string key, string? mediaFileKey, ElementType elementType)
         {
             using (var scope = _scopeFactory.CreateScope())
             {
@@ -60,7 +60,11 @@ namespace Web.Services
                 IMediaElement? mediaElement = await GetMediaElement(unitOfWork, elementType, key);
                 if (mediaElement == null)
                     throw new ArgumentException();
-                MediaFile? mediaFile = mediaElement.MediaFiles.FirstOrDefault(x => x.DownloadUri == mediaFileKey);
+                MediaFile? mediaFile;
+                if (mediaFileKey == null)
+                    mediaFile = await SelectMediaFile(mediaElement.MediaFiles, settingsService);
+                else 
+                    mediaFile = mediaElement.MediaFiles.FirstOrDefault(x => x.DownloadUri == mediaFileKey);
                 if (mediaElement == null)
                 {
                     _logger.LogError("Could not prepare download of {0} due to missing media file.", mediaElement!.Title);
@@ -265,7 +269,7 @@ namespace Web.Services
             }
         }
 
-        private async Task<MediaFile> SelectMediaFile(IEnumerable<MediaFile> mediaFiles, SettingsService settingsService)
+        private async Task<MediaFile> SelectMediaFile(IEnumerable<MediaFile> mediaFiles, ISettingsService settingsService)
         {
             var preferredResolution = await settingsService.GetPreferredResolution();
             var preferredVideoCodec = await settingsService.GetPreferredVideoCodec();
