@@ -2,6 +2,7 @@
 using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
 using Plex.ServerApi.PlexModels.Media;
+using Web.Exceptions;
 using Web.Models;
 using Web.Models.DTO;
 using Library = Web.Models.Library;
@@ -59,7 +60,7 @@ public class PlexRestService : IPlexRestService
     {
         try
         {
-            string uri = server.LastKnownUri ?? await GetUriFromFastestConnection(server);
+            string? uri = server.LastKnownUri;
             if (string.IsNullOrEmpty(uri))
                 uri = server.Connections.First().ToString();
             LibraryContainer libraryContainer =
@@ -138,8 +139,11 @@ public class PlexRestService : IPlexRestService
         {
             var playlistItems =
                 await _plexServerClient.GetPlaylistItems(server.AccessToken, server.LastKnownUri, playlistMetadata);
-            if(playlistItems?.Media == null)
+            if (playlistItems?.Media == null)
+            {
+                _logger.LogWarning("Syncing playlists: Playlist {0} does not contain any media.", playlistMetadata.Title);
                 continue;
+            }
             playlistList.Add(new Playlist()
             {
                 Id = playlistMetadata.RatingKey,
@@ -148,8 +152,8 @@ public class PlexRestService : IPlexRestService
                 Items = playlistItems.Media.Select(x => x.RatingKey).ToList()
             });
         }
-        return playlistList;
 
+        return playlistList;
     }
 
     private async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library, int offset, int limit)
@@ -211,7 +215,7 @@ public class PlexRestService : IPlexRestService
         return movies;
     }
 
-    public async Task<string> GetUriFromFastestConnection(Server server)
+    public async Task<string> GetUriFromFastestConnection(Server server, int timeoutInSeconds)
     {
         var resourceConnections = server.Connections;
         if (resourceConnections?.Any() != true)
@@ -220,7 +224,8 @@ public class PlexRestService : IPlexRestService
         string? uri = null;
         try
         {
-            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            CancellationTokenSource cancellationTokenSource =
+                new CancellationTokenSource(TimeSpan.FromSeconds(timeoutInSeconds));
             HttpClient httpClient = new HttpClient();
             List<ServerConnection> connections = resourceConnections.Where(x => !x.Relay).ToList();
             connections.AddRange(resourceConnections.Where(x => x.Relay).ToList());
@@ -239,7 +244,7 @@ public class PlexRestService : IPlexRestService
                                 uri = t.Result.RequestMessage?.RequestUri?.ToString().Split('?')[0];
                             }
 
-                            if(!string.IsNullOrEmpty(uri))
+                            if (!string.IsNullOrEmpty(uri))
                                 cancellationTokenSource.Cancel();
                         }
                     }, cancellationTokenSource.Token));
@@ -253,18 +258,22 @@ public class PlexRestService : IPlexRestService
             await Task.WhenAll(tasks);
 
             if (string.IsNullOrEmpty(uri))
-                throw new InvalidOperationException(
-                    $"Could not get fastest uri for connecting to server {server.Name}.");
+                throw new ServerUnreachableException(server.Name);
         }
-        catch
+        catch (ServerUnreachableException)
         {
-            // ignored
+            throw;
+        }
+        catch (Exception)
+        {
+            //ignored
         }
 
         return uri;
     }
 
-    private IEnumerable<Movie> GetMovies(MediaContainer mediaContainer, Library library, ILogger<PlexRestService> logger)
+    private IEnumerable<Movie> GetMovies(MediaContainer mediaContainer, Library library,
+        ILogger<PlexRestService> logger)
     {
         foreach (var x in mediaContainer.Media)
         {
@@ -273,6 +282,7 @@ public class PlexRestService : IPlexRestService
                 logger.LogWarning("Movie {0} will be skipped, because it does not contain any file.", x.Title);
                 break;
             }
+
             if (x.Media.Count > 1 || x.Media.First().Part.Count > 1)
             {
                 logger.LogTrace("Movie {0} contains more than one file.", x.Title);
@@ -281,12 +291,12 @@ public class PlexRestService : IPlexRestService
             List<MediaFile> mediaFiles = new List<MediaFile>();
             foreach (var medium in x.Media)
             {
-                foreach (var part in medium.Part) 
+                foreach (var part in medium.Part)
                 {
                     mediaFiles.Add(Map(medium, part, library, x));
                 }
             }
-            
+
             yield return new Movie()
             {
                 Title = x.Title,
@@ -299,8 +309,9 @@ public class PlexRestService : IPlexRestService
             };
         }
     }
-    
-    private IEnumerable<Episode> GetEpisodes(MediaContainer mediaContainer, Library library, ILogger<PlexRestService> logger)
+
+    private IEnumerable<Episode> GetEpisodes(MediaContainer mediaContainer, Library library,
+        ILogger<PlexRestService> logger)
     {
         foreach (var x in mediaContainer.Media)
         {
@@ -309,20 +320,23 @@ public class PlexRestService : IPlexRestService
                 logger.LogWarning("Episode {0} will be skipped, because file is missing.", x.Title);
                 break;
             }
+
             if (x.Media.Count > 1 || x.Media.First().Part.Count > 1)
             {
-                logger.LogTrace("Episode {0} contains more than one file, this program does not support more than one file", x.Title);
+                logger.LogTrace(
+                    "Episode {0} contains more than one file, this program does not support more than one file",
+                    x.Title);
             }
 
             List<MediaFile> mediaFiles = new List<MediaFile>();
             foreach (var medium in x.Media)
             {
-                foreach (var part in medium.Part) 
+                foreach (var part in medium.Part)
                 {
                     mediaFiles.Add(Map(medium, part, library, x));
                 }
             }
-            
+
             yield return new Episode()
             {
                 Title = x.Title,

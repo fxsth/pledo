@@ -15,5 +15,5 @@ public interface IPlexRestService
     Task<IEnumerable<Episode>> RetrieveEpisodes(Library library);
     Task<IEnumerable<Playlist>> RetrievePlaylists(Server library);
 
-    Task<string> GetUriFromFastestConnection(Server server);
+    Task<string> GetUriFromFastestConnection(Server server, int timeoutInSeconds);
 }

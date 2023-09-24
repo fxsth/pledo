@@ -5,6 +5,5 @@ namespace Web.Services;
 public interface ISyncService
 {
     BusyTask? GetCurrentSyncTask();
-    Task SyncAll();
-    Task SyncConnections();
+    Task Sync(SyncType syncType);
 }

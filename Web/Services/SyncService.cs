@@ -1,4 +1,6 @@
-﻿using Web.Data;
+﻿using Polly;
+using Web.Data;
+using Web.Exceptions;
 using Web.Models;
 
 namespace Web.Services;
@@ -10,11 +12,21 @@ public class SyncService : ISyncService
     private readonly ILogger<SyncService> _logger;
 
     private BusyTask? _syncTask;
+    private readonly AsyncPolicy _policy;
 
     public SyncService(IServiceScopeFactory scopeFactory, ILogger<SyncService> logger)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _policy = Policy
+            .Handle<ServerUnreachableException>()
+            .RetryAsync(2,
+                onRetry: (exception, retryCount, ctx) =>
+                {
+                    _logger.LogWarning("Server not reachable, retry connections with longer timeout for a {0}. time.",
+                        retryCount);
+                    ctx["TryCount"] = retryCount;
+                });
     }
 
     public BusyTask? GetCurrentSyncTask()
@@ -22,7 +34,7 @@ public class SyncService : ISyncService
         return _syncTask;
     }
 
-    public async Task SyncAll()
+    public async Task Sync(SyncType syncType)
     {
         try
         {
@@ -34,37 +46,18 @@ public class SyncService : ISyncService
                 IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
                 IReadOnlyCollection<Server> onlineServers = servers.Where(x => x.IsOnline).ToList();
                 IReadOnlyCollection<Library> libraries = await SyncLibraries(onlineServers, unitOfWork);
-                await SyncMovies(libraries, unitOfWork);
-                await SyncTvShows(libraries, unitOfWork);
-                await SyncEpisodes(libraries, unitOfWork);
-                await SyncPlaylists(onlineServers, unitOfWork);
+                if (syncType == SyncType.Full)
+                {
+                    await SyncMovies(libraries, unitOfWork);
+                    await SyncTvShows(libraries, unitOfWork);
+                    await SyncEpisodes(libraries, unitOfWork);
+                    await SyncPlaylists(onlineServers, unitOfWork);
+                }
                 await unitOfWork.Save();
+                _logger.LogInformation("{0} sync completed.", syncType.ToString());
             }
         }
-        catch(Exception e)
-        {
-            _logger.Log(LogLevel.Error, e, "An unexpected error occured while syncing:");
-        }
-        finally
-        {
-            _syncTask = null;
-        }
-    }
-
-    public async Task SyncConnections()
-    {
-        try
-        {
-            using (var scope = _scopeFactory.CreateScope())
-            {
-                _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
-                UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                IReadOnlyCollection<Server> syncServers = await SyncServers(unitOfWork);
-                IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
-                await unitOfWork.Save();
-            }
-        }
-        catch(Exception e)
+        catch (Exception e)
         {
             _logger.Log(LogLevel.Error, e, "An unexpected error occured while syncing:");
         }
@@ -80,7 +73,18 @@ public class SyncService : ISyncService
         List<Playlist> playlists = new List<Playlist>();
         foreach (var server in servers)
         {
-            playlists.AddRange(await _plexService.RetrievePlaylists(server));
+            try
+            {
+                var playlistOfThisServer = await _plexService.RetrievePlaylists(server);
+                var playlistList = playlistOfThisServer.ToList();
+                _logger.LogInformation("Syncing playlists: Found {0} playlists from server {1}",
+                    playlistList.Count(), server.Id);
+                playlists.AddRange(playlistList);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Could not retrieve playlist metadata of server {0}.", server.Name);
+            }
         }
 
         await unitOfWork.PlaylistRepository.Upsert(playlists);
@@ -119,12 +123,35 @@ public class SyncService : ISyncService
         _syncTask = new BusyTask() { Name = "Syncing server connections" };
         foreach (var server in servers)
         {
-            var uriFromFastestConnection = await _plexService.GetUriFromFastestConnection(server);
-            _logger.LogInformation("Found fastest connection uri {0} for server {1}", uriFromFastestConnection,
-                server.Name);
-            server.LastKnownUri = uriFromFastestConnection;
-            server.LastModified = DateTimeOffset.Now;
-            server.IsOnline = !string.IsNullOrEmpty(uriFromFastestConnection);
+            try
+            {
+                var uriFromFastestConnection = await _policy.ExecuteAsync<string?>(
+                    async ctx =>
+                    {
+                        int count = (int)(ctx.Values.FirstOrDefault() ?? 0);
+                        return await _plexService.GetUriFromFastestConnection(server, (count + 1) * 5);
+                    },
+                    new Context());
+                server.LastKnownUri = uriFromFastestConnection;
+                server.LastModified = DateTimeOffset.Now;
+                server.IsOnline = !string.IsNullOrEmpty(uriFromFastestConnection);
+                
+                if(server.IsOnline)
+                    _logger.LogInformation("Found fastest connection uri {0} for server {1}", uriFromFastestConnection,
+                        server.Name);
+                else
+                    _logger.LogInformation("Server {0} seems to be offline, all connection attempts failed.", server.Name);
+            }
+            catch (ServerUnreachableException e)
+            {
+                server.LastKnownUri = null;
+                server.LastModified = DateTimeOffset.Now;
+                server.IsOnline = false;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("An unexpected error occured while syncing metadata.", e);
+            }
         }
 
         ServerRepository serverRepository = unitOfWork.ServerRepository;

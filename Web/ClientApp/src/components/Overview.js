@@ -76,7 +76,7 @@ export class Overview extends Component {
                             console.log("Sync finished")
                             this.populateServerData()
                         }}/>}
-                    <p>You have access to following servers: ({serversOnline} / {serversTotal} online)</p>
+                    <p>You have access to following servers: ({serversOnline}/{serversTotal} online)</p>
                     <Container>
                         <Row>
                             {this.state.servers ? this.state.servers.map(server =>
