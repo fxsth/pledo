@@ -7,7 +7,8 @@ export default class DownloadButton extends React.Component {
         this.state = {
             mediaKey: this.props.mediaKey,
             isLoading: false,
-            mediatype: this.props.mediaType
+            mediatype: this.props.mediaType,
+            mediaFileKey: this.props.mediaFileKey
         };
     }
 
@@ -37,6 +38,11 @@ export default class DownloadButton extends React.Component {
         if (typeof this.props.season !== 'undefined') {
             input = input + '?' + new URLSearchParams({
                 season: this.props.season
+            })
+        }
+        if (typeof this.props.mediaFileKey !== 'undefined') {
+            input = input + '?' + new URLSearchParams({
+                mediaFileKey: this.props.mediaFileKey
             })
         }
         return fetch(input, settings)

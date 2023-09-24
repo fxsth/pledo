@@ -18,11 +18,14 @@ public class UnitOfWork : IDisposable
     private SettingRepository? _settingRepository;
     private DownloadRepository? _downloadHistoryRepository;
     private PlaylistRepository? _playlistRepository;
+    private MediaFileRepository? _mediaFileRepository;
+
 
     public AccountRepository AccountRepository => _accountRepository ??= new AccountRepository(_dbContext);
     public ServerRepository ServerRepository => _serverRepository ??= new ServerRepository(_dbContext);
     public LibraryRepository LibraryRepository => _libraryRepository ??= new LibraryRepository(_dbContext);
     public MovieRepository MovieRepository => _movieRepository ??= new MovieRepository(_dbContext);
+    public MediaFileRepository MediaFileRepository => _mediaFileRepository ??= new MediaFileRepository(_dbContext);
     public TvShowRepository TvShowRepository => _tvShowRepository ??= new TvShowRepository(_dbContext);
     public EpisodeRepository EpisodeRepository => _episodeRepository ??= new EpisodeRepository(_dbContext);
     public SettingRepository SettingRepository => _settingRepository ??= new SettingRepository(_dbContext);

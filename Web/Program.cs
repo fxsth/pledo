@@ -17,7 +17,7 @@ builder.Services
     .AddSingleton<HttpClient>()
     .AddSingleton<IDownloadService, DownloadService>();
 
-builder.AddLogFilter();
+builder.Logging.AddConsole();
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<DbContext>(o =>

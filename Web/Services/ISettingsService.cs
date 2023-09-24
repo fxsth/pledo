@@ -9,6 +9,8 @@ public interface ISettingsService
     Task<string> GetEpisodeDirectory();
     Task<MovieFileTemplate> GetMovieFileTemplate();
     Task<EpisodeFileTemplate> GetEpisodeFileTemplate();
+    Task<string?> GetPreferredResolution();
+    Task<string?> GetPreferredVideoCodec();
     Task<IEnumerable<SettingsResource>> GetSettings();
     Task ValidateSettings(IReadOnlyCollection<SettingsResource> settings);
     Task UpdateSettings(IReadOnlyCollection<SettingsResource> settings);

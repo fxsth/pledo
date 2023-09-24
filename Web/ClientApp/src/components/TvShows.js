@@ -155,13 +155,13 @@ export class TvShows extends Component {
                                 <tr>
                                     <td>S{episode.seasonNumber}E{episode.episodeNumber}</td>
                                     <td>{episode.title}</td>
-                                    <td>{episode.year}</td>
-                                    <td>{episode.videoCodec}</td>
-                                    <td>{episode.videoResolution}</td>
-                                    <td>{this.humanizeByteSize(episode.totalBytes)}</td>
+                                    <td>{episode?.year}</td>
+                                        <td>{episode.mediaFiles[0].videoCodec}</td>
+                                        <td>{episode.mediaFiles[0].videoResolution}</td>
+                                        <td>{this.humanizeByteSize(episode.mediaFiles[0].totalBytes)}</td>
                                     <td><DownloadButton mediaType='episode' mediaKey={episode.ratingKey}>Download</DownloadButton></td>
                                 </tr>
-                            )}
+                                )}
                             </tbody>
                         </table>
                     </CollapsibleTableRow>

@@ -10,7 +10,7 @@ public class ServerRepository : RepositoryBase<Server>
     {
     }
 
-    public override async  Task<Server> GetById(string id)
+    public override async Task<Server> GetById(string id)
     {
         return DbContext.Servers.Include(x => x.Connections).AsNoTracking().FirstOrDefault(x => x.Id == id);
     }

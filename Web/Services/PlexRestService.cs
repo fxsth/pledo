@@ -2,6 +2,7 @@
 using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
 using Plex.ServerApi.PlexModels.Media;
+using Web.Exceptions;
 using Web.Models;
 using Web.Models.DTO;
 using Library = Web.Models.Library;
@@ -59,7 +60,7 @@ public class PlexRestService : IPlexRestService
     {
         try
         {
-            string uri = server.LastKnownUri ?? await GetUriFromFastestConnection(server);
+            string? uri = server.LastKnownUri;
             if (string.IsNullOrEmpty(uri))
                 uri = server.Connections.First().ToString();
             LibraryContainer libraryContainer =
@@ -90,29 +91,6 @@ public class PlexRestService : IPlexRestService
         if (movies.Count() > 1)
             throw new InvalidDataException();
         return movies.First();
-    }
-
-    public async Task<Episode?> RetrieveEpisodeByKey(Library library, string episodeRatingKey)
-    {
-        var mediaContainer =
-            await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, episodeRatingKey);
-        if (mediaContainer.Media == null)
-            return null;
-        IEnumerable<Episode> episodes = mediaContainer.Media
-            .Select(x => new Episode()
-            {
-                Title = x.Title,
-                Key = x.Key,
-                RatingKey = x.RatingKey,
-                ServerFilePath = x.Media.First().Part.First().File,
-                DownloadUri = x.Media.First().Part.First().Key,
-                LibraryId = library.Id,
-                ServerId = library.Server.Id,
-                TotalBytes = x.Media.First().Part.First().Size
-            }).ToList();
-        if (episodes.Count() > 1)
-            throw new InvalidDataException();
-        return episodes.First();
     }
 
     public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
@@ -161,8 +139,11 @@ public class PlexRestService : IPlexRestService
         {
             var playlistItems =
                 await _plexServerClient.GetPlaylistItems(server.AccessToken, server.LastKnownUri, playlistMetadata);
-            if(playlistItems?.Media == null)
+            if (playlistItems?.Media == null)
+            {
+                _logger.LogWarning("Syncing playlists: Playlist {0} does not contain any media.", playlistMetadata.Title);
                 continue;
+            }
             playlistList.Add(new Playlist()
             {
                 Id = playlistMetadata.RatingKey,
@@ -171,8 +152,8 @@ public class PlexRestService : IPlexRestService
                 Items = playlistItems.Media.Select(x => x.RatingKey).ToList()
             });
         }
-        return playlistList;
 
+        return playlistList;
     }
 
     private async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library, int offset, int limit)
@@ -234,7 +215,7 @@ public class PlexRestService : IPlexRestService
         return movies;
     }
 
-    public async Task<string> GetUriFromFastestConnection(Server server)
+    public async Task<string> GetUriFromFastestConnection(Server server, int timeoutInSeconds)
     {
         var resourceConnections = server.Connections;
         if (resourceConnections?.Any() != true)
@@ -243,7 +224,8 @@ public class PlexRestService : IPlexRestService
         string? uri = null;
         try
         {
-            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            CancellationTokenSource cancellationTokenSource =
+                new CancellationTokenSource(TimeSpan.FromSeconds(timeoutInSeconds));
             HttpClient httpClient = new HttpClient();
             List<ServerConnection> connections = resourceConnections.Where(x => !x.Relay).ToList();
             connections.AddRange(resourceConnections.Where(x => x.Relay).ToList());
@@ -262,7 +244,7 @@ public class PlexRestService : IPlexRestService
                                 uri = t.Result.RequestMessage?.RequestUri?.ToString().Split('?')[0];
                             }
 
-                            if(!string.IsNullOrEmpty(uri))
+                            if (!string.IsNullOrEmpty(uri))
                                 cancellationTokenSource.Cancel();
                         }
                     }, cancellationTokenSource.Token));
@@ -276,105 +258,129 @@ public class PlexRestService : IPlexRestService
             await Task.WhenAll(tasks);
 
             if (string.IsNullOrEmpty(uri))
-                throw new InvalidOperationException(
-                    $"Could not get fastest uri for connecting to server {server.Name}.");
+                throw new ServerUnreachableException(server.Name);
         }
-        catch
+        catch (ServerUnreachableException)
         {
-            // ignored
+            throw;
+        }
+        catch (Exception)
+        {
+            //ignored
         }
 
         return uri;
     }
 
-    private IEnumerable<Movie> GetMovies(MediaContainer mediaContainer, Library library, ILogger<PlexRestService> logger)
+    private IEnumerable<Movie> GetMovies(MediaContainer mediaContainer, Library library,
+        ILogger<PlexRestService> logger)
     {
-        foreach (var x in mediaContainer.Media)
+        foreach (var metadata in mediaContainer.Media)
         {
-            if (x.Media?.FirstOrDefault()?.Part?.Any() != true)
+            if (metadata.Media?.FirstOrDefault()?.Part?.Any() != true)
             {
-                logger.LogWarning("Movie {0} will be skipped, because it does not contain any file.", x.Title);
+                logger.LogWarning("Movie {0} will be skipped, because it does not contain any file.", metadata.Title);
                 break;
             }
-            if (x.Media.Count != 1 || x.Media.First().Part.Count != 1)
+
+            if (metadata.Media.Count > 1 || metadata.Media.First().Part.Count > 1)
             {
-                logger.LogWarning("Movie {0} contains more than one file, this program does not support more that.", x.Title);
+                logger.LogTrace("Movie {0} contains more than one file.", metadata.Title);
             }
 
-            Medium medium = x.Media.First();
-            MediaPart part = medium.Part.First();
+            List<MediaFile> mediaFiles = new List<MediaFile>();
+            foreach (var medium in metadata.Media)
+            {
+                foreach (var part in medium.Part)
+                {
+                    var mediaFile = Map(medium, part, library, metadata);
+                    mediaFile.MovieRatingKey = metadata.RatingKey;
+                    mediaFiles.Add(mediaFile);
+                }
+            }
+
             yield return new Movie()
             {
-                Title = x.Title,
-                Key = x.Key,
-                RatingKey = x.RatingKey,
-                ServerFilePath = part.File,
-                DownloadUri = part.Key,
+                Title = metadata.Title,
+                Key = metadata.Key,
+                RatingKey = metadata.RatingKey,
                 LibraryId = library.Id,
                 ServerId = library.Server.Id,
-                Year = x.Year,
-                TotalBytes = part.Size,
-                Bitrate = medium.Bitrate,
-                Container = medium.Container,
-                Duration = medium.Duration,
-                Height = medium.Height,
-                Width = medium.Width,
-                AspectRatio = medium.AspectRatio,
-                AudioChannels = medium.AudioChannels,
-                AudioCodec = medium.AudioCodec,
-                AudioProfile = medium.AudioProfile,
-                VideoCodec = medium.VideoCodec,
-                VideoProfile = medium.VideoProfile,
-                VideoResolution = medium.VideoResolution,
-                VideoFrameRate = medium.VideoFrameRate
+                Year = metadata.Year,
+                MediaFiles = mediaFiles
             };
         }
     }
-    
-    private IEnumerable<Episode> GetEpisodes(MediaContainer mediaContainer, Library library, ILogger<PlexRestService> logger)
+
+    private IEnumerable<Episode> GetEpisodes(MediaContainer mediaContainer, Library library,
+        ILogger<PlexRestService> logger)
     {
-        foreach (var x in mediaContainer.Media)
+        foreach (var metadata in mediaContainer.Media)
         {
-            if (x.Media?.FirstOrDefault()?.Part?.Any() != true)
+            if (metadata.Media?.FirstOrDefault()?.Part?.Any() != true)
             {
-                logger.LogWarning("Episode {0} will be skipped, because file is missing.", x.Title);
+                logger.LogWarning("Episode {0} will be skipped, because file is missing.", metadata.Title);
                 break;
             }
-            if (x.Media.Count != 1 || x.Media.First().Part.Count != 1)
+
+            if (metadata.Media.Count > 1 || metadata.Media.First().Part.Count > 1)
             {
-                logger.LogWarning("Movie {0} contains more than one file, this program does not support more than one file", x.Title);
+                logger.LogTrace(
+                    "Episode {0} contains more than one file, this program does not support more than one file",
+                    metadata.Title);
             }
 
-            Medium medium = x.Media.First();
-            MediaPart part = medium.Part.First();
+            List<MediaFile> mediaFiles = new List<MediaFile>();
+            foreach (var medium in metadata.Media)
+            {
+                foreach (var part in medium.Part)
+                {
+                    var mediaFile = Map(medium, part, library, metadata);
+                    mediaFile.EpisodeRatingKey = metadata.RatingKey;
+                    mediaFiles.Add(mediaFile);
+                }
+            }
+
             yield return new Episode()
             {
-                Title = x.Title,
-                Key = x.Key,
-                RatingKey = x.RatingKey,
+                Title = metadata.Title,
+                Key = metadata.Key,
+                RatingKey = metadata.RatingKey,
                 LibraryId = library.Id,
                 ServerId = library.ServerId,
-                Year = x.Year,
-                DownloadUri = part.Key,
-                ServerFilePath = part.File,
-                EpisodeNumber = x.Index,
-                SeasonNumber = x.ParentIndex,
-                TvShowId = x.GrandparentRatingKey,
-                TotalBytes = part.Size,
-                Bitrate = medium.Bitrate,
-                Container = medium.Container,
-                Duration = medium.Duration,
-                Height = medium.Height,
-                Width = medium.Width,
-                AspectRatio = medium.AspectRatio,
-                AudioChannels = medium.AudioChannels,
-                AudioCodec = medium.AudioCodec,
-                AudioProfile = medium.AudioProfile,
-                VideoCodec = medium.VideoCodec,
-                VideoProfile = medium.VideoProfile,
-                VideoResolution = medium.VideoResolution,
-                VideoFrameRate = medium.VideoFrameRate
+                Year = metadata.Year,
+                MediaFiles = mediaFiles,
+                EpisodeNumber = metadata.Index,
+                SeasonNumber = metadata.ParentIndex,
+                TvShowId = metadata.GrandparentRatingKey,
             };
         }
+    }
+
+    private static MediaFile Map(Medium medium, MediaPart part, Library library, Metadata x)
+    {
+        return new MediaFile()
+        {
+            Key = x.Key,
+            RatingKey = x.RatingKey,
+            ServerFilePath = part.File,
+            DownloadUri = part.Key,
+            LibraryId = library.Id,
+            ServerId = library.Server.Id,
+            TotalBytes = part.Size,
+            Bitrate = medium.Bitrate,
+            Container = medium.Container,
+            Duration = medium.Duration,
+            Height = medium.Height,
+            Width = medium.Width,
+            AspectRatio = medium.AspectRatio,
+            AudioChannels = medium.AudioChannels,
+            AudioCodec = medium.AudioCodec,
+            AudioProfile = medium.AudioProfile,
+            VideoCodec = medium.VideoCodec,
+            VideoProfile = medium.VideoProfile,
+            VideoResolution = medium.VideoResolution,
+            VideoFrameRate = medium.VideoFrameRate
+        };
     }
 }

@@ -66,6 +66,8 @@ export class Overview extends Component {
 
     render() {
         if (this.state.account || this.state.loginPending) {
+            const serversTotal = this.state.servers?.length ?? 0
+            const serversOnline = this.state.servers?.filter(x=>x.isOnline)?.length ?? 0
             return (
                 <div>
                     <h2>Hello, {this.state.account ? this.state.account.username : "User"}!</h2>
@@ -74,7 +76,7 @@ export class Overview extends Component {
                             console.log("Sync finished")
                             this.populateServerData()
                         }}/>}
-                    <p>You have access to following servers:</p>
+                    <p>You have access to following servers: ({serversOnline}/{serversTotal} online)</p>
                     <Container>
                         <Row>
                             {this.state.servers ? this.state.servers.map(server =>

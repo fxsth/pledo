@@ -21,6 +21,6 @@ public class MovieController : ControllerBase
     [HttpGet]
     public async Task<IEnumerable<Movie>> Get([FromQuery] string libraryId)
     {
-        return _unitOfWork.MovieRepository.Get(x => x.LibraryId == libraryId);
+        return _unitOfWork.MovieRepository.Get(x => x.LibraryId == libraryId, includeProperties:nameof(Movie.MediaFiles));
     }
 }

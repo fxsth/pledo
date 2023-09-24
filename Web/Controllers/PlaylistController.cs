@@ -2,7 +2,6 @@
 using Web.Data;
 using Web.Models;
 using Web.Models.DTO;
-using Web.Models.Interfaces;
 
 namespace Web.Controllers;
 

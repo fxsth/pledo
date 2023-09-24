@@ -40,7 +40,7 @@ export class SyncButton extends Component {
                 <span>{'  ' + this.state.tasks[0].name} </span>
             </Button>
         } else
-            return <Button color="primary" onClick={this.handleClick.bind(this)}>Sync all data now</Button>
+            return <Button color="primary" onClick={this.handleClick.bind(this)}>Sync all metadata now.</Button>
     }
 
     async populateTaskData() {

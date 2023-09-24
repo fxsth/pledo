@@ -28,10 +28,8 @@ public class SyncController : ControllerBase
         switch (syncType)
         {
             case SyncType.Full:
-                await _syncService.SyncAll();
-                break;
             case SyncType.Connection:
-                await _syncService.SyncConnections();
+                await _syncService.Sync(syncType);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(syncType), syncType, null);

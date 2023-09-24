@@ -12,7 +12,8 @@ public class MovieRepository : RepositoryBase<Movie>
     public override Task Upsert(IEnumerable<Movie> t)
     {        
         var moviesInDb = DbContext.Movies.ToHashSet();
-        var moviesToUpsert = t.ToHashSet();
+        List<Movie> movies = t.ToList();
+        var moviesToUpsert = movies.ToHashSet();
         var moviesToDelete = moviesInDb.Except(moviesToUpsert, new MovieEqualityComparer());
         var moviesToInsert = moviesToUpsert.Except(moviesInDb, new MovieEqualityComparer());
         var moviesToUpdate = moviesInDb.Intersect(moviesToUpsert, new MovieEqualityComparer());
@@ -21,4 +22,5 @@ public class MovieRepository : RepositoryBase<Movie>
         DbContext.Movies.UpdateRange(moviesToUpdate);
         return Task.CompletedTask;
     }
+    
 }
