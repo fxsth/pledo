@@ -50,9 +50,10 @@ public class SyncService : ISyncService
                 if (syncType == SyncType.Full)
                 {
                     IReadOnlyCollection<Library> libraries = await SyncLibraries(onlineServers, unitOfWork);
-                    await SyncMovies(libraries, unitOfWork);
+                    var movies = await SyncMovies(libraries, unitOfWork);
                     await SyncTvShows(libraries, unitOfWork);
-                    await SyncEpisodes(libraries, unitOfWork);
+                    var episodes = await SyncEpisodes(libraries, unitOfWork);
+                    await UpsertMediaIntoDb(unitOfWork, movies, episodes);
                     await SyncPlaylists(onlineServers, unitOfWork);
                 }
                 await unitOfWork.Save();
@@ -70,7 +71,22 @@ public class SyncService : ISyncService
         }
     }
 
-    private async Task SyncPlaylists(IReadOnlyCollection<Server> servers, UnitOfWork unitOfWork)
+    private async Task UpsertMediaIntoDb(UnitOfWork unitOfWork, IReadOnlyCollection<Movie> movies, IReadOnlyCollection<Episode> episodes)
+    {
+        var itemsFromApi = movies.SelectMany(x => x.MediaFiles).ToList();
+        itemsFromApi.AddRange(episodes.SelectMany(x => x.MediaFiles));
+        var itemsInDb = unitOfWork.MediaFileRepository.GetAll();
+        var itemsToDelete = itemsInDb.Where(x=>!itemsFromApi.Contains(x));
+        var itemsToInsert = itemsFromApi.Where(x=>!itemsInDb.Contains(x));
+        var itemsToUpdate = itemsInDb.Where(x=>itemsFromApi.Contains(x));
+        await unitOfWork.MediaFileRepository.Remove(itemsToDelete);
+        await unitOfWork.MovieRepository.Upsert(movies);
+        await unitOfWork.EpisodeRepository.Upsert(episodes);
+        await unitOfWork.MediaFileRepository.Insert(itemsToInsert);
+        await unitOfWork.MediaFileRepository.Update(itemsToUpdate);
+    }
+
+    private async Task<List<Playlist>> SyncPlaylists(IReadOnlyCollection<Server> servers, UnitOfWork unitOfWork)
     {
         _syncTask = new BusyTask() { Name = "Syncing playlists" };
         List<Playlist> playlists = new List<Playlist>();
@@ -90,6 +106,7 @@ public class SyncService : ISyncService
             }
         }
 
+        return playlists;
         await unitOfWork.PlaylistRepository.Upsert(playlists);
     }
 
@@ -199,7 +216,7 @@ public class SyncService : ISyncService
         return librariesWithServers;
     }
 
-    private async Task SyncMovies(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
+    private async Task<List<Movie>> SyncMovies(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
     {
         var movieRepository = unitOfWork.MovieRepository;
         _syncTask = new BusyTask() { Name = "Syncing movies" };
@@ -212,8 +229,8 @@ public class SyncService : ISyncService
                 moviesFromThisLibrary.Count, library.Name, library.ServerId);
             movies.AddRange(moviesFromThisLibrary);
         }
-
-        await movieRepository.Upsert(movies);
+        
+        return movies;
     }
 
     private async Task SyncTvShows(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
@@ -233,7 +250,7 @@ public class SyncService : ISyncService
         await tvShowRepository.Upsert(tvShows.DistinctBy(x => x.RatingKey));
     }
 
-    private async Task SyncEpisodes(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
+    private async Task<List<Episode>> SyncEpisodes(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
     {
         var episodeRepository = unitOfWork.EpisodeRepository;
         _syncTask = new BusyTask() { Name = "Syncing episodes" };
@@ -247,6 +264,7 @@ public class SyncService : ISyncService
             episodes.AddRange(episodesFromThisLibrary);
         }
 
+        return episodes;
         await episodeRepository.Upsert(episodes.DistinctBy(x => x.RatingKey));
     }
 }
