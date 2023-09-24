@@ -13,6 +13,7 @@ Focused on proper functioning rather than good looking design. Features:
   - movies
   - tv shows, seasons or single episodes
   - playlists
+- Supports multiple file versions (e.g. in different resolutions / codecs)
 - Docker image for amd64 and arm64. Or run the windows executable .
 
 Use `docker pull ghcr.io/fxsth/pledo:latest` to get the docker image of latest release.
