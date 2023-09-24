@@ -21,7 +21,7 @@ public class SyncService : ISyncService
         _policy = Policy
             .Handle<ServerUnreachableException>()
             .RetryAsync(2,
-                onRetry: (exception, retryCount, ctx) =>
+                onRetry: (_, retryCount, ctx) =>
                 {
                     _logger.LogWarning("Server not reachable, retry connections with longer timeout for a {0}. time.",
                         retryCount);
@@ -40,20 +40,23 @@ public class SyncService : ISyncService
         {
             using (var scope = _scopeFactory.CreateScope())
             {
+                _logger.LogInformation("{0} sync started.", syncType.ToString());
+                
                 _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
                 IReadOnlyCollection<Server> syncServers = await SyncServers(unitOfWork);
                 IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
                 IReadOnlyCollection<Server> onlineServers = servers.Where(x => x.IsOnline).ToList();
-                IReadOnlyCollection<Library> libraries = await SyncLibraries(onlineServers, unitOfWork);
                 if (syncType == SyncType.Full)
                 {
+                    IReadOnlyCollection<Library> libraries = await SyncLibraries(onlineServers, unitOfWork);
                     await SyncMovies(libraries, unitOfWork);
                     await SyncTvShows(libraries, unitOfWork);
                     await SyncEpisodes(libraries, unitOfWork);
                     await SyncPlaylists(onlineServers, unitOfWork);
                 }
                 await unitOfWork.Save();
+                
                 _logger.LogInformation("{0} sync completed.", syncType.ToString());
             }
         }
@@ -99,10 +102,10 @@ public class SyncService : ISyncService
         if (account != null)
         {
             var serversInDb = serverRepository.GetAll();
-            var newServers = (await _plexService.RetrieveServers(account)).ToList();
-            var toRemove = serversInDb.ExceptBy(newServers.Select(x => x.Id), server => server.Id);
-            _logger.LogInformation("Syncing servers: {0} new ({1})", newServers.Count,
-                string.Join(", ", newServers.Select(x => x.Name)));
+            var serversFromApi = (await _plexService.RetrieveServers(account)).ToList();
+            var toRemove = serversInDb.ExceptBy(serversFromApi.Select(x => x.Id), server => server.Id);
+            _logger.LogInformation("Syncing servers: Found {0} ({1})", serversFromApi.Count,
+                string.Join(", ", serversFromApi.Select(x => x.Name)));
             await serverRepository.Remove(toRemove);
             // foreach (var server in toRemove)
             // {
@@ -111,7 +114,7 @@ public class SyncService : ISyncService
             // }
 
             // await serverRepository.Upsert(newServers);
-            return newServers;
+            return serversFromApi;
         }
 
         return new List<Server>();

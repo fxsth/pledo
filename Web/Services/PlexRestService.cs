@@ -275,36 +275,38 @@ public class PlexRestService : IPlexRestService
     private IEnumerable<Movie> GetMovies(MediaContainer mediaContainer, Library library,
         ILogger<PlexRestService> logger)
     {
-        foreach (var x in mediaContainer.Media)
+        foreach (var metadata in mediaContainer.Media)
         {
-            if (x.Media?.FirstOrDefault()?.Part?.Any() != true)
+            if (metadata.Media?.FirstOrDefault()?.Part?.Any() != true)
             {
-                logger.LogWarning("Movie {0} will be skipped, because it does not contain any file.", x.Title);
+                logger.LogWarning("Movie {0} will be skipped, because it does not contain any file.", metadata.Title);
                 break;
             }
 
-            if (x.Media.Count > 1 || x.Media.First().Part.Count > 1)
+            if (metadata.Media.Count > 1 || metadata.Media.First().Part.Count > 1)
             {
-                logger.LogTrace("Movie {0} contains more than one file.", x.Title);
+                logger.LogTrace("Movie {0} contains more than one file.", metadata.Title);
             }
 
             List<MediaFile> mediaFiles = new List<MediaFile>();
-            foreach (var medium in x.Media)
+            foreach (var medium in metadata.Media)
             {
                 foreach (var part in medium.Part)
                 {
-                    mediaFiles.Add(Map(medium, part, library, x));
+                    var mediaFile = Map(medium, part, library, metadata);
+                    mediaFile.MovieRatingKey = metadata.RatingKey;
+                    mediaFiles.Add(mediaFile);
                 }
             }
 
             yield return new Movie()
             {
-                Title = x.Title,
-                Key = x.Key,
-                RatingKey = x.RatingKey,
+                Title = metadata.Title,
+                Key = metadata.Key,
+                RatingKey = metadata.RatingKey,
                 LibraryId = library.Id,
                 ServerId = library.Server.Id,
-                Year = x.Year,
+                Year = metadata.Year,
                 MediaFiles = mediaFiles
             };
         }
@@ -313,42 +315,44 @@ public class PlexRestService : IPlexRestService
     private IEnumerable<Episode> GetEpisodes(MediaContainer mediaContainer, Library library,
         ILogger<PlexRestService> logger)
     {
-        foreach (var x in mediaContainer.Media)
+        foreach (var metadata in mediaContainer.Media)
         {
-            if (x.Media?.FirstOrDefault()?.Part?.Any() != true)
+            if (metadata.Media?.FirstOrDefault()?.Part?.Any() != true)
             {
-                logger.LogWarning("Episode {0} will be skipped, because file is missing.", x.Title);
+                logger.LogWarning("Episode {0} will be skipped, because file is missing.", metadata.Title);
                 break;
             }
 
-            if (x.Media.Count > 1 || x.Media.First().Part.Count > 1)
+            if (metadata.Media.Count > 1 || metadata.Media.First().Part.Count > 1)
             {
                 logger.LogTrace(
                     "Episode {0} contains more than one file, this program does not support more than one file",
-                    x.Title);
+                    metadata.Title);
             }
 
             List<MediaFile> mediaFiles = new List<MediaFile>();
-            foreach (var medium in x.Media)
+            foreach (var medium in metadata.Media)
             {
                 foreach (var part in medium.Part)
                 {
-                    mediaFiles.Add(Map(medium, part, library, x));
+                    var mediaFile = Map(medium, part, library, metadata);
+                    mediaFile.EpisodeRatingKey = metadata.RatingKey;
+                    mediaFiles.Add(mediaFile);
                 }
             }
 
             yield return new Episode()
             {
-                Title = x.Title,
-                Key = x.Key,
-                RatingKey = x.RatingKey,
+                Title = metadata.Title,
+                Key = metadata.Key,
+                RatingKey = metadata.RatingKey,
                 LibraryId = library.Id,
                 ServerId = library.ServerId,
-                Year = x.Year,
+                Year = metadata.Year,
                 MediaFiles = mediaFiles,
-                EpisodeNumber = x.Index,
-                SeasonNumber = x.ParentIndex,
-                TvShowId = x.GrandparentRatingKey,
+                EpisodeNumber = metadata.Index,
+                SeasonNumber = metadata.ParentIndex,
+                TvShowId = metadata.GrandparentRatingKey,
             };
         }
     }

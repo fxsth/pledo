@@ -7,6 +7,10 @@ public class MediaFile
     public string RatingKey { get; set; }
     public string Key { get; set; }
     public string ServerFilePath { get; set; }
+    
+    public string? MovieRatingKey { get; set; }
+    public string? EpisodeRatingKey { get; set; }
+    
     [Key]
     public string DownloadUri { get; set; }
     public long TotalBytes { get; set; }

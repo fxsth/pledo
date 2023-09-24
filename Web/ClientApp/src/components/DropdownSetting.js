@@ -13,6 +13,7 @@ function DropdownSetting(props) {
                     {setting.options.map((option) => <option value={option.value} label={option.uiName}/>)}
                 </Input>
             </InputGroup>
+            <small>{setting.description}</small>
         </FormGroup>
     )
 }

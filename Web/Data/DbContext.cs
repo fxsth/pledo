@@ -25,6 +25,16 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
             .HasConversion(
                 v => JsonSerializer.Serialize(v, (JsonSerializerOptions)null),
                 v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions)null));
+        
+        modelBuilder.Entity<Movie>()
+            .HasMany(e => e.MediaFiles)
+            .WithOne()
+            .HasForeignKey(e => e.MovieRatingKey);
+        
+        modelBuilder.Entity<Episode>()
+            .HasMany(e => e.MediaFiles)
+            .WithOne()
+            .HasForeignKey(e => e.EpisodeRatingKey);
     }
 
     public DbContext(DbContextOptions<DbContext> options)

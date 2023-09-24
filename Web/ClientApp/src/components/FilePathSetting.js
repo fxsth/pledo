@@ -16,6 +16,7 @@ function FilePathSetting(props) {
                     directory
                 </button>
             </InputGroup>
+            <small>{setting.description}</small>
             <Modal isOpen={showFolderPicker}>
                 <ModalHeader close={
                     <Button className="close"

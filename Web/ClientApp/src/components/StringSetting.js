@@ -11,6 +11,7 @@ function StringSetting(props) {
                 <Input id={setting.key} name={setting.key} type="text" value={setting.value}
                        onChange={(e) => callback(e.target.value)} />
             </InputGroup>
+            <small>{setting.description}</small>
         </FormGroup>
     )
 }
