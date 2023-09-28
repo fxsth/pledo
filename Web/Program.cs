@@ -13,6 +13,7 @@ builder.Services
     .AddScoped<ISettingsService, SettingsService>()
     .AddScoped<ILoginService, LoginService>()
     .AddSingleton<ISyncService, SyncService>()
+    .AddHttpClient()
     .AddScoped<IPlexRestService, PlexRestService>()
     .AddSingleton<HttpClient>()
     .AddSingleton<IDownloadService, DownloadService>();

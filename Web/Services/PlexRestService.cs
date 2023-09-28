@@ -15,14 +15,17 @@ public class PlexRestService : IPlexRestService
     private readonly IPlexAccountClient _plexAccountClient;
     private readonly IPlexLibraryClient _plexLibraryClient;
     private readonly IPlexServerClient _plexServerClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<PlexRestService> _logger;
 
     public PlexRestService(IPlexAccountClient plexAccountClient,
-        IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient, ILogger<PlexRestService> logger)
+        IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient, IHttpClientFactory httpClientFactory,
+        ILogger<PlexRestService> logger)
     {
         _plexAccountClient = plexAccountClient;
         _plexLibraryClient = plexLibraryClient;
         _plexServerClient = plexServerClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -141,9 +144,11 @@ public class PlexRestService : IPlexRestService
                 await _plexServerClient.GetPlaylistItems(server.AccessToken, server.LastKnownUri, playlistMetadata);
             if (playlistItems?.Media == null)
             {
-                _logger.LogWarning("Syncing playlists: Playlist {0} does not contain any media.", playlistMetadata.Title);
+                _logger.LogWarning("Syncing playlists: Playlist {0} does not contain any media.",
+                    playlistMetadata.Title);
                 continue;
             }
+
             playlistList.Add(new Playlist()
             {
                 Id = playlistMetadata.RatingKey,
@@ -226,7 +231,7 @@ public class PlexRestService : IPlexRestService
         {
             CancellationTokenSource cancellationTokenSource =
                 new CancellationTokenSource(TimeSpan.FromSeconds(timeoutInSeconds));
-            HttpClient httpClient = new HttpClient();
+            HttpClient httpClient = _httpClientFactory.CreateClient();
             List<ServerConnection> connections = resourceConnections.Where(x => !x.Relay).ToList();
             connections.AddRange(resourceConnections.Where(x => x.Relay).ToList());
             foreach (ServerConnection connectionForSync in connections)
@@ -237,6 +242,8 @@ public class PlexRestService : IPlexRestService
                         { Query = $"?X-Plex-Token={server.AccessToken}" }.Uri;
                     tasks.Add(httpClient.GetAsync(serverInfoUri, cancellationTokenSource.Token).ContinueWith(t =>
                     {
+                        _logger.LogInformation("{2} ---- {0} {1}", t.Result.StatusCode, t.Result.ReasonPhrase,
+                            serverInfoUri);
                         if (t.IsCompletedSuccessfully && t.Result.IsSuccessStatusCode)
                         {
                             if (string.IsNullOrEmpty(uri))
@@ -249,13 +256,21 @@ public class PlexRestService : IPlexRestService
                         }
                     }, cancellationTokenSource.Token));
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     // ignored
+                    _logger.LogInformation(e, "Connecting to {0} threw an exception:", connectionForSync.Uri);
                 }
             }
 
-            await Task.WhenAll(tasks);
+            try
+            {
+                await Task.WhenAll(tasks);
+            }
+            catch (Exception)
+            {
+                //ignored
+            }
 
             if (string.IsNullOrEmpty(uri))
                 throw new ServerUnreachableException(server.Name);
@@ -264,8 +279,9 @@ public class PlexRestService : IPlexRestService
         {
             throw;
         }
-        catch (Exception)
+        catch (Exception e)
         {
+            _logger.LogWarning(e, "An unexpected error occured while trying to check server connections.");
             //ignored
         }
 

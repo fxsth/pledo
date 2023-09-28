@@ -149,7 +149,7 @@ public class SyncService : ISyncService
                     async ctx =>
                     {
                         int count = (int)(ctx.Values.FirstOrDefault() ?? 0);
-                        return await _plexService.GetUriFromFastestConnection(server, (count + 1) * 5);
+                        return await _plexService.GetUriFromFastestConnection(server, 5*3^count);
                     },
                     new Context());
                 server.LastKnownUri = uriFromFastestConnection;
