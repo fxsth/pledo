@@ -242,7 +242,7 @@ public class PlexRestService : IPlexRestService
                         { Query = $"?X-Plex-Token={server.AccessToken}" }.Uri;
                     tasks.Add(httpClient.GetAsync(serverInfoUri, cancellationTokenSource.Token).ContinueWith(t =>
                     {
-                        _logger.LogInformation("{2} ---- {0} {1}", t.Result.StatusCode, t.Result.ReasonPhrase,
+                        _logger.LogTrace("{2} ---- {0} {1}", t.Result.StatusCode, t.Result.ReasonPhrase,
                             serverInfoUri);
                         if (t.IsCompletedSuccessfully && t.Result.IsSuccessStatusCode)
                         {
@@ -258,8 +258,7 @@ public class PlexRestService : IPlexRestService
                 }
                 catch (Exception e)
                 {
-                    // ignored
-                    _logger.LogInformation(e, "Connecting to {0} threw an exception:", connectionForSync.Uri);
+                    _logger.LogTrace(e, "Connecting to {0} threw an exception:", connectionForSync.Uri);
                 }
             }
 
@@ -281,8 +280,7 @@ public class PlexRestService : IPlexRestService
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "An unexpected error occured while trying to check server connections.");
-            //ignored
+            _logger.LogWarning(e, "An unexpected error occured while trying to check server connections of {0}.", server.Name);
         }
 
         return uri;
