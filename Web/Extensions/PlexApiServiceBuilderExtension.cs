@@ -15,7 +15,8 @@ public static class PlexApiServiceBuilderExtension
 {
     public static IServiceCollection AddPlexServices(this IServiceCollection services)
     {
-        FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
+        var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+        string? version = string.IsNullOrEmpty(assemblyLocation) ? "1.0.0" : FileVersionInfo.GetVersionInfo(assemblyLocation).FileVersion;
         bool runningInContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
         string osName = OperatingSystem.IsWindows() ? "Windows" :
             OperatingSystem.IsLinux() ? "Linux" :
@@ -27,7 +28,7 @@ public static class PlexApiServiceBuilderExtension
             DeviceName = deviceName,
             ClientId = PreferencesProvider.GetClientId(),
             Platform = osName,
-            Version = fileVersionInfo.FileVersion
+            Version = version
         };
 
         services
