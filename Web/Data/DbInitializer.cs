@@ -6,7 +6,7 @@ namespace Web.Data;
 
 public static class DbInitializer
 {
-    public static void Initialize(DbContext context)
+    public static void Initialize(CustomDbContext context)
     {
         context.AddSettingIfNotExist(new Setting()
         {
@@ -55,7 +55,7 @@ public static class DbInitializer
         context.SaveChanges();
     }
 
-    private static bool AddSettingIfNotExist(this DbContext context, Setting setting)
+    private static bool AddSettingIfNotExist(this CustomDbContext context, Setting setting)
     {
         if (context.Settings.Any() && context.Settings.Find(setting.Key) != null) return false;
         context.Settings.Add(setting);

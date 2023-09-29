@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Web.Data;
 using Web.Extensions;
 using Web.Services;
-using DbContext = Web.Data.DbContext;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,7 +20,7 @@ builder.Services
 builder.Logging.AddConsole();
 
 builder.Services.AddControllers();
-builder.Services.AddDbContext<DbContext>(o =>
+builder.Services.AddDbContext<CustomDbContext>(o =>
     {
         // o.UseSqlServer(builder.Configuration.GetConnectionString("LocalDbDatabase"));
         // o.UseInMemoryDatabase(builder.Configuration.GetConnectionString("Database"));
@@ -58,9 +57,18 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
 
-    var context = services.GetRequiredService<DbContext>();
+    var context = services.GetRequiredService<CustomDbContext>();
     // context.Database.EnsureDeleted();
-    context.Database.EnsureCreated();
+    try
+    {
+        context.Database.Migrate();
+    }
+    catch (Exception e)
+    {
+        context.Database.EnsureDeleted();
+        context.Database.Migrate();
+    }
+
     DbInitializer.Initialize(context);
 }
 

@@ -4,7 +4,7 @@ using Web.Models;
 
 namespace Web.Data;
 
-public class DbContext : Microsoft.EntityFrameworkCore.DbContext
+public class CustomDbContext : Microsoft.EntityFrameworkCore.DbContext
 {
     public DbSet<Account> Accounts { get; set; }
     public DbSet<Server> Servers { get; set; }
@@ -37,7 +37,7 @@ public class DbContext : Microsoft.EntityFrameworkCore.DbContext
             .HasForeignKey(e => e.EpisodeRatingKey);
     }
 
-    public DbContext(DbContextOptions<DbContext> options)
+    public CustomDbContext(DbContextOptions<CustomDbContext> options)
         : base(options)
     {
     }

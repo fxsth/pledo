@@ -6,46 +6,46 @@ namespace Web.Data;
 
 public class ServerRepository : RepositoryBase<Server>
 {
-    public ServerRepository(DbContext dbContext) : base(dbContext)
+    public ServerRepository(CustomDbContext customDbContext) : base(customDbContext)
     {
     }
 
     public override async Task<Server> GetById(string id)
     {
-        return DbContext.Servers.Include(x => x.Connections).AsNoTracking().FirstOrDefault(x => x.Id == id);
+        return CustomDbContext.Servers.Include(x => x.Connections).AsNoTracking().FirstOrDefault(x => x.Id == id);
     }
 
     public override async  Task Remove(Server t)
     {
-        var toRemove = DbContext.Servers.Where(x => x.Id == t.Id).Include(x => x.Connections).FirstOrDefault();
-        await DbContext.Libraries.Where(x => x.Server == toRemove).LoadAsync();
+        var toRemove = CustomDbContext.Servers.Where(x => x.Id == t.Id).Include(x => x.Connections).FirstOrDefault();
+        await CustomDbContext.Libraries.Where(x => x.Server == toRemove).LoadAsync();
         if (toRemove != null)
         {
-            DbContext.Remove(toRemove);
+            CustomDbContext.Remove(toRemove);
         }
 
     }
 
     public async  Task Remove(IEnumerable<Server> t)
     {
-        DbContext.Servers.RemoveRange(t);
+        CustomDbContext.Servers.RemoveRange(t);
     }
 
     public override async Task Upsert(IEnumerable<Server> t)
     {
         foreach (var serverFromApi in t)
         {
-            var serverToUpdate = DbContext.Servers.Where(x => x.Id == serverFromApi.Id).Include(x => x.Connections)
+            var serverToUpdate = CustomDbContext.Servers.Where(x => x.Id == serverFromApi.Id).Include(x => x.Connections)
                 .FirstOrDefault();
             if (serverToUpdate == null)
-                await DbContext.AddAsync(serverFromApi);
+                await CustomDbContext.AddAsync(serverFromApi);
             else
             {
                 serverToUpdate.AccessToken = serverFromApi.AccessToken;
                 serverToUpdate.LastKnownUri = serverFromApi.LastKnownUri;
                 serverToUpdate.LastModified = DateTimeOffset.Now;
                 serverToUpdate.IsOnline = serverFromApi.IsOnline;
-                DbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
+                CustomDbContext.MergeCollections(serverToUpdate.Connections, serverFromApi.Connections, x => x.Uri);
             }
         
         }

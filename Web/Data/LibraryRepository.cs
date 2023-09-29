@@ -5,22 +5,22 @@ namespace Web.Data;
 
 public class LibraryRepository : RepositoryBase<Library>
 {
-    public LibraryRepository(DbContext dbContext) : base(dbContext)
+    public LibraryRepository(CustomDbContext customDbContext) : base(customDbContext)
     {
     }
 
     public override async Task<Models.Library> GetById(string id)
     {
-        return DbContext.Libraries.Include(x => x.Server).AsNoTracking().FirstOrDefault(x => x.Id == id);
+        return CustomDbContext.Libraries.Include(x => x.Server).AsNoTracking().FirstOrDefault(x => x.Id == id);
     }
 
     public override async  Task Upsert(IEnumerable<Models.Library> t)
     {
         foreach (var libraryFromApi in t)
         {
-            var libraryToUpdate = DbContext.Libraries.FirstOrDefault(x => x.Id == libraryFromApi.Id);
+            var libraryToUpdate = CustomDbContext.Libraries.FirstOrDefault(x => x.Id == libraryFromApi.Id);
             if (libraryToUpdate == null)
-                await DbContext.Libraries.AddAsync(libraryFromApi);
+                await CustomDbContext.Libraries.AddAsync(libraryFromApi);
             else
             {
                 libraryToUpdate.Key = libraryFromApi.Key;
@@ -33,6 +33,6 @@ public class LibraryRepository : RepositoryBase<Library>
 
     public override async  Task Update(IEnumerable<Models.Library> t)
     {
-        DbContext.Libraries.RemoveRange(t);
+        CustomDbContext.Libraries.RemoveRange(t);
     }
 }

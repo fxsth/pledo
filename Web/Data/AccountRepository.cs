@@ -5,36 +5,36 @@ namespace Web.Data;
 
 public class AccountRepository : RepositoryBase<Account>
 {
-    public AccountRepository(DbContext dbContext) : base(dbContext)
+    public AccountRepository(CustomDbContext customDbContext) : base(customDbContext)
     {
     }
 
     public override async Task<Models.Account> GetById(string id)
     {
-        return await DbContext.Accounts.FindAsync(id);
+        return await CustomDbContext.Accounts.FindAsync(id);
     }
 
     public override async Task Remove(Models.Account t)
     {
-        var toRemove = DbContext.Accounts.AsNoTracking().FirstOrDefault(x => x.Username == t.Username);
+        var toRemove = CustomDbContext.Accounts.AsNoTracking().FirstOrDefault(x => x.Username == t.Username);
         if (toRemove != null) 
-            DbContext.Accounts.Remove(toRemove);
+            CustomDbContext.Accounts.Remove(toRemove);
     }
 
     public override async Task Upsert(IEnumerable<Models.Account> t)
     {
         foreach (var item in t)
         {
-            var toUpdate = DbContext.Accounts.FirstOrDefault(x => x.Username == item.Username);
+            var toUpdate = CustomDbContext.Accounts.FirstOrDefault(x => x.Username == item.Username);
             if (toUpdate == null)
-                await DbContext.Accounts.AddAsync(item);
+                await CustomDbContext.Accounts.AddAsync(item);
             else
-                DbContext.Accounts.Update(item);
+                CustomDbContext.Accounts.Update(item);
         }
     }
 
     public override async Task Update(IEnumerable<Models.Account> t)
     {
-        DbContext.Accounts.RemoveRange(t);
+        CustomDbContext.Accounts.RemoveRange(t);
     }
 }

@@ -4,7 +4,7 @@ namespace Web.Data;
 
 public class SettingRepository : RepositoryBase<Setting>
 {
-    public SettingRepository(DbContext dbContext) : base(dbContext)
+    public SettingRepository(CustomDbContext customDbContext) : base(customDbContext)
     {
     }
     

@@ -3,19 +3,18 @@ using Web.Constants;
 using Web.Data;
 using Web.Models;
 using Web.Models.DTO;
-using DbContext = Web.Data.DbContext;
 
 namespace Web.Services;
 
 public class SettingsService : ISettingsService
 {
     private readonly UnitOfWork _unitOfWork;
-    private readonly DbContext _dbContext;
+    private readonly CustomDbContext _customDbContext;
 
-    public SettingsService(UnitOfWork unitOfWork, DbContext dbContext)
+    public SettingsService(UnitOfWork unitOfWork, CustomDbContext customDbContext)
     {
         _unitOfWork = unitOfWork;
-        _dbContext = dbContext;
+        _customDbContext = customDbContext;
     }
 
     public async Task<string> GetMovieDirectory()
@@ -166,9 +165,10 @@ public class SettingsService : ISettingsService
 
     public async Task<bool> ResetDatabase()
     {
-        await _dbContext.Database.CloseConnectionAsync();
-        bool reset = await _dbContext.Database.EnsureDeletedAsync() && await _dbContext.Database.EnsureCreatedAsync();
-        DbInitializer.Initialize(_dbContext);
+        await _customDbContext.Database.CloseConnectionAsync();
+        bool reset = await _customDbContext.Database.EnsureDeletedAsync();
+        await _customDbContext.Database.MigrateAsync();
+        DbInitializer.Initialize(_customDbContext);
         return reset;
     }
 }

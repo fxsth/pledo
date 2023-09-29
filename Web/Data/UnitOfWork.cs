@@ -2,11 +2,11 @@
 
 public class UnitOfWork : IDisposable
 {
-    private readonly DbContext _dbContext;
+    private readonly CustomDbContext _customDbContext;
 
-    public UnitOfWork(DbContext dbContext)
+    public UnitOfWork(CustomDbContext customDbContext)
     {
-        _dbContext = dbContext;
+        _customDbContext = customDbContext;
     }
 
     private AccountRepository? _accountRepository;
@@ -21,21 +21,21 @@ public class UnitOfWork : IDisposable
     private MediaFileRepository? _mediaFileRepository;
 
 
-    public AccountRepository AccountRepository => _accountRepository ??= new AccountRepository(_dbContext);
-    public ServerRepository ServerRepository => _serverRepository ??= new ServerRepository(_dbContext);
-    public LibraryRepository LibraryRepository => _libraryRepository ??= new LibraryRepository(_dbContext);
-    public MovieRepository MovieRepository => _movieRepository ??= new MovieRepository(_dbContext);
-    public MediaFileRepository MediaFileRepository => _mediaFileRepository ??= new MediaFileRepository(_dbContext);
-    public TvShowRepository TvShowRepository => _tvShowRepository ??= new TvShowRepository(_dbContext);
-    public EpisodeRepository EpisodeRepository => _episodeRepository ??= new EpisodeRepository(_dbContext);
-    public SettingRepository SettingRepository => _settingRepository ??= new SettingRepository(_dbContext);
+    public AccountRepository AccountRepository => _accountRepository ??= new AccountRepository(_customDbContext);
+    public ServerRepository ServerRepository => _serverRepository ??= new ServerRepository(_customDbContext);
+    public LibraryRepository LibraryRepository => _libraryRepository ??= new LibraryRepository(_customDbContext);
+    public MovieRepository MovieRepository => _movieRepository ??= new MovieRepository(_customDbContext);
+    public MediaFileRepository MediaFileRepository => _mediaFileRepository ??= new MediaFileRepository(_customDbContext);
+    public TvShowRepository TvShowRepository => _tvShowRepository ??= new TvShowRepository(_customDbContext);
+    public EpisodeRepository EpisodeRepository => _episodeRepository ??= new EpisodeRepository(_customDbContext);
+    public SettingRepository SettingRepository => _settingRepository ??= new SettingRepository(_customDbContext);
     public DownloadRepository DownloadRepository =>
-        _downloadHistoryRepository ??= new DownloadRepository(_dbContext);
-    public PlaylistRepository PlaylistRepository => _playlistRepository ??= new PlaylistRepository(_dbContext);
+        _downloadHistoryRepository ??= new DownloadRepository(_customDbContext);
+    public PlaylistRepository PlaylistRepository => _playlistRepository ??= new PlaylistRepository(_customDbContext);
 
     public async Task Save()
     {
-        await _dbContext.SaveChangesAsync();
+        await _customDbContext.SaveChangesAsync();
     }
 
     private bool _disposed;
@@ -46,7 +46,7 @@ public class UnitOfWork : IDisposable
         {
             if (disposing)
             {
-                _dbContext.Dispose();
+                _customDbContext.Dispose();
             }
         }
 

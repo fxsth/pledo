@@ -6,7 +6,7 @@ namespace Web.Data;
 
 public class TvShowRepository : RepositoryBase<TvShow>
 {
-    public TvShowRepository(DbContext dbContext) : base(dbContext)
+    public TvShowRepository(CustomDbContext customDbContext) : base(customDbContext)
     {
     }
 
@@ -15,7 +15,7 @@ public class TvShowRepository : RepositoryBase<TvShow>
         Func<IQueryable<TvShow>, IOrderedQueryable<TvShow>>? orderBy = null,
         string includeProperties = "")
     {
-        IQueryable<TvShow> query = DbContext.Set<TvShow>();
+        IQueryable<TvShow> query = CustomDbContext.Set<TvShow>();
 
         if (filter != null)
         {

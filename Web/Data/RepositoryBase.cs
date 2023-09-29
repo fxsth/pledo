@@ -5,16 +5,16 @@ namespace Web.Data;
 
 public class RepositoryBase<T> : IRepository<T> where T : class
 {
-    protected readonly DbContext DbContext;
+    protected readonly CustomDbContext CustomDbContext;
 
-    protected RepositoryBase(DbContext dbContext)
+    protected RepositoryBase(CustomDbContext customDbContext)
     {
-        DbContext = dbContext;
+        CustomDbContext = customDbContext;
     }
 
     public virtual IReadOnlyCollection<T> GetAll()
     {
-        return DbContext.Set<T>().AsNoTracking().ToList();
+        return CustomDbContext.Set<T>().AsNoTracking().ToList();
     }
     
     public virtual IEnumerable<T> Get(
@@ -22,7 +22,7 @@ public class RepositoryBase<T> : IRepository<T> where T : class
         Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
         string includeProperties = "")
     {
-        IQueryable<T> query = DbContext.Set<T>();
+        IQueryable<T> query = CustomDbContext.Set<T>();
 
         if (filter != null)
         {
@@ -47,58 +47,58 @@ public class RepositoryBase<T> : IRepository<T> where T : class
 
     public virtual async Task<T?> GetById(string id)
     {
-        return await DbContext.FindAsync<T>(id);
+        return await CustomDbContext.FindAsync<T>(id);
     }
 
     public virtual async Task<T?> GetByIdIncludeProperty(string id, Func<T, object> include)
     {
-        return await DbContext.FindAsync<T>(id);
+        return await CustomDbContext.FindAsync<T>(id);
     }
 
     public virtual async Task Insert(IEnumerable<T> t)
     {
-        await DbContext.AddRangeAsync(t);
+        await CustomDbContext.AddRangeAsync(t);
     }
     
     public virtual async Task Insert(T t)
     {
-        await DbContext.AddAsync(t);
+        await CustomDbContext.AddAsync(t);
     }
 
     public virtual Task Remove(T t)
     {
-        DbContext.Remove(t);
+        CustomDbContext.Remove(t);
         return Task.CompletedTask;
     }
     public virtual Task Remove(IEnumerable<T> t)
     {
-        DbContext.RemoveRange(t);
+        CustomDbContext.RemoveRange(t);
         return Task.CompletedTask;
     }
 
     public virtual Task Upsert(IEnumerable<T> t)
     {
-        var itemsInDb = DbContext.Set<T>().ToList();
+        var itemsInDb = CustomDbContext.Set<T>().ToList();
         var itemsToUpsert = t.ToList();
         var itemsToDelete = itemsInDb.Where(x=>!itemsToUpsert.Contains(x));
         var itemsToInsert = itemsToUpsert.Where(x=>!itemsInDb.Contains(x));
         var itemsToUpdate = itemsInDb.Where(x=>itemsToUpsert.Contains(x));
-        DbContext.RemoveRange(itemsToDelete);
-        DbContext.AddRangeAsync(itemsToInsert);
-        DbContext.UpdateRange(itemsToUpdate);
+        CustomDbContext.RemoveRange(itemsToDelete);
+        CustomDbContext.AddRangeAsync(itemsToInsert);
+        CustomDbContext.UpdateRange(itemsToUpdate);
         return Task.CompletedTask;
     }
 
     public virtual Task Update(IEnumerable<T> t)
     {
-        DbContext.UpdateRange(t);
+        CustomDbContext.UpdateRange(t);
 
         return Task.CompletedTask;
     }
 
     public virtual Task Update(T t)
     {
-        DbContext.Update(t);
+        CustomDbContext.Update(t);
         return Task.CompletedTask;
     }
 }

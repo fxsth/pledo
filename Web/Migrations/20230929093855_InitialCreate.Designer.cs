@@ -5,14 +5,13 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Web.Data;
-using DbContext = Microsoft.EntityFrameworkCore.DbContext;
 
 #nullable disable
 
 namespace Web.Migrations
 {
-    [DbContext(typeof(DbContext))]
-    [Migration("20230929062604_InitialCreate")]
+    [DbContext(typeof(CustomDbContext))]
+    [Migration("20230929093855_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

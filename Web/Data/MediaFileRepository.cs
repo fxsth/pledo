@@ -5,7 +5,7 @@ namespace Web.Data;
 
 public class MediaFileRepository : RepositoryBase<MediaFile>
 {
-    public MediaFileRepository(DbContext dbContext) : base(dbContext)
+    public MediaFileRepository(CustomDbContext customDbContext) : base(customDbContext)
     {
     }
 }
