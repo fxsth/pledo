@@ -177,7 +177,7 @@ namespace Web.Services
                 if (tvShow == null)
                     throw new InvalidOperationException();
                 var episodes = tvShow.Episodes.Where(x => x.SeasonNumber == season);
-                var settingsService = scope.ServiceProvider.GetRequiredService<SettingsService>();
+                var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 foreach (Episode episode in episodes)
                 {
                     var mediaFile = await SelectMediaFile(episode.MediaFiles, settingsService);
@@ -199,7 +199,7 @@ namespace Web.Services
                 IEnumerable<Movie> movies = unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey));
                 IEnumerable<Episode> episodes = unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey));
                 
-                var settingsService = scope.ServiceProvider.GetRequiredService<SettingsService>();
+                var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 foreach (Movie movie in movies)
                 {
                     var mediaFile = await SelectMediaFile(movie.MediaFiles, settingsService);
@@ -225,7 +225,7 @@ namespace Web.Services
                     .FirstOrDefault();
                 if (tvShow == null)
                     throw new InvalidOperationException();
-                var settingsService = scope.ServiceProvider.GetRequiredService<SettingsService>();
+                var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 foreach (Episode episode in tvShow.Episodes)
                 {
                     
