@@ -266,8 +266,9 @@ public class PlexRestService : IPlexRestService
             {
                 await Task.WhenAll(tasks);
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                _logger.LogTrace(e, "Waiting for responses from all server connections, an error occured.");
                 //ignored
             }
 

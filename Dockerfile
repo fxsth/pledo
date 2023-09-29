@@ -1,8 +1,16 @@
-﻿FROM mcr.microsoft.com/dotnet/sdk:7.0-alpine AS build
+﻿FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
 
 WORKDIR /app
 
-RUN apk add --update npm
+# Install Node.js
+RUN apt-get update \
+    && apt-get install -y ca-certificates curl gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+RUN apt-get update \
+    && apt-get install nodejs -y
+
 
 WORKDIR /src
 COPY ["Web/Web.csproj", "Web/"]
@@ -12,7 +20,7 @@ COPY ./Web .
 
 RUN dotnet publish "Web.csproj" --use-current-runtime --self-contained false -c Release -o /app/publish 
 
-FROM mcr.microsoft.com/dotnet/aspnet:7.0-alpine
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
