@@ -16,12 +16,17 @@ public static class PlexApiServiceBuilderExtension
     public static IServiceCollection AddPlexServices(this IServiceCollection services)
     {
         FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location);
-        ClientOptions apiOptions = new ClientOptions
+        bool runningInContainer = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
+        string osName = OperatingSystem.IsWindows() ? "Windows" :
+            OperatingSystem.IsLinux() ? "Linux" :
+            OperatingSystem.IsMacOS() ? "MacOS" : "Unknown";
+        string deviceName = runningInContainer ? $"{osName} Container" : $"{osName} Machine";
+            ClientOptions apiOptions = new ClientOptions
         {
             Product = "pledo",
-            DeviceName = Environment.MachineName,
+            DeviceName = deviceName,
             ClientId = PreferencesProvider.GetClientId(),
-            Platform = RuntimeInformation.OSDescription,
+            Platform = osName,
             Version = fileVersionInfo.FileVersion
         };
 
