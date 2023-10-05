@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using Polly;
 using Web.Data;
+using Web.Exceptions;
 using Web.Models;
 using Web.Models.Interfaces;
 
@@ -59,7 +60,7 @@ namespace Web.Services
                 ISettingsService settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 IMediaElement? mediaElement = await GetMediaElement(unitOfWork, elementType, key);
                 if (mediaElement == null)
-                    throw new ArgumentException();
+                    throw new MediaNotFoundException(key);
                 MediaFile? mediaFile;
                 if (mediaFileKey == null)
                     mediaFile = await SelectMediaFile(mediaElement.MediaFiles, settingsService);
@@ -142,17 +143,16 @@ namespace Web.Services
 
         private async Task<IMediaElement?> GetMediaElement(UnitOfWork unitOfWork, ElementType elementType, string key)
         {
-            if (elementType == ElementType.Movie)
+            switch (elementType)
             {
-                return unitOfWork.MovieRepository.Get(x => x.RatingKey == key, includeProperties: nameof(Movie.MediaFiles)).FirstOrDefault();
+                case ElementType.Movie:
+                    return unitOfWork.MovieRepository.Get(x => x.RatingKey == key, includeProperties: nameof(Movie.MediaFiles)).FirstOrDefault();
+                case ElementType.TvShow:
+                    return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)+","+nameof(Episode.MediaFiles))
+                        .FirstOrDefault();
+                default:
+                    return null;
             }
-            else if (elementType == ElementType.TvShow)
-            {
-                return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)+","+nameof(Episode.MediaFiles))
-                    .FirstOrDefault();
-            }
-
-            return null;
         }
 
         public async Task DownloadMovie(string key, string mediaFileKey)
