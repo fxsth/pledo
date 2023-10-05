@@ -106,8 +106,8 @@ public class SyncService : ISyncService
             }
         }
 
-        return playlists;
         await unitOfWork.PlaylistRepository.Upsert(playlists);
+        return playlists;
     }
 
     private async Task<IReadOnlyCollection<Server>> SyncServers(UnitOfWork unitOfWork)
