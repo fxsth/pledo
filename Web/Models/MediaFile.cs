@@ -1,7 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace Web.Models;
 
+[PrimaryKey(nameof(DownloadUri), nameof(ServerId))]
 public class MediaFile
 {
     public string RatingKey { get; set; }
@@ -11,7 +12,6 @@ public class MediaFile
     public string? MovieRatingKey { get; set; }
     public string? EpisodeRatingKey { get; set; }
     
-    [Key]
     public string DownloadUri { get; set; }
     public long TotalBytes { get; set; }
     public string LibraryId { get; set; }
