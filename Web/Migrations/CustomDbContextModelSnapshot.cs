@@ -195,6 +195,9 @@ namespace Web.Migrations
                     b.Property<string>("DownloadUri")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ServerId")
+                        .HasColumnType("TEXT");
+
                     b.Property<double?>("AspectRatio")
                         .HasColumnType("REAL");
 
@@ -241,10 +244,6 @@ namespace Web.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("ServerId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<long>("TotalBytes")
                         .HasColumnType("INTEGER");
 
@@ -263,7 +262,7 @@ namespace Web.Migrations
                     b.Property<int?>("Width")
                         .HasColumnType("INTEGER");
 
-                    b.HasKey("DownloadUri");
+                    b.HasKey("DownloadUri", "ServerId");
 
                     b.HasIndex("EpisodeRatingKey");
 
