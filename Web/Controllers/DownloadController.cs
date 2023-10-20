@@ -31,10 +31,10 @@ public class DownloadController : ControllerBase
     }
     
     [HttpDelete]
-    public async Task ClearDownloadHistory()
+    public async Task<IActionResult> ClearDownloadHistory()
     {
         await _downloadService.RemoveAllFinishedOrCancelledDownloads();
-        NoContent();
+        return NoContent();
     }
 
     [HttpPost("movie/{key}")]

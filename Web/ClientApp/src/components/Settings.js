@@ -90,29 +90,6 @@ export class Settings extends React.Component {
 
     }
 
-    async SendDownloadRequest() {
-        const settings = {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            }
-        };
-
-        return fetch('api/download/' + this.props.mediaType + '/' + this.props.mediaKey, settings)
-            .then(response => {
-                if (response.status >= 200 && response.status < 300) {
-                    console.log(response);
-                } else {
-                    alert('Could not add to the download queue');
-                }
-            }).catch(err => console.log(err)).finally(x => {
-                this.setState({
-                    isLoading: false
-                });
-            });
-    }
-
     async populateData() {
         const response = await fetch('api/setting');
         const data = await response.json();

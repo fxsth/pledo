@@ -75,6 +75,7 @@ export class Downloads extends Component {
         else
             return <Badge color="info" pill>Pending</Badge>;
     }
+
     humanizeByteSize(size) {
         if (!size)
             return "--";
@@ -105,6 +106,8 @@ export class Downloads extends Component {
             <div>
                 <h1 id="tabelLabel">Downloads</h1>
                 <p>Your download history:</p>
+                <Button onClick={this.clearDownloadHistory.bind(this)}>Clear old download history</Button>
+                <br/>
                 {contents}
             </div>
         );
@@ -114,5 +117,20 @@ export class Downloads extends Component {
         const response = await fetch('api/download');
         const data = await response.json();
         this.setState({downloads: data, loading: false});
+    }
+
+    clearDownloadHistory() {
+        const settings = {
+            method: 'DELETE'
+        };
+        fetch('api/download', settings)
+            .then(response => {
+                if (response.status === 204) {
+                    console.log("Reset database complete.");
+                } else {
+                    alert('Could not clear download history due to an unknown error.');
+                }
+            })
+
     }
 }
