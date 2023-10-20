@@ -15,7 +15,8 @@ builder.Services
     .AddHttpClient()
     .AddScoped<IPlexRestService, PlexRestService>()
     .AddSingleton<HttpClient>()
-    .AddSingleton<IDownloadService, DownloadService>();
+    .AddSingleton<IDownloadService, DownloadService>()
+    .AddHostedService<PeriodicallySyncBackgroundService>();
 
 builder.Logging.AddConsole();
 
