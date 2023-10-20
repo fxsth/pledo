@@ -29,6 +29,9 @@ namespace Web.Models
         [JsonIgnore]
         [NotMapped]
         public HttpRequestMessage RequestMessage { get; set; }
+        
+        [NotMapped]
+        public string ServerId { get; set; }
 
         [NotMapped]
         public CancellationTokenSource CancellationTokenSource { get; set; }

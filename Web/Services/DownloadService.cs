@@ -340,17 +340,59 @@ namespace Web.Services
             }
         }
 
+        private async Task<HttpResponseMessage> SendDownloadRequest(DownloadElement downloadElement)
+        {
+            HttpRequestMessage httpRequestMessage = downloadElement.RequestMessage;
+            CancellationToken cancellationToken = downloadElement.CancellationTokenSource.Token;
+            HttpResponseMessage response = null;
+            
+            try
+            {
+                response = await _httpClient.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead,
+                    cancellationToken);
+                response.EnsureSuccessStatusCode();
+                return response;
+            }
+            catch (HttpRequestException e)
+            {
+                _logger.LogError(e,
+                    "An error occured while trying to access the file to download. As there might be an issue with the selected connection to the plex media server, it  will retry with different connections.");
+            }
+
+            IReadOnlyCollection<Uri> availableUris;
+            string? accessToken;
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                var server = await unitOfWork.ServerRepository.GetById(downloadElement.ServerId);
+                var plexRestService = scope.ServiceProvider.GetRequiredService<PlexRestService>();
+                availableUris = plexRestService.GetAllPossibleConnectionUrisForServer(server);
+                accessToken = server.AccessToken;
+            }
+
+            foreach (Uri uri in availableUris)
+            {
+                httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
+                httpRequestMessage.Headers.Add("X-Plex-Token", accessToken);
+                response = await _httpClient.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead,
+                    cancellationToken);
+                if(response.IsSuccessStatusCode)
+                    return response;
+            }
+
+            if (response == null)
+                throw new InvalidOperationException("Cannot process download response, because there is no response.");
+
+            return response;
+        }
+
         private async Task DownloadFile(DownloadElement downloadElement)
         {
             try
             {
-                var response = await _httpClient.SendAsync(downloadElement.RequestMessage,
-                    HttpCompletionOption.ResponseHeadersRead, downloadElement.CancellationTokenSource.Token);
+                var response = await SendDownloadRequest(downloadElement);
                 response.EnsureSuccessStatusCode();
                 var stream = await response.Content.ReadAsStreamAsync();
-
-                // Stream response = await _httpClient.GetStreamAsync(downloadElement.Uri,
-                //     downloadElement.CancellationTokenSource.Token);
 
                 var fileInfo = new FileInfo(downloadElement.FilePath);
                 fileInfo.Directory.Create();
