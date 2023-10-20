@@ -13,6 +13,7 @@ export class TvShows extends Component {
             servers: [],
             libraries: [],
             tvshows: [],
+            selectedServer: null,
             serverselected: false,
             libraryselected: false,
             tvshowselected: false,
@@ -27,8 +28,11 @@ export class TvShows extends Component {
     }
 
     handleServerChange = (event) => {
-        this.setState({serverselected: true, libraryselected: false, libraryloading: true})
-        if (event.target.value != null) {
+        const validSelection = event.target.value != null;
+        if(validSelection)
+        {
+            const server = this.state.servers.find(x=>x.id === event.target.value)
+            this.setState({selectedServer: server, serverselected: true, libraryselected: false, libraryloading: true})
             this.populateLibrariesData(event.target.value);
         } else {
             this.setState({serverselected: false});
@@ -90,7 +94,7 @@ export class TvShows extends Component {
         let tvshowsContent = this.state.libraryselected
             ? this.state.tvshowloading
                 ? <p><em>Loading TV shows...</em></p>
-                : TvShows.renderTvShowsTable(this.state.tvshows)
+                : TvShows.renderTvShowsTable(this.state.tvshows, this.state.selectedServer)
             : <p/>;
 
         return (
@@ -107,7 +111,7 @@ export class TvShows extends Component {
         );
     }
 
-    static renderTvShowsTable(tvShows) {
+    static renderTvShowsTable(tvShows, selectedServer) {
         return (
             <table className='table table-striped' aria-labelledby="tabelLabel">
                 <tbody>
@@ -159,7 +163,11 @@ export class TvShows extends Component {
                                         <td>{episode.mediaFiles[0].videoCodec}</td>
                                         <td>{episode.mediaFiles[0].videoResolution}</td>
                                         <td>{this.humanizeByteSize(episode.mediaFiles[0].totalBytes)}</td>
-                                    <td><DownloadButton mediaType='episode' mediaKey={episode.ratingKey}>Download</DownloadButton></td>
+                                    <td><DownloadButton mediaType='episode' mediaKey={episode.ratingKey}
+                                                        mediaFileKey={episode.mediaFiles[0].downloadUri}
+                                                        mediaFile={episode.mediaFiles[0]}
+                                                        server={selectedServer}
+                                                        downloadBrowserPossible={true}>Download</DownloadButton></td>
                                 </tr>
                                 )}
                             </tbody>

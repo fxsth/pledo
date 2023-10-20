@@ -42,6 +42,7 @@ public class ServerRepository : RepositoryBase<Server>
             else
             {
                 serverToUpdate.AccessToken = serverFromApi.AccessToken;
+                serverToUpdate.TransientToken = serverFromApi.TransientToken;
                 serverToUpdate.LastKnownUri = serverFromApi.LastKnownUri;
                 serverToUpdate.LastModified = DateTimeOffset.Now;
                 serverToUpdate.IsOnline = serverFromApi.IsOnline;

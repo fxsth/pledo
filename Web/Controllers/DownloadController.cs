@@ -29,6 +29,13 @@ public class DownloadController : ControllerBase
     {
         return _downloadService.GetPendingDownloads().Select(ToDownloadElementResource);
     }
+    
+    [HttpDelete]
+    public async Task<IActionResult> ClearDownloadHistory()
+    {
+        await _downloadService.RemoveAllFinishedOrCancelledDownloads();
+        return NoContent();
+    }
 
     [HttpPost("movie/{key}")]
     public async Task DownloadMovie( string key, [FromQuery] string? mediaFileKey)

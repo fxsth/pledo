@@ -20,6 +20,8 @@ public class Server
     
     [JsonIgnore]
     public string? AccessToken { get; set; }
+    [JsonPropertyName("accessToken")]
+    public string? TransientToken { get; set; }
 
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public DateTimeOffset? LastModified { get; set; }
