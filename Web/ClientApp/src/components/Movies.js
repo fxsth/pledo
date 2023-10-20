@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import Dropdown from "./Dropdown";
 import DownloadButton from "./DownloadButton";
-import {Table, Button} from "reactstrap";
+import {Table} from "reactstrap";
 
 export class Movies extends Component {
     static displayName = Movies.name;
@@ -12,6 +12,7 @@ export class Movies extends Component {
             servers: [],
             libraries: [],
             movies: [],
+            selectedServer: null,
             serverselected: false,
             libraryselected: false,
             serverloading: true,
@@ -25,8 +26,11 @@ export class Movies extends Component {
     }
 
     handleServerChange = (event) => {
-        this.setState({serverselected: true, libraryselected: false, libraryloading: true})
-        if (event.target.value != null) {
+        const validSelection = event.target.value != null;
+        if(validSelection)
+        {
+            const server = this.state.servers.find(x=>x.id === event.target.value)
+            this.setState({selectedServer: server, serverselected: true, libraryselected: false, libraryloading: true})
             this.populateLibrariesData(event.target.value);
         } else {
             this.setState({serverselected: false});
@@ -88,7 +92,7 @@ export class Movies extends Component {
         let moviesContent = this.state.libraryselected
             ? this.state.movieloading
                 ? <p><em>Loading movies...</em></p>
-                : Movies.renderMoviesTable(this.state.movies)
+                : Movies.renderMoviesTable(this.state.movies, this.state.selectedServer)
             : <p/>;
 
         return (
@@ -105,7 +109,7 @@ export class Movies extends Component {
         );
     }
 
-    static renderMoviesTable(movies) {
+    static renderMoviesTable(movies, selectedServer) {
         return (
             <Table striped>
                 <thead>
@@ -119,7 +123,7 @@ export class Movies extends Component {
                 </tr>
                 </thead>
                 <tbody>
-                {movies.map(movie => 
+                {movies.map(movie =>
                     movie.mediaFiles.map(mediaFile =>
                         <tr key={mediaFile.downloadUri}>
                             <td>{movie.title}</td>
@@ -127,9 +131,13 @@ export class Movies extends Component {
                             <td>{mediaFile.videoCodec}</td>
                             <td>{mediaFile.videoResolution}</td>
                             <td>{this.humanizeByteSize(mediaFile.totalBytes)}</td>
-                            <td><DownloadButton mediaType='movie' mediaKey={movie.ratingKey} mediaFileKey={mediaFile.downloadUri}>Download</DownloadButton></td>
+                            <td><DownloadButton
+                                mediaType='movie' mediaKey={movie.ratingKey}
+                                mediaFileKey={mediaFile.downloadUri}
+                                server={selectedServer.lastKnownUri}
+                                token={selectedServer.accessToken}
+                                downloadBrowserPossible={true}>Download</DownloadButton></td>
                         </tr>)
-                    
                 )}
                 </tbody>
             </Table>
@@ -137,7 +145,7 @@ export class Movies extends Component {
     }
 
     static humanizeByteSize(size) {
-        if(!size)
+        if (!size)
             return "--";
         const i = size === 0 ? 0 : Math.floor(Math.log(size) / Math.log(1024));
         return (size / Math.pow(1024, i)).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
