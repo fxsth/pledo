@@ -51,6 +51,21 @@ namespace Web.Services
 
             return returnList;
         }
+        
+        public async Task RemoveAllFinishedOrCancelledDownloads()
+        {
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
+                var oldDownloadElements = unitOfWork.DownloadRepository.GetAll();
+                foreach (var oldDownloadElement in oldDownloadElements)
+                {
+                    await unitOfWork.DownloadRepository.Remove(oldDownloadElement);
+                }
+
+                await unitOfWork.Save();
+            }
+        }
 
         private async Task<DownloadElement> CreateDownloadElement(string key, string? mediaFileKey, ElementType elementType)
         {
