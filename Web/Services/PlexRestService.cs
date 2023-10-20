@@ -33,6 +33,22 @@ public class PlexRestService : IPlexRestService
     {
         return await _plexAccountClient.GetPlexAccountAsync(credentialsResource.username, credentialsResource.password);
     }
+    
+    public async Task<Account?> GetMyPlexAccount(string authToken)
+    {
+        var account = await _plexAccountClient.GetPlexAccountAsync(authToken);
+        if (account == null)
+            return null;
+        return new Account()
+        {
+            Email = account.Email,
+            Id = account.Id,
+            Title = account.Title,
+            Username = account.Username,
+            Uuid = account.Uuid,
+            AuthToken = account.AuthToken
+        };
+    }
 
     public async Task<IEnumerable<Server>> RetrieveServers(Account account)
     {
@@ -57,6 +73,24 @@ public class PlexRestService : IPlexRestService
                 IpV6 = y.IpV6
             }).ToList()
         });
+    }
+    
+    public async Task<string?> GetTransientToken(Server server)
+    {
+        try
+        {
+            string? uri = server.LastKnownUri;
+            if (string.IsNullOrEmpty(uri))
+                uri = server.Connections.First().ToString();
+            var transientTokenContainer = await _plexServerClient.GetTransientToken(server.AccessToken, uri);
+            var token = transientTokenContainer.Token;
+            return token;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "An error occured while retrieving transient token from server {0}", server.Name);
+            return null;
+        }
     }
 
     public async Task<IEnumerable<Library>> RetrieveLibraries(Server server)
@@ -220,11 +254,23 @@ public class PlexRestService : IPlexRestService
         return movies;
     }
 
-    public async Task<string> GetUriFromFastestConnection(Server server, int timeoutInSeconds)
+    public IReadOnlyCollection<Uri> GetAllPossibleConnectionUrisForServer(Server server)
     {
         var resourceConnections = server.Connections;
         if (resourceConnections?.Any() != true)
             throw new ArgumentException("No resource connections specified.");
+        List<Uri> uris = resourceConnections.Where(x => !x.Relay).Select(x=>new Uri(x.Uri)).ToList();
+        uris.AddRange(resourceConnections.Where(x => !x.Relay).Select(x=>
+        {
+            return new UriBuilder("http", x.Address) { Port = x.Port }.Uri;
+        }).ToList());
+        uris.AddRange(resourceConnections.Where(x => x.Relay).Select(x=>new Uri(x.Uri)).ToList());
+        return uris;
+    }
+
+    public async Task<string> GetUriFromFastestConnection(Server server, int timeoutInSeconds)
+    {
+        IReadOnlyCollection<Uri> urisToTest = GetAllPossibleConnectionUrisForServer(server);
         List<Task> tasks = new List<Task>();
         string? uri = null;
         try
@@ -232,13 +278,11 @@ public class PlexRestService : IPlexRestService
             CancellationTokenSource cancellationTokenSource =
                 new CancellationTokenSource(TimeSpan.FromSeconds(timeoutInSeconds));
             HttpClient httpClient = _httpClientFactory.CreateClient();
-            List<ServerConnection> connections = resourceConnections.Where(x => !x.Relay).ToList();
-            connections.AddRange(resourceConnections.Where(x => x.Relay).ToList());
-            foreach (ServerConnection connectionForSync in connections)
+            foreach (Uri connectionForSync in urisToTest)
             {
                 try
                 {
-                    Uri serverInfoUri = new UriBuilder(connectionForSync.Uri)
+                    Uri serverInfoUri = new UriBuilder(connectionForSync)
                         { Query = $"?X-Plex-Token={server.AccessToken}" }.Uri;
                     tasks.Add(httpClient.GetAsync(serverInfoUri, cancellationTokenSource.Token).ContinueWith(t =>
                     {
@@ -258,7 +302,7 @@ public class PlexRestService : IPlexRestService
                 }
                 catch (Exception e)
                 {
-                    _logger.LogTrace(e, "Connecting to {0} threw an exception:", connectionForSync.Uri);
+                    _logger.LogTrace(e, "Connecting to {0} threw an exception:", connectionForSync.AbsolutePath);
                 }
             }
 

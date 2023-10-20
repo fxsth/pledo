@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Web.Models
 {
@@ -24,6 +25,10 @@ namespace Web.Models
         public DateTimeOffset? Started { get; set; }
         public DateTimeOffset? Finished { get; set; }
         public string MediaKey { get; set; }
+        
+        [JsonIgnore]
+        [NotMapped]
+        public HttpRequestMessage RequestMessage { get; set; }
 
         [NotMapped]
         public CancellationTokenSource CancellationTokenSource { get; set; }

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Web.Models;
 
@@ -17,7 +18,10 @@ public class Server
     
     public bool IsOnline { get; set; }
     
+    [JsonIgnore]
     public string? AccessToken { get; set; }
+    [JsonPropertyName("accessToken")]
+    public string? TransientToken { get; set; }
 
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
     public DateTimeOffset? LastModified { get; set; }

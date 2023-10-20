@@ -93,8 +93,11 @@ export default class DownloadButton extends React.Component {
                                 onClick={this.handleClick.bind(this)}>{this.props.children}</Button>
                         <DropdownToggle caret />
                         <DropdownMenu>
+                            <DropdownItem header>
+                                To download in browser save link as file:
+                            </DropdownItem>
                             <DropdownItem>
-                                <a href={this.getDownloadLink()} download={this.getFilename()}>Download in browser</a>
+                                <a href={this.getDownloadLink()} download>Direct link</a>
                             </DropdownItem>
                         </DropdownMenu>
                     </UncontrolledDropdown>

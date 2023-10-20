@@ -44,7 +44,8 @@ public class SyncService : ISyncService
                 
                 _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                IReadOnlyCollection<Server> syncServers = await SyncServers(unitOfWork);
+                Account account = await SyncAccount(unitOfWork);
+                IReadOnlyCollection<Server> syncServers = await SyncServers(account, unitOfWork);
                 IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
                 IReadOnlyCollection<Server> onlineServers = servers.Where(x => x.IsOnline).ToList();
                 if (syncType == SyncType.Full)
@@ -69,6 +70,19 @@ public class SyncService : ISyncService
         {
             _syncTask = null;
         }
+    }
+
+    private async Task<Account?> SyncAccount(UnitOfWork unitOfWork)
+    {
+        IReadOnlyCollection<Account> accounts = unitOfWork.AccountRepository.GetAll();
+        if (!accounts.Any())
+            return null;
+        var account = accounts.First();
+        Account? myPlexAccount = await _plexService.GetMyPlexAccount(account.AuthToken);
+        if (myPlexAccount == null)
+            return null;
+        await unitOfWork.AccountRepository.Update(myPlexAccount);
+        return myPlexAccount;
     }
 
     private async Task UpsertMediaIntoDb(UnitOfWork unitOfWork, IReadOnlyCollection<Movie> movies, IReadOnlyCollection<Episode> episodes)
@@ -110,31 +124,28 @@ public class SyncService : ISyncService
         return playlists;
     }
 
-    private async Task<IReadOnlyCollection<Server>> SyncServers(UnitOfWork unitOfWork)
+    private async Task<IReadOnlyCollection<Server>> SyncServers(Account? account, UnitOfWork unitOfWork)
     {
         AccountRepository accountRepository = unitOfWork.AccountRepository;
         ServerRepository serverRepository = unitOfWork.ServerRepository;
         _syncTask = new BusyTask() { Name = "Syncing servers" };
-        var account = accountRepository.GetAll().FirstOrDefault();
-        if (account != null)
-        {
-            var serversInDb = serverRepository.GetAll();
-            var serversFromApi = (await _plexService.RetrieveServers(account)).ToList();
-            var toRemove = serversInDb.ExceptBy(serversFromApi.Select(x => x.Id), server => server.Id);
-            _logger.LogInformation("Syncing servers: Found {0} ({1})", serversFromApi.Count,
-                string.Join(", ", serversFromApi.Select(x => x.Name)));
-            await serverRepository.Remove(toRemove);
-            // foreach (var server in toRemove)
-            // {
-            //     _logger.LogWarning("Removing unlisted server {0} from database.", server.Name);
-            //     await serverRepository.Remove(server);
-            // }
+        if (string.IsNullOrEmpty(account?.AuthToken))
+            throw new ArgumentException("Cannot sync available media server due to missing authorization token. A login for plex.tv is necessary.");
+                
+        var serversInDb = serverRepository.GetAll();
+        var serversFromApi = (await _plexService.RetrieveServers(account)).ToList();
+        var toRemove = serversInDb.ExceptBy(serversFromApi.Select(x => x.Id), server => server.Id);
+        _logger.LogInformation("Syncing servers: Found {0} ({1})", serversFromApi.Count,
+            string.Join(", ", serversFromApi.Select(x => x.Name)));
+        await serverRepository.Remove(toRemove);
+        // foreach (var server in toRemove)
+        // {
+        //     _logger.LogWarning("Removing unlisted server {0} from database.", server.Name);
+        //     await serverRepository.Remove(server);
+        // }
 
-            // await serverRepository.Upsert(newServers);
-            return serversFromApi;
-        }
-
-        return new List<Server>();
+        // await serverRepository.Upsert(newServers);
+        return serversFromApi;
     }
 
     private async Task<IReadOnlyCollection<Server>> SyncConnections(IReadOnlyCollection<Server> servers,
@@ -155,10 +166,14 @@ public class SyncService : ISyncService
                 server.LastKnownUri = uriFromFastestConnection;
                 server.LastModified = DateTimeOffset.Now;
                 server.IsOnline = !string.IsNullOrEmpty(uriFromFastestConnection);
-                
-                if(server.IsOnline)
+
+                if (server.IsOnline)
+                {
                     _logger.LogInformation("Found fastest connection uri {0} for server {1}", uriFromFastestConnection,
                         server.Name);
+                    var transientToken = await _plexService.GetTransientToken(server);
+                    server.TransientToken = transientToken;
+                }
                 else
                     _logger.LogInformation("Server {0} seems to be offline, all connection attempts failed.", server.Name);
             }

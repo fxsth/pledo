@@ -31,7 +31,7 @@ namespace Web.Services
                 (exception, timeSpan, context) =>
                 {
                     _logger.LogWarning(exception?.Exception,
-                        "An exception occured while downloading. Waiting {0} seconds until retry.", timeSpan.Seconds);
+                        "Retry download for a {0}. time after {1} seconds.", context.Count+1, timeSpan.Seconds);
                 });
         }
 
@@ -76,16 +76,21 @@ namespace Web.Services
                     : await settingsService.GetEpisodeDirectory();
                 Directory.CreateDirectory(downloadDirectory);
                 string filePath = await GetFilePath(downloadDirectory, mediaFile!.ServerFilePath, mediaElement, settingsService);
+                Library? library = unitOfWork.LibraryRepository.Get(x => x.Id == mediaElement.LibraryId, null, nameof(Library.Server))
+                    .FirstOrDefault();
+                Uri uri = await GetCompleteDownloadUri(unitOfWork, library, mediaFile.DownloadUri);
+                HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
+                httpRequestMessage.Headers.Add("X-Plex-Token", library.Server.AccessToken);
                 return new DownloadElement()
                 {
-                    Uri = (await GetCompleteDownloadUri(unitOfWork, mediaElement.LibraryId, mediaFile.DownloadUri))
-                        .ToString(),
+                    Uri = uri.ToString(),
                     Name = mediaElement.Title,
                     ElementType = elementType,
                     FilePath = filePath,
                     FileName = Path.GetFileName(mediaFile.ServerFilePath),
                     TotalBytes = mediaFile.TotalBytes,
-                    MediaKey = key
+                    MediaKey = key,
+                    RequestMessage = httpRequestMessage
                 };
             }
         }
@@ -126,17 +131,15 @@ namespace Web.Services
             throw new InvalidCastException("Invalid file template");
         }
 
-        private async Task<Uri> GetCompleteDownloadUri(UnitOfWork unitOfWork, string libraryId,
+        private async Task<Uri> GetCompleteDownloadUri(UnitOfWork unitOfWork, Library? library,
             string resourceDownloadUri)
         {
-            Library? library = unitOfWork.LibraryRepository.Get(x => x.Id == libraryId, null, nameof(Library.Server))
-                .FirstOrDefault();
+            
             if (library == null || string.IsNullOrEmpty(library.Server?.LastKnownUri))
                 throw new ArgumentException();
             UriBuilder uriBuilder = new UriBuilder(library.Server.LastKnownUri)
             {
-                Path = resourceDownloadUri,
-                Query = $"?X-Plex-Token={library.Server.AccessToken}"
+                Path = resourceDownloadUri
             };
             return uriBuilder.Uri;
         }
@@ -341,24 +344,37 @@ namespace Web.Services
         {
             try
             {
-                Stream response = await _httpClient.GetStreamAsync(downloadElement.Uri,
-                    downloadElement.CancellationTokenSource.Token);
+                var response = await _httpClient.SendAsync(downloadElement.RequestMessage,
+                    HttpCompletionOption.ResponseHeadersRead, downloadElement.CancellationTokenSource.Token);
+                response.EnsureSuccessStatusCode();
+                var stream = await response.Content.ReadAsStreamAsync();
+
+                // Stream response = await _httpClient.GetStreamAsync(downloadElement.Uri,
+                //     downloadElement.CancellationTokenSource.Token);
 
                 var fileInfo = new FileInfo(downloadElement.FilePath);
                 fileInfo.Directory.Create();
                 using (var fileStream = fileInfo.OpenWrite())
                 {
-                    await CopyToAsync(response, fileStream, downloadElement, _resilientStreamPolicy);
+                    await CopyToAsync(stream, fileStream, downloadElement, _resilientStreamPolicy);
                 }
 
                 downloadElement.Progress = 1;
                 downloadElement.FinishedSuccessfully = true;
             }
+            catch (TaskCanceledException)
+            {
+                _logger.LogInformation("Download of item {0} was cancelled.", downloadElement.Name);
+            }
             catch (Exception e)
             {
-                // ignored
+                _logger.LogError(e, "An error occured while downloading item {0}", downloadElement.Name);
             }
         }
+        
+        
+        
+        // private static void TryAddDownload
 
         private static async Task CopyToAsync(Stream source, Stream destination, DownloadElement downloadElement,
             IAsyncPolicy<int> policy,
