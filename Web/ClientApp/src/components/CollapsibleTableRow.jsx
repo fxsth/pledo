@@ -1,16 +1,19 @@
 import React, {useState} from 'react';
 
 const CollapsibleTableRow = (props) => {
-        const [open, setOPen] = useState(false);
+        const [open, setOpen] = useState(false);
         const toggle = () => {
-            setOPen(!open);
+            setOpen(!open);
         };
         return (
-            <tr onClick={toggle}>
-                <div>{props.label}
-                {open &&
-                    <div className="toggle">{props.children}</div>
-                }
+            <tr >
+                <div>
+                    <div onClick={toggle}>{props.label}</div>
+                    {open &&
+                        <div className="toggle">
+                            {props.children}
+                        </div>
+                    }
                 </div>
             </tr>
         )

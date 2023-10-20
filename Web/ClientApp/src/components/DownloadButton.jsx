@@ -24,17 +24,29 @@ export default class DownloadButton extends React.Component {
     
     getDownloadLink(){
         try {
-            console.log("building url")
-            const host = this.props.server
-            const token = this.props.token
+            const host = this.props.server.lastKnownUri
+            const token = this.props.server.accessToken
             const path = this.props.mediaFileKey
             const url = new URL(path, host);
             url.searchParams.append("X-Plex-Token", token)
-            console.log(url.toString());
             return url.toString()
         }
         catch(e)
         {
+            console.log("An error occured while building download link.")
+            return ""
+        }
+    }
+
+    getFilename(){
+        try {
+            const mediaFile = this.props.mediaFile
+            const fullPath = mediaFile.serverFilePath
+            return fullPath.replace(/^.*[\\/]/, '')
+        }
+        catch(e)
+        {
+            console.log("An error occured while building download file name.")
             return ""
         }
     }
@@ -79,13 +91,10 @@ export default class DownloadButton extends React.Component {
                     <UncontrolledDropdown group id={'download_button_'+ this.props.mediaKey}>
                         <Button color={this.props.color} disabled={this.state.isLoading}
                                 onClick={this.handleClick.bind(this)}>{this.props.children}</Button>
-                        <DropdownToggle
-                            caret
-                            // color="primary"
-                        />
+                        <DropdownToggle caret />
                         <DropdownMenu>
                             <DropdownItem>
-                                <a href={this.getDownloadLink()} download>Download in browser</a>
+                                <a href={this.getDownloadLink()} download={this.getFilename()}>Download in browser</a>
                             </DropdownItem>
                         </DropdownMenu>
                     </UncontrolledDropdown>

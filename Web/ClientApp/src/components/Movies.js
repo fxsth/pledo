@@ -132,10 +132,11 @@ export class Movies extends Component {
                             <td>{mediaFile.videoResolution}</td>
                             <td>{this.humanizeByteSize(mediaFile.totalBytes)}</td>
                             <td><DownloadButton
-                                mediaType='movie' mediaKey={movie.ratingKey}
+                                mediaType='movie'
+                                mediaKey={movie.ratingKey}
                                 mediaFileKey={mediaFile.downloadUri}
-                                server={selectedServer.lastKnownUri}
-                                token={selectedServer.accessToken}
+                                mediaFile={mediaFile}
+                                server={selectedServer}
                                 downloadBrowserPossible={true}>Download</DownloadButton></td>
                         </tr>)
                 )}
