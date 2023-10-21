@@ -49,6 +49,29 @@ public static class PreferencesProvider
             return "";
         }
     }
+    
+    public static string GetFilenameFromPath(string filepath, string backupFileName)
+    {
+        try
+        {
+            var processedFilePath = filepath.Replace("\\", "/");
+            var originalFileName = Path.GetFileName(processedFilePath);
+            int index = originalFileName.LastIndexOf('\\');
+            if (index > 0)
+                originalFileName = originalFileName.Substring(index + 1);
+            index = originalFileName.LastIndexOf('/');
+            if (index > 0)
+                originalFileName = originalFileName.Substring(index + 1);
+            if (originalFileName.Any())
+                return originalFileName;
+            return backupFileName;
+        }
+        catch (Exception)
+        {
+            return backupFileName;
+        }
+    }
+    
     public static string GetClientId()
     {
         try
