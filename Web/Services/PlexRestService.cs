@@ -1,10 +1,12 @@
-﻿using Plex.ServerApi.Clients.Interfaces;
+﻿using System.Globalization;
+using Plex.ServerApi.Clients.Interfaces;
 using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
 using Plex.ServerApi.PlexModels.Media;
 using Web.Exceptions;
 using Web.Models;
 using Web.Models.DTO;
+using Web.Models.Interfaces;
 using Library = Web.Models.Library;
 using PlexAccount = Plex.ServerApi.PlexModels.Account.PlexAccount;
 
@@ -124,46 +126,77 @@ public class PlexRestService : IPlexRestService
             await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, movieKey);
         if (mediaContainer.Media == null)
             return null;
-        IEnumerable<Movie> movies = GetMovies(mediaContainer, library, _logger).ToList();
+        IEnumerable<Movie> movies = GetMoviesFromMediaContainer(mediaContainer, library, _logger).ToList();
         if (movies.Count() > 1)
             throw new InvalidDataException();
         return movies.First();
     }
 
-    public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
+    private SearchType MapToSearchType(ElementType elementType)
     {
-        List<Movie> movies = new List<Movie>();
-        int offset = 0;
-        int limit = 200;
-        while (true)
+        switch (elementType)
         {
-            var retrieveMovies = (await RetrieveMovies(library, offset, limit)).ToList();
-            if (retrieveMovies.Any())
-                movies.AddRange(retrieveMovies);
-            else
-                break;
-            offset += limit;
+            case ElementType.Movie:
+                return SearchType.Movie;
+            case ElementType.TvShow:
+                return SearchType.Episode;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(elementType), elementType, null);
+        }
+    }
+    
+    private async Task<IEnumerable<IMediaElement>> RetrieveAllItems(Library library, ElementType elementType)
+    {
+        var mediaContainerWithTotalSize = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
+            library.Server.LastKnownUri, null, library.Key,
+            null, MapToSearchType(elementType), null, 0, 0);
+        int totalSize = mediaContainerWithTotalSize.TotalSize;
+        _logger.LogInformation("Library {0} contains {1} items. Start retrieving metadata...", library.Name, totalSize);
+        int offset = 0;
+        int batchSize = 50;
+        List<Task<IReadOnlyCollection<IMediaElement>>> allRequests = new();
+        while (offset < totalSize)
+        {
+            switch (elementType)
+            {
+                case ElementType.Movie:
+                    allRequests.Add(RetrieveMovies(library, offset, batchSize));
+                    break;
+                case ElementType.TvShow:
+                    allRequests.Add(RetrieveEpisodes(library, offset, batchSize));
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(elementType), elementType, null);
+            }
+            offset += batchSize;
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
 
-        return movies;
+        List<IMediaElement> allMediaElements = new List<IMediaElement>();
+        foreach (Task<IReadOnlyCollection<IMediaElement>> request in allRequests)
+        {
+            try
+            {
+                var retrievedItems = await request;
+                if(!retrievedItems.Any() && allMediaElements.Count < totalSize)
+                    _logger.LogWarning("An error occured while retrieving metadata batch: Request returned 0 items in this batch. Sync will continue though.");
+                allMediaElements.AddRange(retrievedItems);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "An unknown error occured while retrieving metadata batch.");
+            }
+        }
+        return allMediaElements;
+    }
+    public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
+    {
+        return (await RetrieveAllItems(library, ElementType.Movie)).Cast<Movie>();
     }
 
     public async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library)
     {
-        List<Episode> tvShows = new List<Episode>();
-        int offset = 0;
-        int limit = 72;
-        while (true)
-        {
-            var retrieveTvShows = (await RetrieveEpisodes(library, offset, limit)).ToList();
-            if (retrieveTvShows.Any())
-                tvShows.AddRange(retrieveTvShows);
-            else
-                break;
-            offset += limit;
-        }
-
-        return tvShows;
+        return (await RetrieveAllItems(library, ElementType.TvShow)).Cast<Episode>();
     }
 
     public async Task<IEnumerable<Playlist>> RetrievePlaylists(Server server)
@@ -195,15 +228,15 @@ public class PlexRestService : IPlexRestService
         return playlistList;
     }
 
-    private async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library, int offset, int limit)
+    private async Task<IReadOnlyCollection<IMediaElement>> RetrieveEpisodes(Library library, int offset, int limit)
     {
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
             library.Server.LastKnownUri, null, library.Key,
             null, SearchType.Episode, null, offset, limit);
         if (mediaContainer.Media == null)
-            return Enumerable.Empty<Episode>();
-        IEnumerable<Episode> episodes = GetEpisodes(mediaContainer, library, _logger);
-        return episodes;
+            return new List<Episode>();
+        IEnumerable<Episode> episodes = GetEpisodesFromMediaContainer(mediaContainer, library, _logger);
+        return episodes.ToList();
     }
 
     public async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library)
@@ -243,15 +276,15 @@ public class PlexRestService : IPlexRestService
         return episodes;
     }
 
-    private async Task<IEnumerable<Movie>> RetrieveMovies(Library library, int offset, int limit)
+    private async Task<IReadOnlyCollection<IMediaElement>> RetrieveMovies(Library library, int offset, int limit)
     {
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
             library.Server.LastKnownUri, null, library.Key,
             null, SearchType.Movie, null, offset, limit);
         if (mediaContainer.Media == null)
-            return Enumerable.Empty<Movie>();
-        IEnumerable<Movie> movies = GetMovies(mediaContainer, library, _logger);
-        return movies;
+            return new List<Movie>();
+        IEnumerable<Movie> movies = GetMoviesFromMediaContainer(mediaContainer, library, _logger);
+        return movies.ToList();
     }
 
     public IReadOnlyCollection<Uri> GetAllPossibleConnectionUrisForServer(Server server)
@@ -331,7 +364,7 @@ public class PlexRestService : IPlexRestService
         return uri;
     }
 
-    private IEnumerable<Movie> GetMovies(MediaContainer mediaContainer, Library library,
+    private IEnumerable<Movie> GetMoviesFromMediaContainer(MediaContainer mediaContainer, Library library,
         ILogger<PlexRestService> logger)
     {
         foreach (var metadata in mediaContainer.Media)
@@ -371,7 +404,7 @@ public class PlexRestService : IPlexRestService
         }
     }
 
-    private IEnumerable<Episode> GetEpisodes(MediaContainer mediaContainer, Library library,
+    private IEnumerable<Episode> GetEpisodesFromMediaContainer(MediaContainer mediaContainer, Library library,
         ILogger<PlexRestService> logger)
     {
         foreach (var metadata in mediaContainer.Media)
