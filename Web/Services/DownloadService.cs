@@ -113,16 +113,17 @@ namespace Web.Services
         private async Task<string> GetFilePath(string downloadDirectory, string serverFilePath, IMediaElement mediaElement,
             ISettingsService settingsService)
         {
+            var originalFileName = PreferencesProvider.GetFilenameFromPath(serverFilePath, $"{mediaElement.Title} ({mediaElement.Year}).{mediaElement.MediaFiles.FirstOrDefault()?.Container}");
+            
             if (mediaElement is Movie movie)
             {
                 var fileTemplate = await settingsService.GetMovieFileTemplate();
                 switch (fileTemplate)
                 {
                     case MovieFileTemplate.FilenameFromServer:
-                        return Path.Combine(downloadDirectory, Path.GetFileName(serverFilePath));
+                        return Path.Combine(downloadDirectory, originalFileName);
                     case MovieFileTemplate.MovieDirectoryAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, movie.Title,
-                            Path.GetFileName(serverFilePath));
+                        return Path.Combine(downloadDirectory, movie.Title, originalFileName);
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -134,10 +135,9 @@ namespace Web.Services
                 {
                     case EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer:
                         return Path.Combine(downloadDirectory, episode.TvShow.Title, $"Season {episode.SeasonNumber}",
-                            Path.GetFileName(serverFilePath));
+                            originalFileName);
                     case EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, episode.TvShow.Title,
-                            Path.GetFileName(serverFilePath));
+                        return Path.Combine(downloadDirectory, episode.TvShow.Title, originalFileName);
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -419,7 +419,7 @@ namespace Web.Services
                 downloadElement.Progress = 1;
                 downloadElement.FinishedSuccessfully = true;
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 _logger.LogInformation("Download of item {0} was cancelled.", downloadElement.Name);
             }
