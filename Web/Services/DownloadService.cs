@@ -419,7 +419,7 @@ namespace Web.Services
                 downloadElement.Progress = 1;
                 downloadElement.FinishedSuccessfully = true;
             }
-            catch (TaskCanceledException)
+            catch (OperationCanceledException)
             {
                 _logger.LogInformation("Download of item {0} was cancelled.", downloadElement.Name);
             }
