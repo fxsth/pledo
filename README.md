@@ -39,10 +39,12 @@ services:
 Directory /config is used for storing database and local configuration. If not available, it will default to SpecialFolder.LocalApplicationData/.pledo
 
 ### Windows executable
+
 Besides docker, you can also run the windows executable that are attached in the release binaries.
 Download and extract pledo.win-x64.zip and run the exe, then you can open the user interface in the browser on localhost:5000.
 Beware, this will first open a warning screen from Windows as it is an app from unknown source.
 Database and local configuration will be located at %localappdata%/.pledo .
+
 ---
 ### Download multiple episodes with one click
 ![TV shows screenshot](images/screenshot-tvshows.png)
