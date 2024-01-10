@@ -44,7 +44,12 @@ public class SyncService : ISyncService
                 
                 _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                Account account = await SyncAccount(unitOfWork);
+                Account? account = await SyncAccount(unitOfWork);
+                if (string.IsNullOrEmpty(account?.AuthToken))
+                { 
+                    _logger.LogInformation("Cannot sync available media server due to missing authorization token. A login for plex.tv is necessary.");
+                    return;
+                }
                 IReadOnlyCollection<Server> syncServers = await SyncServers(account, unitOfWork);
                 IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
                 IReadOnlyCollection<Server> onlineServers = servers.Where(x => x.IsOnline).ToList();
