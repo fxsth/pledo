@@ -47,6 +47,10 @@ public class PlexLibraryIterator
                     _logger.LogWarning("An error occured while retrieving metadata batch: Request returned 0 items in this batch. Sync will continue though.");
                 allMediaElements.AddRange(retrievedItems);
             }
+            catch (TaskCanceledException e)
+            {
+                _logger.LogError( "Cancelled metadata request: {0}", e.Message);
+            }
             catch (Exception e)
             {
                 _logger.LogError(e, "An unknown error occured while retrieving metadata batch.");
