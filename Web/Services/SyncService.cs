@@ -44,16 +44,21 @@ public class SyncService : ISyncService
                 
                 _plexService = scope.ServiceProvider.GetRequiredService<IPlexRestService>();
                 UnitOfWork unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                Account account = await SyncAccount(unitOfWork);
+                Account? account = await SyncAccount(unitOfWork);
+                if (string.IsNullOrEmpty(account?.AuthToken))
+                { 
+                    _logger.LogInformation("Cannot sync available media server due to missing authorization token. A login for plex.tv is necessary.");
+                    return;
+                }
                 IReadOnlyCollection<Server> syncServers = await SyncServers(account, unitOfWork);
                 IReadOnlyCollection<Server> servers = await SyncConnections(syncServers, unitOfWork);
                 IReadOnlyCollection<Server> onlineServers = servers.Where(x => x.IsOnline).ToList();
                 if (syncType == SyncType.Full)
                 {
                     IReadOnlyCollection<Library> libraries = await SyncLibraries(onlineServers, unitOfWork);
-                    var movies = await SyncMovies(libraries, unitOfWork);
+                    var movies = await SyncMovies(libraries);
                     await SyncTvShows(libraries, unitOfWork);
-                    var episodes = await SyncEpisodes(libraries, unitOfWork);
+                    var episodes = await SyncEpisodes(libraries);
                     await UpsertMediaIntoDb(unitOfWork, movies, episodes);
                     await SyncPlaylists(onlineServers, unitOfWork);
                 }
@@ -100,7 +105,7 @@ public class SyncService : ISyncService
         await unitOfWork.MediaFileRepository.Update(itemsToUpdate);
     }
 
-    private async Task<List<Playlist>> SyncPlaylists(IReadOnlyCollection<Server> servers, UnitOfWork unitOfWork)
+    private async Task SyncPlaylists(IReadOnlyCollection<Server> servers, UnitOfWork unitOfWork)
     {
         _syncTask = new BusyTask() { Name = "Syncing playlists" };
         List<Playlist> playlists = new List<Playlist>();
@@ -114,19 +119,17 @@ public class SyncService : ISyncService
                     playlistList.Count(), server.Id);
                 playlists.AddRange(playlistList);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 _logger.LogError("Could not retrieve playlist metadata of server {0}.", server.Name);
             }
         }
 
         await unitOfWork.PlaylistRepository.Upsert(playlists);
-        return playlists;
     }
 
     private async Task<IReadOnlyCollection<Server>> SyncServers(Account? account, UnitOfWork unitOfWork)
     {
-        AccountRepository accountRepository = unitOfWork.AccountRepository;
         ServerRepository serverRepository = unitOfWork.ServerRepository;
         _syncTask = new BusyTask() { Name = "Syncing servers" };
         if (string.IsNullOrEmpty(account?.AuthToken))
@@ -177,7 +180,7 @@ public class SyncService : ISyncService
                 else
                     _logger.LogInformation("Server {0} seems to be offline, all connection attempts failed.", server.Name);
             }
-            catch (ServerUnreachableException e)
+            catch (ServerUnreachableException)
             {
                 server.LastKnownUri = null;
                 server.LastModified = DateTimeOffset.Now;
@@ -185,7 +188,7 @@ public class SyncService : ISyncService
             }
             catch (Exception e)
             {
-                _logger.LogError("An unexpected error occured while syncing metadata.", e);
+                _logger.LogError(e, "An unexpected error occured while syncing metadata.");
             }
         }
 
@@ -231,9 +234,8 @@ public class SyncService : ISyncService
         return librariesWithServers;
     }
 
-    private async Task<List<Movie>> SyncMovies(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
+    private async Task<List<Movie>> SyncMovies(IEnumerable<Library> libraries)
     {
-        var movieRepository = unitOfWork.MovieRepository;
         _syncTask = new BusyTask() { Name = "Syncing movies" };
         libraries = libraries.Where(x => x.Type == "movie");
         List<Movie> movies = new List<Movie>();
@@ -265,9 +267,8 @@ public class SyncService : ISyncService
         await tvShowRepository.Upsert(tvShows.DistinctBy(x => x.RatingKey));
     }
 
-    private async Task<List<Episode>> SyncEpisodes(IEnumerable<Library> libraries, UnitOfWork unitOfWork)
+    private async Task<List<Episode>> SyncEpisodes(IEnumerable<Library> libraries)
     {
-        var episodeRepository = unitOfWork.EpisodeRepository;
         _syncTask = new BusyTask() { Name = "Syncing episodes" };
         libraries = libraries.Where(x => x.Type == "show");
         List<Episode> episodes = new List<Episode>();
@@ -280,6 +281,5 @@ public class SyncService : ISyncService
         }
 
         return episodes;
-        await episodeRepository.Upsert(episodes.DistinctBy(x => x.RatingKey));
     }
 }

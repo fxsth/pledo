@@ -1,12 +1,9 @@
-﻿using System.Globalization;
-using Plex.ServerApi.Clients.Interfaces;
+﻿using Plex.ServerApi.Clients.Interfaces;
 using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
-using Plex.ServerApi.PlexModels.Media;
 using Web.Exceptions;
 using Web.Models;
 using Web.Models.DTO;
-using Web.Models.Interfaces;
 using Library = Web.Models.Library;
 using PlexAccount = Plex.ServerApi.PlexModels.Account.PlexAccount;
 
@@ -19,16 +16,18 @@ public class PlexRestService : IPlexRestService
     private readonly IPlexServerClient _plexServerClient;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<PlexRestService> _logger;
+    private readonly PlexLibraryIterator _libraryIterator;
 
     public PlexRestService(IPlexAccountClient plexAccountClient,
         IPlexLibraryClient plexLibraryClient, IPlexServerClient plexServerClient, IHttpClientFactory httpClientFactory,
-        ILogger<PlexRestService> logger)
+        ILogger<PlexRestService> logger, PlexLibraryIterator libraryIterator)
     {
         _plexAccountClient = plexAccountClient;
         _plexLibraryClient = plexLibraryClient;
         _plexServerClient = plexServerClient;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
+        _libraryIterator = libraryIterator;
     }
 
     public async Task<PlexAccount?> LoginAccount(CredentialsResource credentialsResource)
@@ -126,77 +125,20 @@ public class PlexRestService : IPlexRestService
             await _plexLibraryClient.GetItem(library.Server.AccessToken, library.Server.LastKnownUri, movieKey);
         if (mediaContainer.Media == null)
             return null;
-        IEnumerable<Movie> movies = GetMoviesFromMediaContainer(mediaContainer, library, _logger).ToList();
+        IEnumerable<Movie> movies = Mapper.GetMoviesFromMediaContainer(mediaContainer, library, _logger).ToList();
         if (movies.Count() > 1)
             throw new InvalidDataException();
         return movies.First();
     }
 
-    private SearchType MapToSearchType(ElementType elementType)
-    {
-        switch (elementType)
-        {
-            case ElementType.Movie:
-                return SearchType.Movie;
-            case ElementType.TvShow:
-                return SearchType.Episode;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(elementType), elementType, null);
-        }
-    }
-    
-    private async Task<IEnumerable<IMediaElement>> RetrieveAllItems(Library library, ElementType elementType)
-    {
-        var mediaContainerWithTotalSize = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
-            library.Server.LastKnownUri, null, library.Key,
-            null, MapToSearchType(elementType), null, 0, 0);
-        int totalSize = mediaContainerWithTotalSize.TotalSize;
-        _logger.LogInformation("Library {0} contains {1} items. Start retrieving metadata...", library.Name, totalSize);
-        int offset = 0;
-        int batchSize = 50;
-        List<Task<IReadOnlyCollection<IMediaElement>>> allRequests = new();
-        while (offset < totalSize)
-        {
-            switch (elementType)
-            {
-                case ElementType.Movie:
-                    allRequests.Add(RetrieveMovies(library, offset, batchSize));
-                    break;
-                case ElementType.TvShow:
-                    allRequests.Add(RetrieveEpisodes(library, offset, batchSize));
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(elementType), elementType, null);
-            }
-            offset += batchSize;
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-        }
-
-        List<IMediaElement> allMediaElements = new List<IMediaElement>();
-        foreach (Task<IReadOnlyCollection<IMediaElement>> request in allRequests)
-        {
-            try
-            {
-                var retrievedItems = await request;
-                if(!retrievedItems.Any() && allMediaElements.Count < totalSize)
-                    _logger.LogWarning("An error occured while retrieving metadata batch: Request returned 0 items in this batch. Sync will continue though.");
-                allMediaElements.AddRange(retrievedItems);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "An unknown error occured while retrieving metadata batch.");
-            }
-        }
-        return allMediaElements;
-    }
     public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
     {
-        return (await RetrieveAllItems(library, ElementType.Movie)).Cast<Movie>();
+        return await _libraryIterator.GetWithDynamicBatchSize<Movie>(library, 50, TimeSpan.FromMilliseconds(300));
     }
 
     public async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library)
     {
-        return (await RetrieveAllItems(library, ElementType.TvShow)).Cast<Episode>();
+        return await _libraryIterator.GetWithDynamicBatchSize<Episode>(library, 50, TimeSpan.FromMilliseconds(200));
     }
 
     public async Task<IEnumerable<Playlist>> RetrievePlaylists(Server server)
@@ -228,69 +170,15 @@ public class PlexRestService : IPlexRestService
         return playlistList;
     }
 
-    private async Task<IReadOnlyCollection<IMediaElement>> RetrieveEpisodes(Library library, int offset, int limit)
-    {
-        var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
-            library.Server.LastKnownUri, null, library.Key,
-            null, SearchType.Episode, null, offset, limit);
-        if (mediaContainer.Media == null)
-            return new List<Episode>();
-        IEnumerable<Episode> episodes = GetEpisodesFromMediaContainer(mediaContainer, library, _logger);
-        return episodes.ToList();
-    }
-
     public async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library)
     {
-        List<TvShow> tvShows = new List<TvShow>();
-        int offset = 0;
-        int limit = 24;
-        while (true)
-        {
-            var retrieveTvShows = (await RetrieveTvShows(library, offset, limit)).ToList();
-            if (retrieveTvShows.Any())
-                tvShows.AddRange(retrieveTvShows);
-            else
-                break;
-            offset += limit;
-        }
-
-        return tvShows;
-    }
-
-    private async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library, int offset, int limit)
-    {
-        var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
-            library.Server.LastKnownUri, null, library.Key,
-            null, SearchType.Show, null, offset, limit);
-        if (mediaContainer.Media == null)
-            return Enumerable.Empty<TvShow>();
-        IEnumerable<TvShow> episodes = mediaContainer.Media.Select(x => new TvShow()
-        {
-            Title = x.Title,
-            Key = x.Key,
-            RatingKey = x.RatingKey,
-            Guid = x.Guid,
-            LibraryId = library.Id,
-            ServerId = library.ServerId
-        });
-        return episodes;
-    }
-
-    private async Task<IReadOnlyCollection<IMediaElement>> RetrieveMovies(Library library, int offset, int limit)
-    {
-        var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
-            library.Server.LastKnownUri, null, library.Key,
-            null, SearchType.Movie, null, offset, limit);
-        if (mediaContainer.Media == null)
-            return new List<Movie>();
-        IEnumerable<Movie> movies = GetMoviesFromMediaContainer(mediaContainer, library, _logger);
-        return movies.ToList();
+        return await _libraryIterator.GetWithDynamicBatchSize<TvShow>(library, 24, TimeSpan.FromMilliseconds(200));
     }
 
     public IReadOnlyCollection<Uri> GetAllPossibleConnectionUrisForServer(Server server)
     {
         var resourceConnections = server.Connections;
-        if (resourceConnections?.Any() != true)
+        if (resourceConnections.Any() != true)
             throw new ArgumentException("No resource connections specified.");
         List<Uri> uris = resourceConnections.Where(x => !x.Relay).Select(x=>new Uri(x.Uri)).ToList();
         uris.AddRange(resourceConnections.Where(x => !x.Relay).Select(x=>
@@ -362,117 +250,5 @@ public class PlexRestService : IPlexRestService
         }
 
         return uri;
-    }
-
-    private IEnumerable<Movie> GetMoviesFromMediaContainer(MediaContainer mediaContainer, Library library,
-        ILogger<PlexRestService> logger)
-    {
-        foreach (var metadata in mediaContainer.Media)
-        {
-            if (metadata.Media?.FirstOrDefault()?.Part?.Any() != true)
-            {
-                logger.LogWarning("Movie {0} will be skipped, because it does not contain any file.", metadata.Title);
-                break;
-            }
-
-            if (metadata.Media.Count > 1 || metadata.Media.First().Part.Count > 1)
-            {
-                logger.LogTrace("Movie {0} contains more than one file.", metadata.Title);
-            }
-
-            List<MediaFile> mediaFiles = new List<MediaFile>();
-            foreach (var medium in metadata.Media)
-            {
-                foreach (var part in medium.Part)
-                {
-                    var mediaFile = Map(medium, part, library, metadata);
-                    mediaFile.MovieRatingKey = metadata.RatingKey;
-                    mediaFiles.Add(mediaFile);
-                }
-            }
-
-            yield return new Movie()
-            {
-                Title = metadata.Title,
-                Key = metadata.Key,
-                RatingKey = metadata.RatingKey,
-                LibraryId = library.Id,
-                ServerId = library.Server.Id,
-                Year = metadata.Year,
-                MediaFiles = mediaFiles
-            };
-        }
-    }
-
-    private IEnumerable<Episode> GetEpisodesFromMediaContainer(MediaContainer mediaContainer, Library library,
-        ILogger<PlexRestService> logger)
-    {
-        foreach (var metadata in mediaContainer.Media)
-        {
-            if (metadata.Media?.FirstOrDefault()?.Part?.Any() != true)
-            {
-                logger.LogWarning("Episode {0} will be skipped, because file is missing.", metadata.Title);
-                break;
-            }
-
-            if (metadata.Media.Count > 1 || metadata.Media.First().Part.Count > 1)
-            {
-                logger.LogTrace(
-                    "Episode {0} contains more than one file, this program does not support more than one file",
-                    metadata.Title);
-            }
-
-            List<MediaFile> mediaFiles = new List<MediaFile>();
-            foreach (var medium in metadata.Media)
-            {
-                foreach (var part in medium.Part)
-                {
-                    var mediaFile = Map(medium, part, library, metadata);
-                    mediaFile.EpisodeRatingKey = metadata.RatingKey;
-                    mediaFiles.Add(mediaFile);
-                }
-            }
-
-            yield return new Episode()
-            {
-                Title = metadata.Title,
-                Key = metadata.Key,
-                RatingKey = metadata.RatingKey,
-                LibraryId = library.Id,
-                ServerId = library.ServerId,
-                Year = metadata.Year,
-                MediaFiles = mediaFiles,
-                EpisodeNumber = metadata.Index,
-                SeasonNumber = metadata.ParentIndex,
-                TvShowId = metadata.GrandparentRatingKey,
-            };
-        }
-    }
-
-    private static MediaFile Map(Medium medium, MediaPart part, Library library, Metadata x)
-    {
-        return new MediaFile()
-        {
-            Key = x.Key,
-            RatingKey = x.RatingKey,
-            ServerFilePath = part.File,
-            DownloadUri = part.Key,
-            LibraryId = library.Id,
-            ServerId = library.Server.Id,
-            TotalBytes = part.Size,
-            Bitrate = medium.Bitrate,
-            Container = medium.Container,
-            Duration = medium.Duration,
-            Height = medium.Height,
-            Width = medium.Width,
-            AspectRatio = medium.AspectRatio,
-            AudioChannels = medium.AudioChannels,
-            AudioCodec = medium.AudioCodec,
-            AudioProfile = medium.AudioProfile,
-            VideoCodec = medium.VideoCodec,
-            VideoProfile = medium.VideoProfile,
-            VideoResolution = medium.VideoResolution,
-            VideoFrameRate = medium.VideoFrameRate
-        };
     }
 }

@@ -5,7 +5,7 @@ using Web.Models.Interfaces;
 
 namespace Web.Models;
 
-public class Episode : IMediaElement
+public class Episode : IMediaElement, ISearchable
 {
     [Key] public string RatingKey { get; set; }
     public string Key { get; set; }

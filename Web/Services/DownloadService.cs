@@ -81,21 +81,22 @@ namespace Web.Services
                     mediaFile = await SelectMediaFile(mediaElement.MediaFiles, settingsService);
                 else 
                     mediaFile = mediaElement.MediaFiles.FirstOrDefault(x => x.DownloadUri == mediaFileKey);
-                if (mediaElement == null)
+                if (mediaElement == null || mediaFile == null)
                 {
                     _logger.LogError("Could not prepare download of {0} due to missing media file.", mediaElement!.Title);
                     throw new ArgumentException();
                 }
-                var downloadDirectory = elementType == ElementType.Movie
-                    ? await settingsService.GetMovieDirectory()
-                    : await settingsService.GetEpisodeDirectory();
+                var downloadDirectory = await GetDownloadDirectoryByElementType(settingsService, elementType);
                 Directory.CreateDirectory(downloadDirectory);
-                string filePath = await GetFilePath(downloadDirectory, mediaFile!.ServerFilePath, mediaElement, settingsService);
                 Library? library = unitOfWork.LibraryRepository.Get(x => x.Id == mediaElement.LibraryId, null, nameof(Library.Server))
                     .FirstOrDefault();
-                Uri uri = await GetCompleteDownloadUri(unitOfWork, library, mediaFile.DownloadUri);
+                if (library == null)
+                    throw new InvalidOperationException(
+                        $"Could not get related library from media {mediaElement.Title}");
+                Uri uri = await GetCompleteDownloadUri(library, mediaFile.DownloadUri);
                 HttpRequestMessage httpRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
                 httpRequestMessage.Headers.Add("X-Plex-Token", library.Server.AccessToken);
+                string filePath = await GetFilePath(downloadDirectory, mediaFile.ServerFilePath, mediaElement, settingsService);
                 return new DownloadElement()
                 {
                     Uri = uri.ToString(),
@@ -146,30 +147,29 @@ namespace Web.Services
             throw new InvalidCastException("Invalid file template");
         }
 
-        private async Task<Uri> GetCompleteDownloadUri(UnitOfWork unitOfWork, Library? library,
+        private Task<Uri> GetCompleteDownloadUri(Library? library,
             string resourceDownloadUri)
         {
-            
-            if (library == null || string.IsNullOrEmpty(library.Server?.LastKnownUri))
+            if (library == null || string.IsNullOrEmpty(library.Server.LastKnownUri))
                 throw new ArgumentException();
             UriBuilder uriBuilder = new UriBuilder(library.Server.LastKnownUri)
             {
                 Path = resourceDownloadUri
             };
-            return uriBuilder.Uri;
+            return Task.FromResult(uriBuilder.Uri);
         }
 
-        private async Task<IMediaElement?> GetMediaElement(UnitOfWork unitOfWork, ElementType elementType, string key)
+        private Task<IMediaElement?> GetMediaElement(UnitOfWork unitOfWork, ElementType elementType, string key)
         {
             switch (elementType)
             {
                 case ElementType.Movie:
-                    return unitOfWork.MovieRepository.Get(x => x.RatingKey == key, includeProperties: nameof(Movie.MediaFiles)).FirstOrDefault();
+                    return Task.FromResult<IMediaElement?>(unitOfWork.MovieRepository.Get(x => x.RatingKey == key, includeProperties: nameof(Movie.MediaFiles)).FirstOrDefault());
                 case ElementType.TvShow:
-                    return unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)+","+nameof(Episode.MediaFiles))
-                        .FirstOrDefault();
+                    return Task.FromResult<IMediaElement?>(unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)+","+nameof(Episode.MediaFiles))
+                        .FirstOrDefault());
                 default:
-                    return null;
+                    return Task.FromResult<IMediaElement?>(null);
             }
         }
 
@@ -198,9 +198,7 @@ namespace Web.Services
                 var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 foreach (Episode episode in episodes)
                 {
-                    var mediaFile = await SelectMediaFile(episode.MediaFiles, settingsService);
-                    var downloadElement = await CreateDownloadElement(episode.RatingKey, mediaFile.DownloadUri, ElementType.TvShow);
-                    AddToPendingDownloads(downloadElement);
+                    await SelectMediaFileAndAddToPendingDownloads(episode, settingsService, ElementType.TvShow);
                 }
             }
         }
@@ -220,18 +218,33 @@ namespace Web.Services
                 var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 foreach (Movie movie in movies)
                 {
-                    var mediaFile = await SelectMediaFile(movie.MediaFiles, settingsService);
-                    var downloadElement = await CreateDownloadElement(movie.RatingKey, mediaFile.DownloadUri, ElementType.Movie);
-                    AddToPendingDownloads(downloadElement);
+                    await SelectMediaFileAndAddToPendingDownloads(movie, settingsService, ElementType.Movie);
                 }
 
                 foreach (Episode episode in episodes)
                 {
-                    var mediaFile = await SelectMediaFile(episode.MediaFiles, settingsService);
-                    var downloadElement = await CreateDownloadElement(episode.RatingKey, mediaFile.DownloadUri, ElementType.TvShow);
-                    AddToPendingDownloads(downloadElement);
+                    await SelectMediaFileAndAddToPendingDownloads(episode, settingsService, ElementType.TvShow);
                 }
             }
+        }
+
+        private async Task SelectMediaFileAndAddToPendingDownloads(IMediaElement mediaElement,
+            ISettingsService settingsService, ElementType elementType)
+        {
+            var mediaFile = await SelectMediaFile(mediaElement.MediaFiles, settingsService);
+            if (mediaFile == null)
+            {
+                if (mediaElement is Episode episode)
+                    _logger.LogError("A media file is missing for episode S{0}E{1}. Skipping download of this item.",
+                        episode.SeasonNumber, episode.EpisodeNumber);
+                else if (mediaElement is Movie movie)
+                    _logger.LogError("A media file is missing for movie {0}. Skipping download of this item.",
+                        movie.Title);
+                return;
+            }
+            
+            var downloadElement = await CreateDownloadElement(mediaElement.RatingKey, mediaFile.DownloadUri, elementType);
+            AddToPendingDownloads(downloadElement);
         }
 
         public async Task DownloadTvShow(string key)
@@ -246,10 +259,7 @@ namespace Web.Services
                 var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 foreach (Episode episode in tvShow.Episodes)
                 {
-                    
-                    var mediaFile = await SelectMediaFile(episode.MediaFiles, settingsService);
-                    var downloadElement = await CreateDownloadElement(episode.RatingKey, mediaFile.DownloadUri,ElementType.TvShow);
-                    AddToPendingDownloads(downloadElement);
+                    await SelectMediaFileAndAddToPendingDownloads(episode, settingsService, ElementType.TvShow);
                 }
             }
         }
@@ -287,7 +297,7 @@ namespace Web.Services
             }
         }
 
-        private async Task<MediaFile> SelectMediaFile(IEnumerable<MediaFile> mediaFiles, ISettingsService settingsService)
+        private async Task<MediaFile?> SelectMediaFile(IEnumerable<MediaFile> mediaFiles, ISettingsService settingsService)
         {
             var preferredResolution = await settingsService.GetPreferredResolution();
             var preferredVideoCodec = await settingsService.GetPreferredVideoCodec();
@@ -333,9 +343,10 @@ namespace Web.Services
             _isDownloading = false;
         }
 
-        private async Task Preprocess(DownloadElement downloadElement)
+        private Task Preprocess(DownloadElement downloadElement)
         {
             downloadElement.Started = DateTimeOffset.Now;
+            return Task.CompletedTask;
         }
 
         private async Task Postprocess(DownloadElement downloadElement)
@@ -359,7 +370,7 @@ namespace Web.Services
         {
             HttpRequestMessage httpRequestMessage = downloadElement.RequestMessage;
             CancellationToken cancellationToken = downloadElement.CancellationTokenSource.Token;
-            HttpResponseMessage response = null;
+            HttpResponseMessage? response = null;
             
             try
             {
@@ -410,6 +421,8 @@ namespace Web.Services
                 var stream = await response.Content.ReadAsStreamAsync();
 
                 var fileInfo = new FileInfo(downloadElement.FilePath);
+                if (fileInfo.Directory == null)
+                    throw new Exception("Could not get valid FileInfo from file path.");
                 fileInfo.Directory.Create();
                 using (var fileStream = fileInfo.OpenWrite())
                 {
@@ -452,6 +465,13 @@ namespace Web.Services
 #endif
                 downloadElement.DownloadedBytes += bytesRead;
             }
+        }
+
+        private async Task<string> GetDownloadDirectoryByElementType(ISettingsService settingsService, ElementType elementType)
+        {
+            return elementType == ElementType.Movie
+                ? await settingsService.GetMovieDirectory()
+                : await settingsService.GetEpisodeDirectory();
         }
 
         private static bool AllButIoExceptions(Exception exception)
