@@ -1,5 +1,5 @@
-﻿FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-ARG TARGETARCH
+﻿FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+
 WORKDIR /app
 
 # Install Node.js
@@ -14,17 +14,13 @@ RUN apt-get update \
 
 WORKDIR /src
 COPY ["Web/Web.csproj", "Web/"]
-RUN dotnet restore "Web/Web.csproj" -a $TARGETARCH
+RUN dotnet restore "Web/Web.csproj" --use-current-runtime
 WORKDIR "/src/Web"
 COPY ./Web .
 
-RUN dotnet publish "Web.csproj" -a $TARGETARCH --self-contained false -c Release -o /app/publish
+RUN dotnet publish "Web.csproj" --use-current-runtime --self-contained false -c Release -o /app/publish 
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
-
-# Needed when csproj is .NET 7
-ENV DOTNET_ROLL_FORWARD=Major
-
+FROM mcr.microsoft.com/dotnet/aspnet:7.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
