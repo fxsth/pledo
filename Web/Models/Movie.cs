@@ -3,7 +3,7 @@ using Web.Models.Interfaces;
 
 namespace Web.Models;
 
-public class Movie : IMediaElement
+public class Movie : IMediaElement, ISearchable
 {
     [Key]
     public string RatingKey { get; set; }

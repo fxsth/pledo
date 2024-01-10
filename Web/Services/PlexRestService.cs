@@ -133,7 +133,7 @@ public class PlexRestService : IPlexRestService
 
     public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
     {
-        return await _libraryIterator.GetWithDynamicBatchSize<Movie>(library, 50, TimeSpan.FromMilliseconds(200));
+        return await _libraryIterator.GetWithDynamicBatchSize<Movie>(library, 50, TimeSpan.FromMilliseconds(300));
     }
 
     public async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library)
@@ -172,39 +172,7 @@ public class PlexRestService : IPlexRestService
 
     public async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library)
     {
-        List<TvShow> tvShows = new List<TvShow>();
-        int offset = 0;
-        int limit = 24;
-        while (true)
-        {
-            var retrieveTvShows = (await RetrieveTvShows(library, offset, limit)).ToList();
-            if (retrieveTvShows.Any())
-                tvShows.AddRange(retrieveTvShows);
-            else
-                break;
-            offset += limit;
-        }
-
-        return tvShows;
-    }
-
-    private async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library, int offset, int limit)
-    {
-        var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
-            library.Server.LastKnownUri, null, library.Key,
-            null, SearchType.Show, null, offset, limit);
-        if (mediaContainer.Media == null)
-            return Enumerable.Empty<TvShow>();
-        IEnumerable<TvShow> episodes = mediaContainer.Media.Select(x => new TvShow()
-        {
-            Title = x.Title,
-            Key = x.Key,
-            RatingKey = x.RatingKey,
-            Guid = x.Guid,
-            LibraryId = library.Id,
-            ServerId = library.ServerId
-        });
-        return episodes;
+        return await _libraryIterator.GetWithDynamicBatchSize<TvShow>(library, 24, TimeSpan.FromMilliseconds(200));
     }
 
     public IReadOnlyCollection<Uri> GetAllPossibleConnectionUrisForServer(Server server)

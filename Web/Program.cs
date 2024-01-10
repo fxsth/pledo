@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Web.Data;
 using Web.Extensions;
 using Web.Services;
@@ -32,6 +33,7 @@ builder.Services.AddDbContext<CustomDbContext>(o =>
             dataDirectory += Path.DirectorySeparatorChar;
         connectionString = connectionString.Replace("|DataDirectory|", dataDirectory);
         o.UseSqlite(connectionString);
+        // o.ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning));
 #if DEBUG
         o.EnableDetailedErrors();
         o.EnableSensitiveDataLogging();

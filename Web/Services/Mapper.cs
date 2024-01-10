@@ -13,6 +13,8 @@ public static class Mapper
             return (IEnumerable<T>) GetMoviesFromMediaContainer(mediaContainer, library, logger);
         if (typeof(T) == typeof(Episode))
             return (IEnumerable<T>) GetEpisodesFromMediaContainer(mediaContainer, library, logger);
+        if (typeof(T) == typeof(TvShow))
+            return (IEnumerable<T>) MapTvShows(mediaContainer, library);
         throw new Exception();
     }
 
@@ -21,6 +23,7 @@ public static class Mapper
     {
         foreach (var metadata in mediaContainer.Media)
         {
+            
             if (metadata.Media?.FirstOrDefault()?.Part?.Any() != true)
             {
                 logger.LogWarning("Movie {0} will be skipped, because it does not contain any file.", metadata.Title);
@@ -99,6 +102,21 @@ public static class Mapper
                 TvShowId = metadata.GrandparentRatingKey,
             };
         }
+    }
+
+    public static IEnumerable<TvShow> MapTvShows(MediaContainer mediaContainer, Library library)
+    {
+        if (mediaContainer.Media == null)
+            return Enumerable.Empty<TvShow>();
+        return mediaContainer.Media.Select(x => new TvShow()
+        {
+            Title = x.Title,
+            Key = x.Key,
+            RatingKey = x.RatingKey,
+            Guid = x.Guid,
+            LibraryId = library.Id,
+            ServerId = library.ServerId
+        });
     }
 
     private static MediaFile Map(Medium medium, MediaPart part, Library library, Metadata x)

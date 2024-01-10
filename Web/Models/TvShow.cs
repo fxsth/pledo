@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Web.Models.Interfaces;
 
 namespace Web.Models;
 
-public class TvShow
+public class TvShow : ISearchable
 {
     [Key] 
     public string RatingKey { get; set; }

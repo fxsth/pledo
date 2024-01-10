@@ -18,11 +18,14 @@ public class PlexLibraryIterator
     }
 
     public async Task<IReadOnlyCollection<T>> GetWithDynamicBatchSize<T>(Library library, int maxBatchSize, TimeSpan minPauseBetweenRequests)
-        where T : IMediaElement
+        where T : ISearchable
     {
         int totalSize = await GetTotalSize<T>(library);
         _logger.LogInformation("Library {0} contains {1} items. Start retrieving metadata...", library.Name, totalSize);
 
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        
         int offset = 0;
         int batchSize = maxBatchSize;
         List<Task<IReadOnlyCollection<T>>> allRequests = new();
@@ -50,11 +53,15 @@ public class PlexLibraryIterator
             }
         }
 
+        stopwatch.Stop();
+        _logger.LogDebug("Received {0} items metadata from library {1}, duration: {2} ms",
+            allMediaElements.Count, library.Name, stopwatch.ElapsedMilliseconds);
+
         return allMediaElements;
     }
     
     private async Task<IReadOnlyCollection<T>> GetWithDynamicBatchSize<T>(Library library, int offset, int maxBatchSize)
-        where T : IMediaElement
+        where T : ISearchable
     {
         var elementsRequest = Get<T>(library, offset, maxBatchSize);
         var collection = await elementsRequest;
@@ -75,7 +82,7 @@ public class PlexLibraryIterator
     }
 
     private async Task<IReadOnlyCollection<T>> Get<T>(Library library, int offset, int batchSize)
-        where T : IMediaElement
+        where T : ISearchable
     {
         var searchType = MapToSearchType<T>();
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
@@ -87,7 +94,7 @@ public class PlexLibraryIterator
     }
     
     private async Task<int> GetTotalSize<T>(Library library)
-        where T : IMediaElement
+        where T : ISearchable
     {
         var searchType = MapToSearchType<T>();
         var mediaContainer = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
@@ -96,56 +103,14 @@ public class PlexLibraryIterator
         return mediaContainer.TotalSize;
     }
 
-    private async Task<IEnumerable<T>> GetAllItems<T>(Library library) where T : IMediaElement
-    {
-        var mediaContainerWithTotalSize = await _plexLibraryClient.LibrarySearch(library.Server.AccessToken,
-            library.Server.LastKnownUri, null, library.Key,
-            null, MapToSearchType<T>(), null, 0, 0);
-        int totalSize = mediaContainerWithTotalSize.TotalSize;
-        _logger.LogInformation("Library {0} contains {1} items. Start retrieving metadata...", library.Name, totalSize);
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        int offset = 0;
-        int batchSize = 50;
-        List<Task<IReadOnlyCollection<T>>> allRequests = new();
-        while (offset < totalSize)
-        {
-            var elements = Get<T>(library, offset, batchSize);
-            allRequests.Add(elements);
-            offset += batchSize;
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
-        }
-
-        List<T> allMediaElements = new List<T>();
-        foreach (Task<IReadOnlyCollection<T>> request in allRequests)
-        {
-            try
-            {
-                var retrievedItems = await request;
-                if (!retrievedItems.Any() && allMediaElements.Count < totalSize)
-                    _logger.LogWarning(
-                        "An error occured while retrieving metadata batch: Request returned 0 items in this batch. Sync will continue though.");
-                allMediaElements.AddRange(retrievedItems);
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "An unknown error occured while retrieving metadata batch.");
-            }
-        }
-
-        stopwatch.Stop();
-        var elapsedTime = stopwatch.ElapsedMilliseconds;
-        _logger.LogDebug("Received {0} items metadata from library {1}, duration: {2} ms",
-            allMediaElements.Count, library.Name, elapsedTime);
-        return allMediaElements;
-    }
-
-    private SearchType MapToSearchType<T>() where T : IMediaElement
+    private SearchType MapToSearchType<T>() where T : ISearchable
     {
         if (typeof(T) == typeof(Movie))
             return SearchType.Movie;
         if (typeof(T) == typeof(Episode))
             return SearchType.Episode;
-        throw new Exception();
+        if (typeof(T) == typeof(TvShow))
+            return SearchType.Show;
+        throw new Exception("Could not map type to search type.");
     }
 }
