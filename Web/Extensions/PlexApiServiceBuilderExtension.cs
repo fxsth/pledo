@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Plex.Api.Factories;
 using Plex.Library.Factories;
 using Plex.ServerApi;
@@ -35,7 +34,7 @@ public static class PlexApiServiceBuilderExtension
             .AddSingleton(apiOptions)
             .AddTransient<IPlexServerClient, PlexServerClient>()
             .AddTransient<IPlexAccountClient, PlexAccountClient>()
-            .AddTransient<IPlexLibraryClient, PlexLibraryClient>()
+            .AddTransient<IPlexLibraryClient, CustomPlexLibraryClient>()
             .AddTransient<IApiService, ApiService>()
             .AddTransient<IPlexFactory, PlexFactory>()
             .AddSingleton<IPlexRequestsHttpClient, CustomPlexHttpClient>()
