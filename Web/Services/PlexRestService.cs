@@ -1,5 +1,4 @@
 ﻿using Plex.ServerApi.Clients.Interfaces;
-using Plex.ServerApi.Enums;
 using Plex.ServerApi.PlexModels.Library;
 using Web.Exceptions;
 using Web.Models;
@@ -133,12 +132,12 @@ public class PlexRestService : IPlexRestService
 
     public async Task<IEnumerable<Movie>> RetrieveMovies(Library library)
     {
-        return await _libraryIterator.GetWithDynamicBatchSize<Movie>(library, 50, TimeSpan.FromMilliseconds(300));
+        return await _libraryIterator.GetWithBatchSize<Movie>(library, 50);
     }
 
     public async Task<IEnumerable<Episode>> RetrieveEpisodes(Library library)
     {
-        return await _libraryIterator.GetWithDynamicBatchSize<Episode>(library, 50, TimeSpan.FromMilliseconds(200));
+        return await _libraryIterator.GetWithBatchSize<Episode>(library, 50);
     }
 
     public async Task<IEnumerable<Playlist>> RetrievePlaylists(Server server)
@@ -172,7 +171,7 @@ public class PlexRestService : IPlexRestService
 
     public async Task<IEnumerable<TvShow>> RetrieveTvShows(Library library)
     {
-        return await _libraryIterator.GetWithDynamicBatchSize<TvShow>(library, 24, TimeSpan.FromMilliseconds(200));
+        return await _libraryIterator.GetWithBatchSize<TvShow>(library, 24);
     }
 
     public IReadOnlyCollection<Uri> GetAllPossibleConnectionUrisForServer(Server server)

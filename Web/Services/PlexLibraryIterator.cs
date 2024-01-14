@@ -17,7 +17,7 @@ public class PlexLibraryIterator
         _logger = logger;
     }
 
-    public async Task<IReadOnlyCollection<T>> GetWithDynamicBatchSize<T>(Library library, int maxBatchSize, TimeSpan minPauseBetweenRequests)
+    public async Task<IReadOnlyCollection<T>> GetWithBatchSize<T>(Library library, int maxBatchSize)
         where T : ISearchable
     {
         int totalSize = await GetTotalSize<T>(library);
@@ -25,7 +25,49 @@ public class PlexLibraryIterator
 
         var stopwatch = new Stopwatch();
         stopwatch.Start();
-        
+
+        int offset = 0;
+        int batchSize = maxBatchSize;
+        List<T> allMediaElements = new List<T>();
+        while (offset < totalSize)
+        {
+            try
+            {
+                var retrievedItems = await GetWithDynamicBatchSize<T>(library, offset, batchSize);
+                if (!retrievedItems.Any() && allMediaElements.Count < totalSize)
+                    _logger.LogWarning(
+                        "An error occured while retrieving metadata batch: Request returned 0 items in this batch. Sync will continue though.");
+                allMediaElements.AddRange(retrievedItems);
+            }
+            catch (TaskCanceledException e)
+            {
+                _logger.LogError("Cancelled metadata request: {0}", e.Message);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "An unknown error occured while retrieving metadata batch.");
+            }
+
+            offset += batchSize;
+        }
+
+        stopwatch.Stop();
+        _logger.LogDebug("Received {0} items metadata from library {1}, duration: {2} ms",
+            allMediaElements.Count, library.Name, stopwatch.ElapsedMilliseconds);
+
+        return allMediaElements;
+    }
+
+    public async Task<IReadOnlyCollection<T>> GetWithDynamicBatchSize<T>(Library library, int maxBatchSize,
+        TimeSpan minPauseBetweenRequests)
+        where T : ISearchable
+    {
+        int totalSize = await GetTotalSize<T>(library);
+        _logger.LogInformation("Library {0} contains {1} items. Start retrieving metadata...", library.Name, totalSize);
+
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+
         int offset = 0;
         int batchSize = maxBatchSize;
         List<Task<IReadOnlyCollection<T>>> allRequests = new();
@@ -36,20 +78,21 @@ public class PlexLibraryIterator
             offset += batchSize;
             await Task.Delay(minPauseBetweenRequests);
         }
-        
+
         List<T> allMediaElements = new List<T>();
         foreach (Task<IReadOnlyCollection<T>> request in allRequests)
         {
             try
             {
                 var retrievedItems = await request;
-                if(!retrievedItems.Any() && allMediaElements.Count < totalSize)
-                    _logger.LogWarning("An error occured while retrieving metadata batch: Request returned 0 items in this batch. Sync will continue though.");
+                if (!retrievedItems.Any() && allMediaElements.Count < totalSize)
+                    _logger.LogWarning(
+                        "An error occured while retrieving metadata batch: Request returned 0 items in this batch. Sync will continue though.");
                 allMediaElements.AddRange(retrievedItems);
             }
             catch (TaskCanceledException e)
             {
-                _logger.LogError( "Cancelled metadata request: {0}", e.Message);
+                _logger.LogError("Cancelled metadata request: {0}", e.Message);
             }
             catch (Exception e)
             {
@@ -63,7 +106,7 @@ public class PlexLibraryIterator
 
         return allMediaElements;
     }
-    
+
     private async Task<IReadOnlyCollection<T>> GetWithDynamicBatchSize<T>(Library library, int offset, int maxBatchSize)
         where T : ISearchable
     {
@@ -96,7 +139,7 @@ public class PlexLibraryIterator
             return new List<T>();
         return Mapper.GetFromMediaContainer<T>(mediaContainer, library, _logger).ToList();
     }
-    
+
     private async Task<int> GetTotalSize<T>(Library library)
         where T : ISearchable
     {
