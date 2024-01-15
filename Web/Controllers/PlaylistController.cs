@@ -19,12 +19,12 @@ public class PlaylistController : ControllerBase
     [HttpGet]
     public async Task<IEnumerable<PlaylistResource>> Get()
     {
-        var playlists =  _unitOfWork.PlaylistRepository.Get(includeProperties: nameof(Playlist.Server));
+        var playlists =  await _unitOfWork.PlaylistRepository.Get(includeProperties: nameof(Playlist.Server));
         List<PlaylistResource> playlistResources = new List<PlaylistResource>();
         foreach (var playlist in playlists)
         {
-            var movies = _unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey)).ToDictionary(x=>x.RatingKey);
-            var episodes = _unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey), includeProperties: nameof(Episode.TvShow)).ToDictionary(x=>x.RatingKey);
+            var movies = (await _unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey))).ToDictionary(x=>x.RatingKey);
+            var episodes = (await _unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey), includeProperties: nameof(Episode.TvShow))).ToDictionary(x=>x.RatingKey);
 
             List<PlaylistItem> items = playlist.Items.Select(x =>
             {

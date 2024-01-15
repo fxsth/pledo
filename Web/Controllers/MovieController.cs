@@ -10,9 +10,9 @@ namespace Web.Controllers;
 public class MovieController : ControllerBase
 {
     private readonly UnitOfWork _unitOfWork;
-    private readonly ILogger<TvShowController> _logger;
+    private readonly ILogger<MovieController> _logger;
 
-    public MovieController(UnitOfWork unitOfWork, ILogger<TvShowController> logger)
+    public MovieController(UnitOfWork unitOfWork, ILogger<MovieController> logger)
     {
         _unitOfWork = unitOfWork;
         _logger = logger;
@@ -21,6 +21,6 @@ public class MovieController : ControllerBase
     [HttpGet]
     public async Task<IEnumerable<Movie>> Get([FromQuery] string libraryId)
     {
-        return _unitOfWork.MovieRepository.Get(x => x.LibraryId == libraryId, includeProperties:nameof(Movie.MediaFiles));
+        return await _unitOfWork.MovieRepository.Get(x => x.LibraryId == libraryId, includeProperties:nameof(Movie.MediaFiles));
     }
 }

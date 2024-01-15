@@ -19,11 +19,11 @@ public class LibraryController : ControllerBase
     }
 
     [HttpGet]
-    public Task<IEnumerable<Library>> Get([FromQuery] string server, [FromQuery] string? mediaType = null)
+    public async Task<IEnumerable<Library>> Get([FromQuery] string server, [FromQuery] string? mediaType = null)
     {
         if (mediaType == null)
-            return Task.FromResult(_unitOfWork.LibraryRepository.Get(library => library.ServerId == server));
+            return await _unitOfWork.LibraryRepository.Get(library => library.ServerId == server);
         else
-            return Task.FromResult(_unitOfWork.LibraryRepository.Get(library => library.ServerId == server && library.Type == mediaType));
+            return await _unitOfWork.LibraryRepository.Get(library => library.ServerId == server && library.Type == mediaType);
     }
 }

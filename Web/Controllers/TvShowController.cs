@@ -9,18 +9,16 @@ namespace Web.Controllers;
 public class TvShowController : ControllerBase
 {
     private readonly UnitOfWork _unitOfWork;
-    private readonly ILogger<TvShowController> _logger;
 
-    public TvShowController(UnitOfWork unitOfWork, ILogger<TvShowController> logger)
+    public TvShowController(UnitOfWork unitOfWork)
     {
         _unitOfWork = unitOfWork;
-        _logger = logger;
     }
 
     [HttpGet]
-    public Task<IEnumerable<TvShow>> Get([FromQuery] string libraryId)
+    public async Task<IEnumerable<TvShow>> Get([FromQuery] string libraryId)
     {
-        return Task.FromResult(_unitOfWork.TvShowRepository.Get(x=>x.LibraryId == libraryId, s=>s.OrderBy(x=>x.Title), nameof(TvShow.Episodes)));
+        return await _unitOfWork.TvShowRepository.Get(x=>x.LibraryId == libraryId, s=>s.OrderBy(x=>x.Title), nameof(TvShow.Episodes));
     }
     
     [HttpGet("tvShowId")]

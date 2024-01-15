@@ -88,7 +88,7 @@ namespace Web.Services
                 }
                 var downloadDirectory = await GetDownloadDirectoryByElementType(settingsService, elementType);
                 Directory.CreateDirectory(downloadDirectory);
-                Library? library = unitOfWork.LibraryRepository.Get(x => x.Id == mediaElement.LibraryId, null, nameof(Library.Server))
+                Library? library = (await unitOfWork.LibraryRepository.Get(x => x.Id == mediaElement.LibraryId, null, nameof(Library.Server)))
                     .FirstOrDefault();
                 if (library == null)
                     throw new InvalidOperationException(
@@ -159,17 +159,17 @@ namespace Web.Services
             return Task.FromResult(uriBuilder.Uri);
         }
 
-        private Task<IMediaElement?> GetMediaElement(UnitOfWork unitOfWork, ElementType elementType, string key)
+        private async Task<IMediaElement?> GetMediaElement(UnitOfWork unitOfWork, ElementType elementType, string key)
         {
             switch (elementType)
             {
                 case ElementType.Movie:
-                    return Task.FromResult<IMediaElement?>(unitOfWork.MovieRepository.Get(x => x.RatingKey == key, includeProperties: nameof(Movie.MediaFiles)).FirstOrDefault());
+                    return (await unitOfWork.MovieRepository.Get(x => x.RatingKey == key, includeProperties: nameof(Movie.MediaFiles))).FirstOrDefault();
                 case ElementType.TvShow:
-                    return Task.FromResult<IMediaElement?>(unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)+","+nameof(Episode.MediaFiles))
-                        .FirstOrDefault());
+                    return (await unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)+","+nameof(Episode.MediaFiles)))
+                        .FirstOrDefault();
                 default:
-                    return Task.FromResult<IMediaElement?>(null);
+                    return null;
             }
         }
 
@@ -190,7 +190,7 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes")
+                TvShow? tvShow = (await unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes"))
                     .FirstOrDefault();
                 if (tvShow == null)
                     throw new InvalidOperationException();
@@ -212,8 +212,8 @@ namespace Web.Services
                 if (playlist == null)
                     throw new InvalidOperationException();
 
-                IEnumerable<Movie> movies = unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey));
-                IEnumerable<Episode> episodes = unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey));
+                IEnumerable<Movie> movies = await unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey));
+                IEnumerable<Episode> episodes = await unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey));
                 
                 var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 foreach (Movie movie in movies)
@@ -252,7 +252,7 @@ namespace Web.Services
             using (var scope = _scopeFactory.CreateScope())
             {
                 var unitOfWork = scope.ServiceProvider.GetRequiredService<UnitOfWork>();
-                TvShow? tvShow = unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes")
+                TvShow? tvShow = (await unitOfWork.TvShowRepository.Get(x => x.RatingKey == key, null, "Episodes"))
                     .FirstOrDefault();
                 if (tvShow == null)
                     throw new InvalidOperationException();

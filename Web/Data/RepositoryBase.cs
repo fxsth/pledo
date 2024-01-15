@@ -17,8 +17,7 @@ public class RepositoryBase<T> : IRepository<T> where T : class
         return CustomDbContext.Set<T>().AsNoTracking().ToList();
     }
     
-    public virtual IEnumerable<T> Get(
-        Expression<Func<T, bool>>? filter = null,
+    public virtual async Task<IEnumerable<T>> Get(Expression<Func<T, bool>>? filter = null,
         Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
         string includeProperties = "")
     {
@@ -37,11 +36,11 @@ public class RepositoryBase<T> : IRepository<T> where T : class
 
         if (orderBy != null)
         {
-            return orderBy(query).ToList();
+            return await orderBy(query).ToListAsync();
         }
         else
         {
-            return query.ToList();
+            return await query.ToListAsync();
         }
     }
 

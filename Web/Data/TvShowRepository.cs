@@ -10,8 +10,7 @@ public class TvShowRepository : RepositoryBase<TvShow>
     {
     }
 
-    public override IEnumerable<TvShow> Get(
-        Expression<Func<TvShow, bool>>? filter = null,
+    public override async Task<IEnumerable<TvShow>> Get(Expression<Func<TvShow, bool>>? filter = null,
         Func<IQueryable<TvShow>, IOrderedQueryable<TvShow>>? orderBy = null,
         string includeProperties = "")
     {
@@ -28,11 +27,11 @@ public class TvShowRepository : RepositoryBase<TvShow>
 
         if (orderBy != null)
         {
-            return orderBy(query).ToList();
+            return await orderBy(query).ToListAsync();
         }
         else
         {
-            return query.ToList();
+            return await query.ToListAsync();
         }
     }
 }
