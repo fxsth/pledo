@@ -5,14 +5,17 @@ import {Spinner} from "reactstrap";
 import {PaginationRow} from "./Pagination";
 
 function PaginatedTableContainer({libraryId, server}) {
-    const [items, setItems] = useState({items: [], totalItems: 0});
+    const [items, setItems] = useState({items: [], totalItems: 0, loading: true});
     const [loading, setLoading] = useState(true);
     const [pageNumber, setPageNumber] = useState(0);
     const pageSize = 100;
 
     useEffect(() => {
+        setPageNumber(0)
+    }, [libraryId])
+    useEffect(() => {
         populateData(libraryId, pageNumber)
-    })
+    }, [libraryId, pageNumber])
     const populateData = async (libraryId, pageNumber) => {
         const uri = 'api/media/movie?' + new URLSearchParams({
             libraryId: libraryId,
@@ -21,13 +24,12 @@ function PaginatedTableContainer({libraryId, server}) {
         });
         const response = await fetch(uri);
         const data = await response.json();
-        setItems({items: data.items, totalItems: data.totalItems})
-        setLoading(false)
+        setItems({items: data.items, totalItems: data.totalItems, loading: false})
     }
 
     return (
         <div>
-            {loading ?
+            {items.loading ?
                 <Spinner>Loading...</Spinner> :
                 <div>
                     <PaginationRow pages={Math.ceil(items.totalItems / pageSize)} currentPage={pageNumber}

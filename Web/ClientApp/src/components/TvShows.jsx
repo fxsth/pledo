@@ -1,25 +1,49 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {LibrarySelector} from "./LibrarySelector";
-import {MoviesTable} from "./MoviesTable";
 import {Spinner} from "reactstrap";
+import {PaginationRow} from "./Pagination";
 import {TvShowsTable} from "./TvShowsTable";
 
-export function TvShows(props) {
-    const [items, setItems] = useState([]);
-    const [selectedServer, setSelectedServer] = useState(null);
+function PaginatedTableContainer({libraryId, server}) {
+    const [items, setItems] = useState({items: [], totalItems: 0, loading: true});
     const [loading, setLoading] = useState(true);
-
-    const populateData = async (libraryId) => {
+    const [pageNumber, setPageNumber] = useState(0);
+    const pageSize = 10;
+    
+    useEffect(() => {
+        setPageNumber(0)
+    }, [libraryId])
+    useEffect(() => {
+        populateData(libraryId, pageNumber)
+    }, [libraryId, pageNumber])
+    const populateData = async (libraryId, pageNumber) => {
         const uri = 'api/media/tvshow?' + new URLSearchParams({
             libraryId: libraryId,
-            pageNumber: 1,
-            pageSize: 10
+            pageNumber: pageNumber + 1,
+            pageSize: pageSize
         });
         const response = await fetch(uri);
         const data = await response.json();
-        setItems(data)
-        setLoading(false)
+        setItems({items: data.items, totalItems: data.totalItems, loading: false})
     }
+
+    return (
+        <div>
+            {items.loading ?
+                <Spinner>Loading...</Spinner> :
+                <div>
+                    <PaginationRow pages={Math.ceil(items.totalItems / pageSize)} currentPage={pageNumber}
+                                   selectPage={setPageNumber}/>
+                    <TvShowsTable items={items.items} selectedServer={server}/>
+                </div>
+            }
+        </div>
+    );
+}
+
+export function TvShows(props) {
+    const [selectedServer, setSelectedServer] = useState(null);
+    const [selectedLibrary, setSelectedLibrary] = useState(null);
 
     return (
         <div>
@@ -29,15 +53,9 @@ export function TvShows(props) {
             <LibrarySelector
                 mediaType={"show"}
                 onServerSelected={setSelectedServer}
-                onLibrarySelected={library => {
-                    setLoading(true)
-                    populateData(library)
-                }}/>
+                onLibrarySelected={setSelectedLibrary}/>
             <br/>
-            {loading ?
-                <Spinner>Loading...</Spinner> :
-                <TvShowsTable items={items} selectedServer={selectedServer}/>}
+            <PaginatedTableContainer libraryId={selectedLibrary} server={selectedServer}/>
         </div>
     );
-
 }
