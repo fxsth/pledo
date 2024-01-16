@@ -20,22 +20,34 @@ public class MediaController : ControllerBase
     }
 
     [HttpGet("movie")]
-    public async Task<IEnumerable<Movie>> GetMovies([FromQuery] MediaQueryParameter queryParameter)
+    public async Task<ResultResource<Movie>> GetMovies([FromQuery] MediaQueryParameter queryParameter)
     {
-        return await _unitOfWork.MovieRepository.Get(x => x.LibraryId == queryParameter.LibraryId,
+        var totalItems = await _unitOfWork.MovieRepository.Count(x => x.LibraryId == queryParameter.LibraryId);
+        var items = await _unitOfWork.MovieRepository.Get(x => x.LibraryId == queryParameter.LibraryId,
             includeProperties: nameof(Movie.MediaFiles),
             offset: (queryParameter.PageNumber - 1) * queryParameter.PageSize,
             size: queryParameter.PageSize);
+        return new ResultResource<Movie>
+        {
+            Items = items,
+            TotalItems = totalItems
+        };
     }
 
     [HttpGet("tvshow")]
-    public async Task<IEnumerable<TvShow>> GetTvShows([FromQuery] MediaQueryParameter queryParameter)
+    public async Task<ResultResource<TvShow>> GetTvShows([FromQuery] MediaQueryParameter queryParameter)
     {
-        return await _unitOfWork.TvShowRepository.Get(x => x.LibraryId == queryParameter.LibraryId,
+        var totalItems = await _unitOfWork.TvShowRepository.Count(x => x.LibraryId == queryParameter.LibraryId);
+        var items = await _unitOfWork.TvShowRepository.Get(x => x.LibraryId == queryParameter.LibraryId,
             s => s.OrderBy(x => x.Title), 
             nameof(TvShow.Episodes),
             offset: (queryParameter.PageNumber - 1) * queryParameter.PageSize,
             size: queryParameter.PageSize);
+        return new ResultResource<TvShow>
+        {
+            Items = items,
+            TotalItems = totalItems
+        };
     }
 
     [HttpGet("search")]

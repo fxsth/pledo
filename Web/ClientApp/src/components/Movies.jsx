@@ -1,25 +1,47 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {LibrarySelector} from "./LibrarySelector";
 import {MoviesTable} from "./MoviesTable";
 import {Spinner} from "reactstrap";
-import {Pagination} from "./Pagination";
+import {PaginationRow} from "./Pagination";
 
-export function Movies(props) {
-    const [movies, setMovies] = useState([]);
-    const [selectedServer, setSelectedServer] = useState(null);
-    const [movieLoading, setMovieLoading] = useState(true);
+function PaginatedTableContainer({libraryId, server}) {
+    const [items, setItems] = useState({items: [], totalItems: 0});
+    const [loading, setLoading] = useState(true);
+    const [pageNumber, setPageNumber] = useState(0);
+    const pageSize = 100;
 
-    const populateMoviesData = async (libraryId) => {
+    useEffect(() => {
+        populateData(libraryId, pageNumber)
+    })
+    const populateData = async (libraryId, pageNumber) => {
         const uri = 'api/media/movie?' + new URLSearchParams({
             libraryId: libraryId,
-            pageNumber: 1,
-            pageSize: 100
+            pageNumber: pageNumber + 1,
+            pageSize: pageSize
         });
         const response = await fetch(uri);
         const data = await response.json();
-        setMovies(data)
-        setMovieLoading(false)
+        setItems({items: data.items, totalItems: data.totalItems})
+        setLoading(false)
     }
+
+    return (
+        <div>
+            {loading ?
+                <Spinner>Loading...</Spinner> :
+                <div>
+                    <PaginationRow pages={Math.ceil(items.totalItems / pageSize)} currentPage={pageNumber}
+                                   selectPage={setPageNumber}/>
+                    <MoviesTable items={items.items} selectedServer={server}/>
+                </div>
+            }
+        </div>
+    );
+}
+
+export function Movies(props) {
+    const [selectedServer, setSelectedServer] = useState(null);
+    const [selectedLibrary, setSelectedLibrary] = useState(null);
 
     return (
         <div>
@@ -29,15 +51,9 @@ export function Movies(props) {
             <LibrarySelector
                 mediaType={"movie"}
                 onServerSelected={setSelectedServer}
-                onLibrarySelected={library => populateMoviesData(library)}/>
+                onLibrarySelected={setSelectedLibrary}/>
             <br/>
-            {movieLoading ?
-                <Spinner>Loading...</Spinner> :
-                <div>
-                    
-                    <MoviesTable items={movies} selectedServer={selectedServer}/>
-                </div>
-                }
+            <PaginatedTableContainer libraryId={selectedLibrary} server={selectedServer}/>
         </div>
     );
 

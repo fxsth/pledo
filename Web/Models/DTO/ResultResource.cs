@@ -2,8 +2,8 @@
 
 namespace Web.Models.DTO;
 
-public class MediaResultResource
+public class ResultResource<T>
 {
     public int TotalItems { get; set; }
-    public IEnumerable<IMediaElement> Items { get; set; }
+    public IEnumerable<T> Items { get; set; }
 }

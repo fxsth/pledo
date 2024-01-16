@@ -1,29 +1,26 @@
-import React, {useState} from 'react';
-import {LibrarySelector} from "./LibrarySelector";
-import {MoviesTable} from "./MoviesTable";
-import {PaginationItem, PaginationLink, Spinner} from "reactstrap";
+import React from 'react';
+import {Pagination, PaginationItem, PaginationLink} from "reactstrap";
 
-export function Pagination() {
-    const [pageNumber, setPageNumber] = useState([]);
+export function PaginationRow({ pages, currentPage, selectPage }) {
+    const pageClick = (e, page) => {
+        e.preventDefault();
+        selectPage(page);
+    };
+
+    const pagesToShow = 7;
+    const firstPageToShow = currentPage - Math.floor(pagesToShow / 2);
+    const firstPage = firstPageToShow < 0 ? 0 : firstPageToShow;
+    const lastPageToShow = currentPage + Math.floor(pagesToShow / 2);
+    const lastPage = lastPageToShow > pages ? pages : firstPage + pagesToShow;
+    const displayArray = [...Array(pages).keys()].slice(firstPage, lastPage);
 
     return (
         <Pagination>
-            <PaginationItem>
-                <PaginationLink
-                    previous
-                />
-            </PaginationItem>
-            <PaginationItem>
-                <PaginationLink>
-                    1
-                </PaginationLink>
-            </PaginationItem>
-
-            <PaginationItem>
-                <PaginationLink
-                    next
-                />
-            </PaginationItem>
+            {pages > pagesToShow && <PaginationItem disabled={currentPage === 0}><PaginationLink onClick={e => pageClick(e, 0)}>&laquo;</PaginationLink></PaginationItem>}
+            {pages > pagesToShow && <PaginationItem disabled={currentPage === 0}><PaginationLink onClick={e => pageClick(e, currentPage - 1)}>&lsaquo;</PaginationLink></PaginationItem>}
+            {displayArray.map(p => (<PaginationItem disabled={currentPage === p} key={p}><PaginationLink onClick={e => pageClick(e, p)}>{p + 1}</PaginationLink></PaginationItem>))}
+            {pages > pagesToShow && <PaginationItem disabled={currentPage === pages - 1}><PaginationLink onClick={e => pageClick(e, currentPage + 1)}>&rsaquo;</PaginationLink></PaginationItem>}
+            {pages > pagesToShow && <PaginationItem disabled={currentPage === pages - 1}><PaginationLink onClick={e => pageClick(e, pages - 1)}>&raquo;</PaginationLink></PaginationItem>}
         </Pagination>
     );
 
