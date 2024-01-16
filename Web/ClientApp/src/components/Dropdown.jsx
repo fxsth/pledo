@@ -4,14 +4,14 @@ import {Component} from "react";
 class Dropdown extends Component {
     constructor(props) {
         super(props);
-        const {title, list, onChange} = this.props;
+        const {title, list, onChange, onSelection} = this.props;
         this.state = {
             isListOpen: false,
             title,
-            selectedItem: null,
             keyword: '',
             list,
-            onChange
+            onChange,
+            onSelection
         };
     }
 
@@ -19,12 +19,13 @@ class Dropdown extends Component {
         const listItems = this.state.list.map((entry) =>
             <option value={entry.value}>{entry.label}</option>
         );
-        listItems.unshift(
-            <option>{this.state.title}</option>
-        )
+        if (this.state.list.length === 0)
+            listItems.unshift(
+                <option>{this.state.title}</option>
+            )
         return (
             <div>
-                <select onChange={this.state.onChange}>
+                <select onChange={event => this.state.onSelection(event.target.value)}>
                     {listItems}
                 </select>
             </div>
