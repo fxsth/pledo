@@ -16,10 +16,10 @@ public class RepositoryBase<T> : IRepository<T> where T : class
     {
         return CustomDbContext.Set<T>().AsNoTracking().ToList();
     }
-    
+
     public virtual async Task<IEnumerable<T>> Get(Expression<Func<T, bool>>? filter = null,
         Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null,
-        string includeProperties = "")
+        string includeProperties = "", int offset = 0, int size = 0)
     {
         IQueryable<T> query = CustomDbContext.Set<T>();
 
@@ -36,12 +36,27 @@ public class RepositoryBase<T> : IRepository<T> where T : class
 
         if (orderBy != null)
         {
-            return await orderBy(query).ToListAsync();
+            query = orderBy(query);
         }
-        else
+
+        query = query.Skip(offset);
+
+        if (size != 0)
+            query = query.Take(size);
+
+        return await query.ToListAsync();
+    }
+    
+    public async Task<int> Count(Expression<Func<T, bool>>? filter = null)
+    {
+        IQueryable<T> query = CustomDbContext.Set<T>();
+
+        if (filter != null)
         {
-            return await query.ToListAsync();
+            query = query.Where(filter);
         }
+
+        return await query.CountAsync();
     }
 
     public virtual async Task<T?> GetById(string id)
@@ -58,7 +73,7 @@ public class RepositoryBase<T> : IRepository<T> where T : class
     {
         await CustomDbContext.AddRangeAsync(t);
     }
-    
+
     public virtual async Task Insert(T t)
     {
         await CustomDbContext.AddAsync(t);
@@ -69,6 +84,7 @@ public class RepositoryBase<T> : IRepository<T> where T : class
         CustomDbContext.Remove(t);
         return Task.CompletedTask;
     }
+
     public virtual Task Remove(IEnumerable<T> t)
     {
         CustomDbContext.RemoveRange(t);
@@ -79,9 +95,9 @@ public class RepositoryBase<T> : IRepository<T> where T : class
     {
         var itemsInDb = CustomDbContext.Set<T>().ToList();
         var itemsToUpsert = t.ToList();
-        var itemsToDelete = itemsInDb.Where(x=>!itemsToUpsert.Contains(x));
-        var itemsToInsert = itemsToUpsert.Where(x=>!itemsInDb.Contains(x));
-        var itemsToUpdate = itemsInDb.Where(x=>itemsToUpsert.Contains(x));
+        var itemsToDelete = itemsInDb.Where(x => !itemsToUpsert.Contains(x));
+        var itemsToInsert = itemsToUpsert.Where(x => !itemsInDb.Contains(x));
+        var itemsToUpdate = itemsInDb.Where(x => itemsToUpsert.Contains(x));
         CustomDbContext.RemoveRange(itemsToDelete);
         CustomDbContext.AddRangeAsync(itemsToInsert);
         CustomDbContext.UpdateRange(itemsToUpdate);

@@ -12,7 +12,7 @@ public class TvShowRepository : RepositoryBase<TvShow>
 
     public override async Task<IEnumerable<TvShow>> Get(Expression<Func<TvShow, bool>>? filter = null,
         Func<IQueryable<TvShow>, IOrderedQueryable<TvShow>>? orderBy = null,
-        string includeProperties = "")
+        string includeProperties = "", int offset = 0, int size = 0)
     {
         IQueryable<TvShow> query = CustomDbContext.Set<TvShow>();
 
