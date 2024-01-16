@@ -4,7 +4,7 @@ import {MoviesTable} from "./MoviesTable";
 import {Spinner} from "reactstrap";
 import {TvShowsTable} from "./TvShowsTable";
 
-export function TvShows2(props) {
+export function TvShows(props) {
     const [items, setItems] = useState([]);
     const [selectedServer, setSelectedServer] = useState(null);
     const [loading, setLoading] = useState(true);

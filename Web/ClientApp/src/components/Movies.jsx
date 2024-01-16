@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {LibrarySelector} from "./LibrarySelector";
 import {MoviesTable} from "./MoviesTable";
 import {Spinner} from "reactstrap";
+import {Pagination} from "./Pagination";
 
 export function Movies(props) {
     const [movies, setMovies] = useState([]);
@@ -19,7 +20,7 @@ export function Movies(props) {
         setMovies(data)
         setMovieLoading(false)
     }
-    
+
     return (
         <div>
             <h1 id="tabelLabel">Movies</h1>
@@ -31,9 +32,13 @@ export function Movies(props) {
                 onLibrarySelected={library => populateMoviesData(library)}/>
             <br/>
             {movieLoading ?
-            <Spinner>Loading...</Spinner> :
-            <MoviesTable items={movies} selectedServer={selectedServer}/>}
+                <Spinner>Loading...</Spinner> :
+                <div>
+                    
+                    <MoviesTable items={movies} selectedServer={selectedServer}/>
+                </div>
+                }
         </div>
     );
-    
+
 }

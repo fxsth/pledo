@@ -35,17 +35,17 @@ export function LibrarySelector(props) {
     if (libraryData.libraries === undefined)
         return null;
     if (selectedServer == null && libraryData.servers.length > 0) {
-        setSelectedServer(libraryData.servers[0].id)
-        props.onServerSelected(libraryData.servers[0].id)
+        setSelectedServer(libraryData.servers[0])
+        props.onServerSelected(libraryData.servers[0])
     }
     if (selectedLibrary == null && libraryData.libraries.length > 0) {
         setSelectedLibrary(libraryData.libraries[0].id)
         props.onLibrarySelected(libraryData.libraries[0].id)
     }
     const serverList = libraryData.servers.map((server) =>
-        ({label: server.name, value: server.id})
+        ({label: server.name, value: server})
     )
-    const librariesList = libraryData.libraries.filter(lib => lib.serverId === selectedServer).map((library) =>
+    const librariesList = libraryData.libraries.filter(lib => lib.serverId === selectedServer?.id).map((library) =>
         ({
             label: library.name,
             value: library.id
