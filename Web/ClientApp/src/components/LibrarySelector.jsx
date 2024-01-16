@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react"
-import {Dropdown2} from "./Dropdown2";
+import {Selection} from "./Selection";
 import {Col, Container, Row} from "reactstrap";
 
 export function LibrarySelector(props) {
@@ -11,7 +11,7 @@ export function LibrarySelector(props) {
     useEffect(() => {
         const fetchData = async () => {
             const uri = 'api/library?' + new URLSearchParams({
-                mediaType: 'movie'
+                mediaType: props.mediaType
             });
             const response = await fetch(uri);
             const data = await response.json();
@@ -55,7 +55,7 @@ export function LibrarySelector(props) {
         <Container>
             <Row>
                 <Col xs="auto">
-                    <Dropdown2 name="servers"
+                    <Selection name="servers"
                                title="Select server"
                                items={serverList}
                                onChange={server => {
@@ -66,7 +66,7 @@ export function LibrarySelector(props) {
                     />
                 </Col>
                 <Col>
-                    <Dropdown2 name="libraries"
+                    <Selection name="libraries"
                                title="select libraries"
                                items={librariesList}
                                onChange={library => props.onLibrarySelected(library)}

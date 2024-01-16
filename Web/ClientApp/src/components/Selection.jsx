@@ -1,6 +1,6 @@
 import React, {useState} from "react"
 
-export function Dropdown2(props) {
+export function Selection(props) {
     
     const listItems = props.items.map((entry) =>
         <option value={entry.value}>{entry.label}</option>
