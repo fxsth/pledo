@@ -27,11 +27,14 @@ public class TvShowRepository : RepositoryBase<TvShow>
 
         if (orderBy != null)
         {
-            return await orderBy(query).ToListAsync();
+            query = orderBy(query);
         }
-        else
-        {
-            return await query.ToListAsync();
-        }
+
+        query = query.Skip(offset);
+
+        if (size != 0)
+            query = query.Take(size);
+
+        return await query.ToListAsync();
     }
 }
