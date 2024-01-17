@@ -33,7 +33,7 @@ function PaginatedTableContainer({libraryId, server}) {
                 <div>
                     <PaginationRow pages={Math.ceil(items.totalItems / pageSize)} currentPage={pageNumber}
                                    selectPage={setPageNumber}/>
-                    <MoviesTable items={items.items} selectedServer={server}/>
+                    <MoviesTable items={items.items} knownServer={[server]}/>
                 </div>
             }
         </div>

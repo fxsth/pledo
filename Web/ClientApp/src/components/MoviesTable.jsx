@@ -1,7 +1,8 @@
 ﻿import {Table} from "reactstrap";
 import DownloadButton from "./DownloadButton";
+import {DownloadButton2} from "./DownloadButton2";
 
-export function MoviesTable({items, selectedServer}) {
+export function MoviesTable({items, knownServer}) {
     const movies = items
     return (
         <div>
@@ -25,13 +26,14 @@ export function MoviesTable({items, selectedServer}) {
                             <td>{mediaFile.videoCodec}</td>
                             <td>{mediaFile.videoResolution}</td>
                             <td>{humanizeByteSize(mediaFile.totalBytes)}</td>
-                            <td><DownloadButton
+                            <td><DownloadButton2
                                 mediaType='movie'
                                 mediaKey={movie.ratingKey}
                                 mediaFileKey={mediaFile.downloadUri}
                                 mediaFile={mediaFile}
-                                server={selectedServer}
-                                downloadBrowserPossible={true}>Download</DownloadButton></td>
+                                knownServers={knownServer}
+                                serverId={movie.serverId}
+                                downloadBrowserPossible={true}>Download</DownloadButton2></td>
                         </tr>)
                 )}
                 </tbody>

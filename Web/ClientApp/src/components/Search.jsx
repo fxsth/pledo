@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {MoviesTable} from "./MoviesTable";
 import {
     Accordion, AccordionBody,
@@ -13,9 +13,20 @@ import {
 } from "reactstrap";
 import {TvShowsTable} from "./TvShowsTable";
 
-export function Search(props) {
+export function Search() {
     const [search, setSearch] = useState({results: null, loading: false});
     const [searchTerm, setSearchTerm] = useState("");
+    const [knownServer, setKnownServer] = useState(null);
+
+    useEffect(() => {
+        populateData()
+    }, [])
+    const populateData = async () => {
+        const uri = 'api/server?';
+        const response = await fetch(uri);
+        const data = await response.json();
+        setKnownServer(data)
+    }
 
     const searchRequest = async () => {
         setSearch({loading: true, results: null})
@@ -56,23 +67,23 @@ export function Search(props) {
             {search.loading ?
                 <Spinner>Loading...</Spinner> :
                 search.results != null ?
-                    <SearchResults results={search.results}/> :
+                    <SearchResults results={search.results} knownServer={knownServer}/> :
                     null}
         </div>
     );
 }
 
-function SearchResults({results}) {
+function SearchResults({results, knownServer}) {
     if (results == null)
         return
 
     return (
         <div>
             <SearchResultAccordion title={`Movies (${results.totalMoviesMatching} matching the search term)`}>
-                {results.movies ? <MoviesTable items={results.movies} selectedServer={null}/> : null}
+                {results.movies ? <MoviesTable items={results.movies} knownServer={knownServer}/> : null}
             </SearchResultAccordion>
             <SearchResultAccordion title={`TV Shows (${results.totalTvShowsMatching} matching the search term)`}>
-                {results.tvShows ? <TvShowsTable items={results.tvShows} selectedServer={null}/> : null}
+                {results.tvShows ? <TvShowsTable items={results.tvShows} knownServer={knownServer}/> : null}
             </SearchResultAccordion>
         </div>
     )
