@@ -44,6 +44,7 @@ export function Search() {
 
     return (
         <div>
+            <p>By now, this searches only for synchronized metadata.</p>
             <Row className="row-cols-lg-auto g-3 align-items-center">
                 <Col>
                     <Label className="visually-hidden"
