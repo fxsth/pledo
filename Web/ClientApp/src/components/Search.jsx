@@ -5,10 +5,7 @@ import {
     AccordionHeader,
     AccordionItem,
     Button,
-    Card,
-    CardBody,
     Col,
-    Collapse,
     Input,
     Label,
     Row,
@@ -55,11 +52,12 @@ export function Search(props) {
                     </Button>
                 </Col>
             </Row>
+            <br/>
             {search.loading ?
                 <Spinner>Loading...</Spinner> :
                 search.results != null ?
                     <SearchResults results={search.results}/> :
-                    <p>No results</p>}
+                    null}
         </div>
     );
 }
@@ -70,12 +68,11 @@ function SearchResults({results}) {
 
     return (
         <div>
-            <br/>
             <SearchResultAccordion title={`Movies (${results.totalMoviesMatching} matching the search term)`}>
                 {results.movies ? <MoviesTable items={results.movies} selectedServer={null}/> : null}
             </SearchResultAccordion>
             <SearchResultAccordion title={`TV Shows (${results.totalTvShowsMatching} matching the search term)`}>
-                {results.tvshows ? <TvShowsTable items={results.tvshows} selectedServer={null}/> : null}
+                {results.tvShows ? <TvShowsTable items={results.tvShows} selectedServer={null}/> : null}
             </SearchResultAccordion>
         </div>
     )

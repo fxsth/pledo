@@ -2,10 +2,8 @@
 import {ButtonGroup, ButtonToolbar, Card, CardBody} from "reactstrap";
 import DownloadButton from "./DownloadButton";
 
-export function TvShowsTable(props) {
-    const tvShows = props.items
-    const selectedServer = props.selectedServer
-    
+export function TvShowsTable({items, selectedServer}) {
+    const tvShows = items
     const humanizeByteSize = (size) => {
         if(!size)
             return "--";
