@@ -5,6 +5,7 @@ import {Downloads} from "./components/Downloads";
 import {Playlists} from "./components/Playlists";
 import React from "react";
 import {TvShows} from "./components/TvShows";
+import {Search} from "./components/Search";
 
 const AppRoutes = [
   {
@@ -25,6 +26,9 @@ const AppRoutes = [
   },{
     path: '/playlists',
     element: <Playlists/>
+  },{
+    path: '/search',
+    element: <Search/>
   }
 ];
 

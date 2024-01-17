@@ -6,7 +6,6 @@ import {PaginationRow} from "./Pagination";
 
 function PaginatedTableContainer({libraryId, server}) {
     const [items, setItems] = useState({items: [], totalItems: 0, loading: true});
-    const [loading, setLoading] = useState(true);
     const [pageNumber, setPageNumber] = useState(0);
     const pageSize = 100;
 
