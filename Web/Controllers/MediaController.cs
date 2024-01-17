@@ -102,6 +102,7 @@ public class MediaController : ControllerBase
         var search = searchTerm.Trim('%').Insert(0, "%");
         search = search.Insert(search.Length, "%");
         var movies = (await _unitOfWork.MovieRepository.Get(x => EF.Functions.Like(x.Title, search),
+            s => s.OrderBy(x => x.Title),
             includeProperties: nameof(Movie.MediaFiles))).ToList();
         result.Movies = movies.Take(100);
         result.TotalMoviesMatching = movies.Count();
