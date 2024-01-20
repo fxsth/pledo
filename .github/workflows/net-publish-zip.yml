@@ -1,0 +1,26 @@
+﻿name: 'Publish and upload win-x64 release asset'
+on:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: write
+
+env:
+  ASSET_FILENAME: 'pledo.win-x64.zip'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Publish and upload windows x64'
+        run: |
+          cd ${{github.workspace}}
+          dotnet publish ./Web/Web.csproj -r win-x64 -c Release -o publish/bin/win-x64
+          zip -r ${{ env.ASSET_FILENAME }} publish/bin/win-x64 -j
+          gh release upload ${{github.event.release.tag_name}} ${{ env.ASSET_FILENAME }}
+        env:
+          GITHUB_TOKEN: ${{ github.TOKEN }}
+        shell: bash
