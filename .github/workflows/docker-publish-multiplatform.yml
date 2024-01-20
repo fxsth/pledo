@@ -1,8 +1,8 @@
-name: Build-Docker-Multiplatform
+name: Build docker images for multiplatform
 
 on:
   push:
-    branches: [ "experimental" ]
+    branches: [ "experimental", "master" ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
 
