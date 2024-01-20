@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Web.Data;
 using Web.Extensions;
+using Web.Hubs;
 using Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +23,7 @@ builder.Services
 builder.Logging.AddConsole();
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 builder.Services.AddDbContext<CustomDbContext>(o =>
     {
         // o.UseSqlServer(builder.Configuration.GetConnectionString("LocalDbDatabase"));
@@ -78,6 +79,8 @@ using (var scope = app.Services.CreateScope())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
+app.MapHub<DownloadHub>("/hub/download");
 
 app.MapControllerRoute(
     name: "default",

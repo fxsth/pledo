@@ -14,4 +14,6 @@ public interface IDownloadService
     Task DownloadPlaylist(string key);
     Task CancelDownload(string key);
 
+    event Action<int> PendingDownloadCountChanged;
+
 }

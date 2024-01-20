@@ -17,6 +17,8 @@ namespace Web.Services
         private readonly Collection<DownloadElement> _pendingDownloads;
         private bool _isDownloading;
 
+        public event Action<int>? PendingDownloadCountChanged;
+
         public DownloadService(HttpClient httpClient, IServiceScopeFactory scopeFactory,
             ILogger<DownloadService> logger)
         {
@@ -277,7 +279,7 @@ namespace Web.Services
 
             return Task.CompletedTask;
         }
-
+        
         private void AddToPendingDownloads(DownloadElement toDownload)
         {
             if (_pendingDownloads.All(x => x.MediaKey != toDownload.MediaKey))
@@ -285,6 +287,7 @@ namespace Web.Services
                 _logger.LogInformation("Adding new element to download queue: {0}", toDownload.Name);
                 _pendingDownloads.Add(toDownload);
                 StartDownloaderIfNotActive();
+                PendingDownloadCountChanged?.Invoke(_pendingDownloads.Count);
             }
         }
 
@@ -364,6 +367,7 @@ namespace Web.Services
                 if (File.Exists(downloadElement.FilePath))
                     File.Delete(downloadElement.FilePath);
             }
+            PendingDownloadCountChanged?.Invoke(_pendingDownloads.Count);
         }
 
         private async Task<HttpResponseMessage> SendDownloadRequest(DownloadElement downloadElement)
