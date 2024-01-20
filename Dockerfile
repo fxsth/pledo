@@ -23,6 +23,8 @@ RUN dotnet publish "Web.csproj" -a $TARGETARCH --no-restore --self-contained fal
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 # Needed when csproj is .NET 7
 ENV DOTNET_ROLL_FORWARD=Major
+# With .Net 8 default port changed
+ENV ASPNETCORE_HTTP_PORTS=80
 WORKDIR /app
 COPY --from=build /app/publish .
 
