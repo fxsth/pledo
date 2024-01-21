@@ -35,6 +35,8 @@ services:
     ports:
       - 23456:80
     restart: unless-stopped
+    logging:
+      driver: "local"   # for log-rotation
 ```
 Directory /config is used for storing database and local configuration. If not available, it will default to SpecialFolder.LocalApplicationData/.pledo
 
