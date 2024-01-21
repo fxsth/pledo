@@ -21,7 +21,9 @@ public class TvShowRepository : RepositoryBase<TvShow>
             query = query.Where(filter);
         }
 
-        query = query.Include(x => x.Episodes)
+        query = query.Include(x => x.Episodes
+                .OrderBy(e => e.SeasonNumber)
+                .ThenBy(e => e.EpisodeNumber))
             .ThenInclude(e => e.MediaFiles);
 
 
@@ -35,6 +37,6 @@ public class TvShowRepository : RepositoryBase<TvShow>
         if (size != 0)
             query = query.Take(size);
 
-        return await query.ToListAsync();
+        return await query.AsSplitQuery().ToListAsync();
     }
 }

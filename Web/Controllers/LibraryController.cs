@@ -23,8 +23,10 @@ public class LibraryController : ControllerBase
     {
         if (server == null)
             return await _unitOfWork.LibraryRepository.Get(mediaType == null? _=>true : library => library.Type == mediaType,
+                orderBy: s => s.OrderBy(x => x.Name),
                 includeProperties: nameof(Library.Server));
 
-        return await _unitOfWork.LibraryRepository.Get(library => library.ServerId == server);
+        return await _unitOfWork.LibraryRepository.Get(library => library.ServerId == server,
+            orderBy: s => s.OrderBy(x => x.Name));
     }
 }

@@ -46,7 +46,7 @@ public class RepositoryBase<T> : IRepository<T> where T : class
 
         return await query.ToListAsync();
     }
-    
+
     public async Task<int> Count(Expression<Func<T, bool>>? filter = null)
     {
         IQueryable<T> query = CustomDbContext.Set<T>();
