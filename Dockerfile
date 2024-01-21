@@ -18,7 +18,7 @@ RUN dotnet restore "Web/Web.csproj" -a $TARGETARCH
 WORKDIR "/src/Web"
 COPY ./Web .
 
-RUN dotnet publish "Web.csproj" -a $TARGETARCH --no-restore --self-contained false -o /app/publish 
+RUN dotnet publish "Web.csproj" -a $TARGETARCH -c Release --no-restore --self-contained false -o /app/publish 
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 # Needed when csproj is .NET 7
