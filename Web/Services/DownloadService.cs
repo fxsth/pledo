@@ -4,6 +4,7 @@ using Web.Data;
 using Web.Exceptions;
 using Web.Models;
 using Web.Models.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace Web.Services
 {
@@ -31,7 +32,7 @@ namespace Web.Services
                 (exception, timeSpan, context) =>
                 {
                     _logger.LogWarning(exception?.Exception,
-                        "Retry download for a {0}. time after {1} seconds.", context.Count+1, timeSpan.Seconds);
+                        "Retry download for a {0}. time after {1} seconds.", context.Count + 1, timeSpan.Seconds);
                 });
         }
 
@@ -51,7 +52,7 @@ namespace Web.Services
 
             return returnList;
         }
-        
+
         public async Task RemoveAllFinishedOrCancelledDownloads()
         {
             using (var scope = _scopeFactory.CreateScope())
@@ -79,7 +80,7 @@ namespace Web.Services
                 MediaFile? mediaFile;
                 if (mediaFileKey == null)
                     mediaFile = await SelectMediaFile(mediaElement.MediaFiles, settingsService);
-                else 
+                else
                     mediaFile = mediaElement.MediaFiles.FirstOrDefault(x => x.DownloadUri == mediaFileKey);
                 if (mediaElement == null || mediaFile == null)
                 {
@@ -112,19 +113,28 @@ namespace Web.Services
         }
 
         private async Task<string> GetFilePath(string downloadDirectory, string serverFilePath, IMediaElement mediaElement,
-            ISettingsService settingsService)
+    ISettingsService settingsService)
         {
             var originalFileName = PreferencesProvider.GetFilenameFromPath(serverFilePath, $"{mediaElement.Title} ({mediaElement.Year}).{mediaElement.MediaFiles.FirstOrDefault()?.Container}");
-            
+            // Sanitize the file name to remove invalid characters
+            var sanitizedFileName = SanitizeFileName(originalFileName);
+
             if (mediaElement is Movie movie)
             {
                 var fileTemplate = await settingsService.GetMovieFileTemplate();
                 switch (fileTemplate)
                 {
                     case MovieFileTemplate.FilenameFromServer:
-                        return Path.Combine(downloadDirectory, originalFileName);
+                        {
+                            // Use the downloadDirectory directly without sanitization
+                            return Path.Combine(downloadDirectory, sanitizedFileName);
+                        }
                     case MovieFileTemplate.MovieDirectoryAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, movie.Title, originalFileName);
+                        {
+                            // Sanitize the movie title (directory name)
+                            var sanitizedMovieTitle = SanitizePath(movie.Title);
+                            return Path.Combine(downloadDirectory, sanitizedMovieTitle, sanitizedFileName);
+                        }
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
@@ -135,16 +145,43 @@ namespace Web.Services
                 switch (fileTemplate)
                 {
                     case EpisodeFileTemplate.SeriesAndSeasonDirectoriesAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, episode.TvShow.Title, $"Season {episode.SeasonNumber}",
-                            originalFileName);
+                        {
+                            // Sanitize the series title and season number (directory names)
+                            var sanitizedSeriesTitle = SanitizePath(episode.TvShow.Title);
+                            var sanitizedSeason = SanitizePath($"Season {episode.SeasonNumber}");
+                            return Path.Combine(downloadDirectory, sanitizedSeriesTitle, sanitizedSeason, sanitizedFileName);
+                        }
                     case EpisodeFileTemplate.SeriesDirectoryAndFilenameFromServer:
-                        return Path.Combine(downloadDirectory, episode.TvShow.Title, originalFileName);
+                        {
+                            // Sanitize the series title (directory name)
+                            var sanitizedSeriesTitle = SanitizePath(episode.TvShow.Title);
+                            return Path.Combine(downloadDirectory, sanitizedSeriesTitle, sanitizedFileName);
+                        }
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
             }
 
             throw new InvalidCastException("Invalid file template");
+        }
+
+        //
+        // Method to sanitize file names by removing invalid characters
+        private static string SanitizeFileName(string fileName)
+        {
+            // Define invalid characters for file names
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            // Remove invalid characters
+            return string.Concat(fileName.Where(c => !invalidChars.Contains(c)));
+        }
+
+        // Method to sanitize directory paths by removing invalid characters
+        private static string SanitizePath(string path)
+        {
+            // Define invalid characters for paths (including ':')
+            char[] invalidChars = new char[] { '<', '>', ':', '"', '/', '\\', '|', '?', '*', '\0' };
+            // Remove invalid characters
+            return string.Concat(path.Where(c => !invalidChars.Contains(c)));
         }
 
         private Task<Uri> GetCompleteDownloadUri(Library? library,
@@ -166,7 +203,7 @@ namespace Web.Services
                 case ElementType.Movie:
                     return (await unitOfWork.MovieRepository.Get(x => x.RatingKey == key, includeProperties: nameof(Movie.MediaFiles))).FirstOrDefault();
                 case ElementType.TvShow:
-                    return (await unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow)+","+nameof(Episode.MediaFiles)))
+                    return (await unitOfWork.EpisodeRepository.Get(x => x.RatingKey == key, null, nameof(Episode.TvShow) + "," + nameof(Episode.MediaFiles)))
                         .FirstOrDefault();
                 default:
                     return null;
@@ -214,7 +251,7 @@ namespace Web.Services
 
                 IEnumerable<Movie> movies = await unitOfWork.MovieRepository.Get(x => playlist.Items.Contains(x.RatingKey));
                 IEnumerable<Episode> episodes = await unitOfWork.EpisodeRepository.Get(x => playlist.Items.Contains(x.RatingKey));
-                
+
                 var settingsService = scope.ServiceProvider.GetRequiredService<ISettingsService>();
                 foreach (Movie movie in movies)
                 {
@@ -242,7 +279,7 @@ namespace Web.Services
                         movie.Title);
                 return;
             }
-            
+
             var downloadElement = await CreateDownloadElement(mediaElement.RatingKey, mediaFile.DownloadUri, elementType);
             AddToPendingDownloads(downloadElement);
         }
@@ -371,7 +408,7 @@ namespace Web.Services
             HttpRequestMessage httpRequestMessage = downloadElement.RequestMessage;
             CancellationToken cancellationToken = downloadElement.CancellationTokenSource.Token;
             HttpResponseMessage? response = null;
-            
+
             try
             {
                 response = await _httpClient.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead,
@@ -382,7 +419,7 @@ namespace Web.Services
             catch (HttpRequestException e)
             {
                 _logger.LogError(e,
-                    "An error occured while trying to access the file to download. As there might be an issue with the selected connection to the plex media server, it  will retry with different connections.");
+                    "An error occurred while trying to access the file to download. As there might be an issue with the selected connection to the Plex media server, it will retry with different connections.");
             }
 
             IReadOnlyCollection<Uri> availableUris;
@@ -402,7 +439,7 @@ namespace Web.Services
                 httpRequestMessage.Headers.Add("X-Plex-Token", accessToken);
                 response = await _httpClient.SendAsync(httpRequestMessage, HttpCompletionOption.ResponseHeadersRead,
                     cancellationToken);
-                if(response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode)
                     return response;
             }
 
@@ -438,13 +475,9 @@ namespace Web.Services
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "An error occured while downloading item {0}", downloadElement.Name);
+                _logger.LogError(e, "An error occurred while downloading item {0}", downloadElement.Name);
             }
         }
-        
-        
-        
-        // private static void TryAddDownload
 
         private static async Task CopyToAsync(Stream source, Stream destination, DownloadElement downloadElement,
             IAsyncPolicy<int> policy,
